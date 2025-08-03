@@ -1,0 +1,220 @@
+name: Backend CI/CD Pipeline
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+env:
+  DOCKER_REGISTRY: docker.io
+  IMAGE_NAME: norohim/pro-mata-backend
+  JAVA_VERSION: '17'
+  
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: promata_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Cache Maven Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Run Tests
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          DATABASE_URL: jdbc:postgresql://localhost:5432/promata_test
+          DATABASE_USERNAME: test_user
+          DATABASE_PASSWORD: test_pass
+        run: |
+          ./mvnw clean test
+          ./mvnw verify
+
+      - name: Generate Test Reports
+        if: always()
+        run: |
+          ./mvnw jacoco:report
+          
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            target/test-results/
+            target/site/jacoco/
+
+      - name: SonarQube Analysis
+        if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          ./mvnw sonar:sonar \
+            -Dsonar.projectKey=pro-mata-backend \
+            -Dsonar.organization=pro-mata \
+            -Dsonar.host.url=https://sonarcloud.io
+
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy Security Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy Results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  build-and-push:
+    needs: [test, security-scan]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Build Application
+        run: |
+          ./mvnw clean package -DskipTests
+          
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and Push Image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.prod
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v3
+        with:
+          name: sbom
+          path: sbom.spdx.json
+
+  trigger-deployment:
+    needs: build-and-push
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Determine Environment
+        id: env
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/develop" ]; then
+            echo "environment=dev" >> $GITHUB_OUTPUT
+            echo "event_type=deploy-dev" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "environment=prod" >> $GITHUB_OUTPUT
+            echo "event_type=deploy-prod" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get Frontend Image Tag
+        id: frontend
+        run: |
+          # Query Docker Hub API for latest frontend image
+          FRONTEND_TAG=$(curl -s "https://hub.docker.com/v2/repositories/norohim/pro-mata-frontend/tags/?page_size=1" | jq -r '.results[0].name')
+          echo "tag=$FRONTEND_TAG" >> $GITHUB_OUTPUT
+
+      - name: Trigger Infrastructure Deployment
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.INFRA_TRIGGER_TOKEN }}
+          repository: pro-mata/pro-mata-infra
+          event-type: ${{ steps.env.outputs.event_type }}
+          client-payload: |
+            {
+              "backend_tag": "${{ needs.build-and-push.outputs.image_tag }}",
+              "frontend_tag": "${{ steps.frontend.outputs.tag }}",
+              "environment": "${{ steps.env.outputs.environment }}",
+              "triggered_by": "backend",
+              "commit_sha": "${{ github.sha }}",
+              "ref": "${{ github.ref }}"
+            }
+
+      - name: Notify Teams
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ Backend deployment triggered successfully for ${{ steps.env.outputs.environment }}"
+          else
+            echo "❌ Failed to trigger backend deployment"
+          fi
+          # Add Slack/Discord notification here
