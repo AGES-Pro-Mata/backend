@@ -13,7 +13,7 @@ Este repositório contém o backend do projeto Pró-Mata.
 Certifique-se de ter o Docker instalado e configurado. Para iniciar o banco de dados localmente:
 
 ```bash
-docker compose --env-file <caminho-do-arquivo-.env> up database
+docker compose --env-file .env.local up database
 ```
 
 Em seguida, para iniciar o servidor local:
@@ -36,4 +36,6 @@ npm run start:hlg
 
 ## 🛠️ Variáveis de ambiente
 
-Todas as variáveis necessárias devem estar no arquivo development.env. Esse arquivo será utilizado tanto para subir o banco de dados quanto para definir o ambiente de execução da aplicação.
+Variáveis de ambientes estão localizadas nos arquivos .env.local, .env.tst e .env.hlg.
+  
+  ⚠️ Importante: Para ter acesso as variáveis de ambiente TST e HLG entre em contato com os AGES III e IV.
