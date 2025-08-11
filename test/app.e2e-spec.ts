@@ -17,9 +17,7 @@ describe('AppController (e2e)', () => {
   });
 
   it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello from Pró-Mata!');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    return request(app.getHttpServer()).get('/').expect(200).expect('Hello from Pró-Mata!');
   });
 });
