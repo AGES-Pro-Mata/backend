@@ -4,7 +4,7 @@ Este repositório contém o backend do projeto Pró-Mata.
 ## 📦 Tecnologias
 - Node.js
 - NestJS
- DynamoDB (via Docker)
+- DynamoDB (via Docker)
 
 ## 🚀 Como rodar o projeto?
 
