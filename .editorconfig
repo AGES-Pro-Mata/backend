@@ -1,0 +1,33 @@
+# EditorConfig ajuda a manter estilos de codificação consistentes
+root = true
+
+# Arquivos TypeScript e JavaScript
+[*.{ts,js}]
+charset = utf-8
+indent_style = space
+indent_size = 2
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Arquivos JSON e YAML
+[*.{json,yml,yaml}]
+indent_style = space
+indent_size = 2
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Arquivos Markdown
+[*.md]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = false
+
+# Ignore configurações para arquivos especiais
+[*.{env,env.*}]
+indent_style = none
+trim_trailing_whitespace = false
+insert_final_newline = false
