@@ -8,19 +8,14 @@ Este repositório contém o backend do projeto Pró-Mata.
 
 ## 🚀 Como rodar o projeto?
 
-### 1. Rodando com banco de dados local
+1. Preparando o ambiente
+Antes de iniciar, certifique-se de ter:
 
-Certifique-se de ter o Docker instalado e configurado. Para iniciar o banco de dados localmente:
+Docker instalado.
 
-```bash
-docker compose --env-file .env.local up database
-```
+Arquivo .env configurado com as variáveis de ambiente necessárias (banco local, TST e HLG).
 
-Em seguida, para iniciar o servidor local:
-
-```bash
-npm run start:local
-```
+---
 
 ### 2. Perfis de execução
 
@@ -34,7 +29,6 @@ docker compose --profile local up
 
 Este comando sobe **o backend** e **o banco local** juntos.
 
----
 
 #### 🔹 Backend local + banco TST
 
@@ -44,7 +38,6 @@ docker compose --profile tst up
 
 Sobe o backend localmente, mas utilizando **o banco de dados do ambiente TST**.
 
----
 
 #### 🔹 Backend local + banco HLG
 
