@@ -22,20 +22,43 @@ Em seguida, para iniciar o servidor local:
 npm run start:local
 ```
 
-### 2. Rodando com banco de dados de homologação (hlg) ou testes (tst)
+### 2. Perfis de execução
 
-    ⚠️ Importante: essas opções ainda estão em desenvolvimento (TODO).
+O projeto utiliza **profiles** do `docker compose` para facilitar a execução em diferentes ambientes.
+
+#### 🔹 Ambiente local (backend + banco local)
 
 ```bash
-# Usando banco de dados de teste (TST)
-npm run start:tst
-
-# Usando banco de dados de homologação (HLG)
-npm run start:hlg
+docker compose --profile local up
 ```
+
+Este comando sobe **o backend** e **o banco local** juntos.
+
+---
+
+#### 🔹 Backend local + banco TST
+
+```bash
+docker compose --profile tst up
+```
+
+Sobe o backend localmente, mas utilizando **o banco de dados do ambiente TST**.
+
+---
+
+#### 🔹 Backend local + banco HLG
+
+```bash
+docker compose --profile hlg up
+```
+
+Sobe o backend localmente, mas utilizando **o banco de dados do ambiente HLG**.
+
+---
 
 ## 🛠️ Variáveis de ambiente
 
 Variáveis de ambientes estão localizadas nos arquivos .env.local, .env.tst e .env.hlg.
   
   ⚠️ Importante: Para ter acesso as variáveis de ambiente TST e HLG entre em contato com os AGES III e IV.
+

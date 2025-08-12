@@ -19,6 +19,7 @@ export class DatabaseService implements OnModuleInit {
   public readonly docClient = DynamoDBDocumentClient.from(this.client);
 
   async onModuleInit() {
+    this.logger.log(`Connected to ${process.env.DATABASE_URL} database`);
     await this.createTables();
   }
 

@@ -1,0 +1,65 @@
+services:
+ database:
+   profiles: ["local"]
+   command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
+   image: "amazon/dynamodb-local:latest"
+   ports:
+     - $DATABASE_PORT:8000
+   volumes:
+     - "./docker/dynamodb:/home/dynamodblocal/data"
+   working_dir: /home/dynamodblocal
+   env_file:
+     - ./.env.local
+ local:
+    profiles: ["local"]
+    build:
+      context: .
+      target: deps
+    command: npm run start:local
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      CHOKIDAR_USEPOLLING: "1"
+      TS_NODE_TRANSPILE_ONLY: "1"
+    volumes:
+      - ./:/app:delegated
+      - /app/node_modules
+    env_file:
+      - ./.env.local
+    depends_on:
+      - database
+ tst:
+    profiles: ["tst"]
+    build:
+      context: .
+      target: deps
+    command: npm run start:tst
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      CHOKIDAR_USEPOLLING: "1"
+      TS_NODE_TRANSPILE_ONLY: "1"
+    volumes:
+      - ./:/app:delegated
+      - /app/node_modules
+    env_file:
+      - ./.env.tst
+ hlg:
+    profiles: ["hlg"]
+    build:
+      context: .
+      target: deps
+    command: npm run start:hlg
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      CHOKIDAR_USEPOLLING: "1"
+      TS_NODE_TRANSPILE_ONLY: "1"
+    volumes:
+      - ./:/app:delegated
+      - /app/node_modules
+    env_file:
+      - ./.env.hlg
