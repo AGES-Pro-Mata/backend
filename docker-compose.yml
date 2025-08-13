@@ -1,16 +1,25 @@
 services:
- database:
-   profiles: ["local"]
-   command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
-   image: "amazon/dynamodb-local:latest"
-   ports:
-     - 8000:8000
-   volumes:
-     - "./.tmp/dynamodb:/home/dynamodblocal/data"
-   working_dir: /home/dynamodblocal
-   env_file:
-     - ./.env.local
- local:
+  database:
+    profiles: ["local"]
+    image: postgres
+    container_name: postgres
+    restart: unless-stopped
+    ports:
+      - "${DATABASE_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    env_file:
+      - ./.env.local
+  local:
     profiles: ["local"]
     build:
       context: .
@@ -29,7 +38,7 @@ services:
       - ./.env.local
     depends_on:
       - database
- tst:
+  tst:
     profiles: ["tst"]
     build:
       context: .
@@ -46,7 +55,7 @@ services:
       - /app/node_modules
     env_file:
       - ./.env.tst
- hlg:
+  hlg:
     profiles: ["hlg"]
     build:
       context: .
@@ -63,3 +72,6 @@ services:
       - /app/node_modules
     env_file:
       - ./.env.hlg
+
+volumes:
+  postgres_data:
