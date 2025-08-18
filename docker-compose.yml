@@ -1,77 +1,72 @@
+x-api-common: &api-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  working_dir: /app
+  ports:
+    - "3000:3000"
+  environment:
+    NODE_ENV: development
+    CHOKIDAR_USEPOLLING: "true"
+    WATCHPACK_POLLING: "true"
+  command: sh -c "npx prisma generate && npm run start:dev"
+  volumes:
+    - ./:/app
+    - node_modules:/app/node_modules
+
 services:
-  database:
+  api-local:
+    <<: *api-common
     profiles: ["local"]
-    image: postgres
-    container_name: postgres
-    restart: unless-stopped
-    ports:
-      - "${DATABASE_PORT:-5432}:5432"
+    env_file:
+      - .env.local
     environment:
+      BACKEND_ENV: local
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - backend-net
+
+  database:
+    image: postgres
+    profiles: ["local"]
+    ports:
+      - "${DATABASE_PORT}:5432"
+    environment:
+      POSTGRES_DB: ${DATABASE_DB}
       POSTGRES_USER: ${DATABASE_USER}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
-      POSTGRES_DB: ${DATABASE_DB}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 5
-    env_file:
-      - ./.env.local
-  local:
-    profiles: ["local"]
-    build:
-      context: .
-      target: deps
-    command: npm run start:local
-    ports:
-      - "3000:3000"
-    environment:
-      NODE_ENV: development
-      CHOKIDAR_USEPOLLING: "1"
-      TS_NODE_TRANSPILE_ONLY: "1"
-    volumes:
-      - ./:/app:delegated
-      - /app/node_modules
-    env_file:
-      - ./.env.local
-    depends_on:
-      - database
-  tst:
+      retries: 20
+    networks:
+      - backend-net
+
+  api-tst:
+    <<: *api-common
     profiles: ["tst"]
-    build:
-      context: .
-      target: deps
-    command: npm run start:tst
-    ports:
-      - "3000:3000"
-    environment:
-      NODE_ENV: development
-      CHOKIDAR_USEPOLLING: "1"
-      TS_NODE_TRANSPILE_ONLY: "1"
-    volumes:
-      - ./:/app:delegated
-      - /app/node_modules
     env_file:
-      - ./.env.tst
-  hlg:
+      - .env.tst
+    environment:
+      BACKEND_ENV: tst
+
+  api-hlg:
+    <<: *api-common
     profiles: ["hlg"]
-    build:
-      context: .
-      target: deps
-    command: npm run start:hlg
-    ports:
-      - "3000:3000"
-    environment:
-      NODE_ENV: development
-      CHOKIDAR_USEPOLLING: "1"
-      TS_NODE_TRANSPILE_ONLY: "1"
-    volumes:
-      - ./:/app:delegated
-      - /app/node_modules
     env_file:
-      - ./.env.hlg
+      - .env.hlg
+    environment:
+      BACKEND_ENV: hlg
 
 volumes:
-  postgres_data:
+  node_modules:
+  pgdata:
+
+networks:
+  backend-net:
+    driver: bridge
