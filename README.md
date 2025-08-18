@@ -37,6 +37,7 @@ docker compose --profile local up database
 Este comando somente **o banco local**.
 
 ```bash
+npx prisma generate
 npm run start:local
 ```
 
