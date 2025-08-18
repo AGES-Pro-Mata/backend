@@ -28,6 +28,20 @@ as dependências do `node_modules` não são necessárias para rodar o projeto v
 
 O projeto utiliza **profiles** do `docker compose` para facilitar a execução em diferentes ambientes.
 
+#### 🔹 Ambiente local sem o docker (backend + banco local)
+
+```bash
+docker compose --profile local up database
+```
+
+Este comando somente **o banco local**.
+
+```bash
+npm run start:local
+```
+
+Este comando inicia o **servidor localmente**.
+
 #### 🔹 Ambiente local (backend + banco local)
 
 ```bash
@@ -35,6 +49,9 @@ docker compose --profile local up
 ```
 
 Este comando sobe **o backend** e **o banco local** juntos.
+
+
+    ⚠️ Se estiver dando um erro de conexão no banco de dados basta mudar o `localhost` no `.env.local` para `database`.
 
 
 #### 🔹 Backend local + banco TST
