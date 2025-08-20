@@ -31,7 +31,7 @@ O projeto utiliza **profiles** do `docker compose` para facilitar a execução e
 #### 🔹 Ambiente local sem o docker (backend + banco local)
 
 ```bash
-docker compose --profile local up database
+docker compose --env-file .env.local --profile local up database
 ```
 
 Este comando somente **o banco local**.
@@ -45,7 +45,7 @@ Este comando inicia o **servidor localmente**.
 #### 🔹 Ambiente local (backend + banco local)
 
 ```bash
-docker compose --profile local up
+docker compose --env-file .env.local --profile local up
 ```
 
 Este comando sobe **o backend** e **o banco local** juntos.
@@ -57,7 +57,7 @@ Este comando sobe **o backend** e **o banco local** juntos.
 #### 🔹 Backend local + banco TST
 
 ```bash
-docker compose --profile tst up
+docker compose --env-file .env.tst --profile tst up
 ```
 
 Sobe o backend localmente, mas utilizando **o banco de dados do ambiente TST**.
@@ -66,7 +66,7 @@ Sobe o backend localmente, mas utilizando **o banco de dados do ambiente TST**.
 #### 🔹 Backend local + banco HLG
 
 ```bash
-docker compose --profile hlg up
+docker compose --env-file .env.hlg --profile hlg up
 ```
 
 Sobe o backend localmente, mas utilizando **o banco de dados do ambiente HLG**.
