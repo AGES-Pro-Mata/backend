@@ -1,81 +1,121 @@
 # Pró-Mata Backend
+
 Este repositório contém o backend do projeto Pró-Mata.
 
 ## 📦 Tecnologias
-- Node.js
+
+- Node.js 20
 - NestJS
-- DynamoDB (via Docker)
+- PostgreSQL
+- Prisma ORM
+- Docker & Docker Compose
 
 ## 🚀 Como rodar o projeto?
 
-1. Preparando o ambiente
-Antes de iniciar, certifique-se de ter:
+### 1. Preparando o ambiente
 
-Docker instalado.
-
-Arquivo .env configurado com as variáveis de ambiente necessárias (banco local, TST e HLG).
-
-Lembre-se de rodar:
-```bash
-npm install
-```
-
-as dependências do `node_modules` não são necessárias para rodar o projeto via docker, mas ainda precisa-se delas para ter o "auto-complete" do editor de texto
-
----
-
-### 2. Perfis de execução
-
-O projeto utiliza **profiles** do `docker compose` para facilitar a execução em diferentes ambientes.
-
-#### 🔹 Ambiente local sem o docker (backend + banco local)
+Certifique-se de ter Docker instalado.
 
 ```bash
-docker compose --env-file .env.local --profile local up database
+npm install  # Para auto-complete do editor
 ```
 
-Este comando somente **o banco local**.
+### 2. Profiles de execução
 
-```bash
-npm run start:local
-```
+O projeto utiliza **profiles** do `docker compose` para diferentes ambientes:
 
-Este comando inicia o **servidor localmente**.
-
-#### 🔹 Ambiente local (backend + banco local)
+#### 🔹 Desenvolvimento completo
 
 ```bash
 docker compose --env-file .env.local --profile local up
 ```
 
-Este comando sobe **o backend** e **o banco local** juntos.
+Backend + banco PostgreSQL locais.
 
-
-    ⚠️ Se estiver dando um erro de conexão no banco de dados basta mudar o `localhost` no `.env.local` para `database`.
-
-
-#### 🔹 Backend local + banco TST
+#### 🔹 Apenas banco de dados
 
 ```bash
-docker compose --env-file .env.tst --profile tst up
+docker compose --env-file .env.local --profile local up database
 ```
 
-Sobe o backend localmente, mas utilizando **o banco de dados do ambiente TST**.
+Para rodar backend localmente: `npm run start:local`
 
-
-#### 🔹 Backend local + banco HLG
+#### 🔹 Teste de produção
 
 ```bash
-docker compose --env-file .env.hlg --profile hlg up
+docker compose --env-file .env.local --profile prod-test up
 ```
 
-Sobe o backend localmente, mas utilizando **o banco de dados do ambiente HLG**.
+Testa build de produção localmente.
 
----
+#### 🔹 Testes automatizados
+
+```bash
+docker compose --env-file .env.local --profile test up
+```
+
+#### 🔹 Prisma Studio
+
+```bash
+docker compose --env-file .env.local --profile studio up
+```
+
+Interface visual do banco: <http://localhost:5555>
 
 ## 🛠️ Variáveis de ambiente
 
-Variáveis de ambientes estão localizadas nos arquivos .env.local, .env.tst e .env.hlg.
-  
-  ⚠️ Importante: Para ter acesso as variáveis de ambiente TST e HLG entre em contato com os AGES III e IV.
+### Arquivos disponíveis
 
+- `.env.local` - Desenvolvimento local
+- `.env.dev` - Staging/desenvolvimento
+- `.env.prod` - Produção
+
+### Principais variáveis
+
+```bash
+DATABASE_URL="postgresql://user:pass@host:port/db"
+NODE_ENV=development|production
+BACKEND_ENV=local|dev|prod
+```
+
+## 🐳 Docker
+
+### Dockerfiles
+
+- `Dockerfile.dev` - Desenvolvimento com hot reload
+- `Dockerfile.prod` - Build otimizado para produção
+
+### Scripts úteis
+
+```bash
+# Build das imagens
+docker compose build
+
+# Logs dos containers
+docker compose logs -f
+
+# Limpar volumes
+docker compose down -v
+```
+
+## 🗄️ Banco de dados
+
+### Comandos Prisma
+
+```bash
+# Gerar client
+npx prisma generate
+
+# Executar migrations
+npx prisma migrate dev
+
+# Reset do banco
+npx prisma migrate reset
+```
+
+### Conexão
+
+- Local: `database:5432` (dentro do Docker)
+- Host: `localhost:5432`
+
+⚠️ **Importante:** Para ambientes TST (Teste) e HLG (Homologação), entre em contato com os AGES III e IV.
