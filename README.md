@@ -40,10 +40,16 @@ docker compose --env-file .env.local --profile local up database
 
 Para rodar backend localmente: `npm run start:local`
 
-#### 🔹 Teste de produção
+#### 🔹 Teste de TST e HLG
+
+Basta substituir o arquivo `.env` para o determinado ambiente `.env.tst` ou `.env.hlg`, 
+para ter acesso à esser arquivos deve-se entrar em contato com os AGES III e IV.
 
 ```bash
-docker compose --env-file .env.local --profile prod-test up
+# Exemplo
+docker compose --env-file .env.hlg up backend
+# ou
+docker compose --env-file .env.hlg up backend-watcher
 ```
 
 Testa build de produção localmente.
