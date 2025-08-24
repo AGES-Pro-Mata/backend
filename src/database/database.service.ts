@@ -11,7 +11,7 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, OnMod
       this.logger.log(`Connected to the database`);
     } catch (e) {
       this.logger.fatal(`Failed to connected to the database: ${e}`);
-      process.abort();
+      throw e;
     }
   }
 
