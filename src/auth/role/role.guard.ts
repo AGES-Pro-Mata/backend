@@ -1,9 +1,10 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Role } from '../roles/roles.decorator';
+import { ROLE_MAP } from './role.map';
 
 type Req = {
-  // TODO: Change that to the `User` type on Prisma when it'll be ready.
+  // TODO: Replace with the Prisma `User` type once it's available.
   user: { role: Role };
 };
 
@@ -21,6 +22,8 @@ export class RoleGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<Req>();
     const user = req.user;
 
-    return roles.some((role) => role === user.role);
+    const userRoleMap = ROLE_MAP[user.role];
+
+    return roles.some((role) => userRoleMap.has(role));
   }
 }

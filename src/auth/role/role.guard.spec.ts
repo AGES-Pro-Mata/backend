@@ -56,4 +56,22 @@ describe('RoleGuard', () => {
 
     expect(result).toBe(false);
   });
+
+  it('deve permitir um professor acessar todas as rotas de usuários comuns', () => {
+    (reflector.get as jest.Mock).mockReturnValue([Role.User] as Role[]);
+
+    const ctx = makeExecutionContext(Role.Professor);
+    const result = guard.canActivate(ctx);
+
+    expect(result).toBe(true);
+  });
+
+  it('deve permitir um root acessar todas as rotas de admins comuns', () => {
+    (reflector.get as jest.Mock).mockReturnValue([Role.Admin] as Role[]);
+
+    const ctx = makeExecutionContext(Role.Root);
+    const result = guard.canActivate(ctx);
+
+    expect(result).toBe(true);
+  });
 });

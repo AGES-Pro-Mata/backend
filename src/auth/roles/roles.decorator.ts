@@ -1,6 +1,6 @@
 import { SetMetadata } from '@nestjs/common';
 
-// TODO: Remove this when the `Role` enum on Prisma
+// TODO: Replace with the Prisma `User.Role` type once it's available.
 export enum Role {
   User,
   Professor,
