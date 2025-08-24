@@ -1,0 +1,77 @@
+# Dockerfile.prod - Build otimizado para produção
+# Build stage
+FROM node:20-alpine AS build
+
+# Labels para metadados
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION
+LABEL org.label-schema.build-date=$BUILD_DATE \
+      org.label-schema.name="pro-mata-backend" \
+      org.label-schema.description="Pro-Mata Backend Application" \
+      org.label-schema.url="https://promata.ages.pucrs.br" \
+      org.label-schema.vcs-ref=$VCS_REF \
+      org.label-schema.vcs-url="https://github.com/AGES-Pro-Mata/backend" \
+      org.label-schema.vendor="AGES PUCRS" \
+      org.label-schema.version=$VERSION \
+      org.label-schema.schema-version="1.0"
+
+# Instalar dependências do sistema
+RUN apk add --no-cache openssl libc6-compat
+
+WORKDIR /app
+
+# Copiar package files
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Instalar todas as dependências (incluindo dev para build)
+RUN npm ci
+
+# Gerar cliente Prisma
+RUN npx prisma generate
+
+# Copiar código fonte
+COPY . .
+
+# Build da aplicação
+RUN npm run build
+
+# Runtime stage
+FROM node:20-alpine AS runtime
+
+# Instalar dependências do sistema
+RUN apk add --no-cache openssl libc6-compat curl
+
+# Criar usuário não-root
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nestjs -u 1001
+
+WORKDIR /app
+
+# Copiar node_modules e build da etapa anterior
+COPY --from=build --chown=nestjs:nodejs /app/node_modules ./node_modules
+COPY --from=build --chown=nestjs:nodejs /app/dist ./dist
+COPY --from=build --chown=nestjs:nodejs /app/prisma ./prisma
+COPY --from=build --chown=nestjs:nodejs /app/generated ./generated
+COPY --chown=nestjs:nodejs package*.json ./
+
+# Definir variáveis de ambiente
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Criar diretórios necessários
+RUN mkdir -p /app/logs && chown -R nestjs:nodejs /app/logs
+
+# Mudar para usuário não-root
+USER nestjs
+
+# Expor porta
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+# Comando de inicialização
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]

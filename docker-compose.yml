@@ -1,72 +1,171 @@
-x-api-common: &api-common
-  build:
-    context: .
-    dockerfile: Dockerfile
-  working_dir: /app
-  ports:
-    - "3000:3000"
-  environment:
-    NODE_ENV: development
-    CHOKIDAR_USEPOLLING: "true"
-    WATCHPACK_POLLING: "true"
-  command: sh -c "npx prisma generate && npm run start:dev"
-  volumes:
-    - ./:/app
-    - node_modules:/app/node_modules
-
 services:
-  api-local:
-    <<: *api-common
-    profiles: ["local"]
-    env_file:
-      - .env.local
+  # Development Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: promata-backend
     environment:
-      BACKEND_ENV: local
-    depends_on:
-      database:
-        condition: service_healthy
-    networks:
-      - backend-net
-
-  database:
-    image: postgres
-    profiles: ["local"]
+      - NODE_ENV=development
+      - PORT=${BACKEND_DEV_PORT:-3000}
+      - DATABASE_URL=${DATABASE_URL}
+      - BACKEND_ENV=${BACKEND_ENV:-local}
+      - CHOKIDAR_USEPOLLING=true
     ports:
-      - "${DATABASE_PORT}:5432"
-    environment:
-      POSTGRES_DB: ${DATABASE_DB}
-      POSTGRES_USER: ${DATABASE_USER}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      - "${BACKEND_DEV_PORT_MAPPING:-3000:3000}"
     volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
+      - .:/app
+      - backend_node_modules:/app/node_modules
+      - /app/generated
     networks:
-      - backend-net
+      - promata_dev
+    depends_on:
+      - database
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "${BACKEND_DEV_HEALTHCHECK_URL:-http://localhost:3000/health}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
-  api-tst:
-    <<: *api-common
-    profiles: ["tst"]
-    env_file:
-      - .env.tst
+  # Production Backend (for testing)
+  backend-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        BUILD_DATE: ${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}
+        VCS_REF: ${VCS_REF:-local}
+        VERSION: ${VERSION:-local}
+    container_name: promata-backend-prod
     environment:
-      BACKEND_ENV: tst
+      - NODE_ENV=production
+      - PORT=${BACKEND_PROD_PORT:-3000}
+      - DATABASE_URL=${DATABASE_URL}
+    ports:
+      - "${BACKEND_PROD_PORT_MAPPING:-3001:3000}"
+    networks:
+      - promata_dev
+    depends_on:
+      - database
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "${BACKEND_PROD_HEALTHCHECK_URL:-http://localhost:3000/health}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    profiles: ["prod-test"]
 
-  api-hlg:
-    <<: *api-common
-    profiles: ["hlg"]
-    env_file:
-      - .env.hlg
+  # Testing Container
+  backend-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: promata-backend-test
     environment:
-      BACKEND_ENV: hlg
+      - NODE_ENV=test
+      - CI=true
+      - DATABASE_URL=${TEST_DATABASE_URL}
+    volumes:
+      - .:/app
+      - backend_node_modules:/app/node_modules
+      - /app/generated
+    networks:
+      - promata_dev
+    depends_on:
+      - database-test
+    command: ["npm", "run", "test:ci"]
+    profiles: ["test"]
+
+  # Database para desenvolvimento
+  database:
+    image: postgres:15-alpine
+    container_name: promata-database
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-promata}
+      - POSTGRES_USER=${POSTGRES_USER:-promata}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-promata123}
+    ports:
+      - "${DATABASE_PORT_MAPPING:-5432:5432}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./prisma/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - promata_dev
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-promata}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Database para testes
+  database-test:
+    image: postgres:15-alpine
+    container_name: promata-database-test
+    environment:
+      - POSTGRES_DB=${TEST_POSTGRES_DB:-promata_test}
+      - POSTGRES_USER=${POSTGRES_USER:-promata}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-promata123}
+    ports:
+      - "${TEST_DATABASE_PORT_MAPPING:-5433:5432}"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    networks:
+      - promata_dev
+    restart: unless-stopped
+    profiles: ["test"]
+
+  # Prisma Studio
+  prisma-studio:
+    image: node:20-alpine
+    container_name: promata-prisma-studio
+    working_dir: /app
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    volumes:
+      - .:/app
+      - backend_node_modules:/app/node_modules
+      - /app/generated
+    ports:
+      - "${PRISMA_STUDIO_PORT:-5555:5555}"
+    networks:
+      - promata_dev
+    depends_on:
+      - database
+    command: ["npx", "prisma", "studio", "--hostname", "0.0.0.0"]
+    profiles: ["studio"]
+
+  # Watcher para rebuild automático em desenvolvimento
+  backend-watcher:
+    image: node:20-alpine
+    container_name: promata-backend-watcher
+    working_dir: /app
+    volumes:
+      - .:/app
+      - backend_node_modules:/app/node_modules
+      - /app/generated
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    command: ["npm", "run", "start:dev"]
+    networks:
+      - promata_dev
+    profiles: ["watch"]
 
 volumes:
-  node_modules:
-  pgdata:
+  backend_node_modules:
+    name: promata-backend-node-modules
+  postgres_data:
+    name: promata-postgres-data
+  postgres_test_data:
+    name: promata-postgres-test-data
 
 networks:
-  backend-net:
+  promata_dev:
+    name: promata-network-dev
+    driver: bridge
+  promata_prod:
+    name: promata-network-prod
     driver: bridge
