@@ -16,9 +16,13 @@ Este repositório contém o backend do projeto Pró-Mata.
 
 Certifique-se de ter Docker instalado.
 
+### 1.1 Dependências locais
+
+Antes de rodar os containers, é importante instalar as dependências do projeto e o CLI do NestJS:
+
 ```bash
-npm install  # Para auto-complete do editor
-```
+npm install          # Instala dependências do projeto
+npm install -g @nestjs/cli  # Instala o NestJS CLI globalmente
 
 ### 2. Profiles de execução
 
