@@ -23,6 +23,7 @@ Antes de rodar os containers, é importante instalar as dependências do projeto
 ```bash
 npm install          # Instala dependências do projeto
 npm install -g @nestjs/cli  # Instala o NestJS CLI globalmente
+```
 
 ### 2. Profiles de execução
 
