@@ -42,7 +42,6 @@ Backend + banco PostgreSQL locais.
 ```bash
 docker compose --env-file .env.local --profile local up database
 ```
-
 Para rodar backend localmente: `npm run start:local`
 
 #### 🔹 Teste de TST e HLG
@@ -63,6 +62,15 @@ Testa build de produção localmente.
 
 ```bash
 docker compose --env-file .env.local --profile test up
+```
+
+#### 🔹 Rodar local
+```bash
+npx run start:local
+# ou
+npx run start:tst
+# ou
+npx run start:hlg
 ```
 
 #### 🔹 Prisma Studio
