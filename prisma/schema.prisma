@@ -5,8 +5,8 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  provider      = "prisma-client-js"
+  output        = "../generated/prisma"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
@@ -16,30 +16,30 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  user_type UserType
-  name String
-  email String   @unique
-  password String
-  phone String?
-  cpf String?  @unique
-  gender String?
-  rg String?  @unique
-  address String?
-  city String?
-  cep String?
-  user_number Int?
-  fundation String?
-  role String?
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  user_type      UserType
+  name           String
+  email          String   @unique
+  password       String
+  phone          String
+  cpf            String  @unique
+  gender         String
+  rg             String?  @unique
+  dob            DateTime
+  institution    String?
+  active  Boolean
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
 }
 
 enum UserType {
-  STUDENT_PUCRS
-  TEACHER
-  EXTERNAL_STUDENT
-  EXTERNAL_TEACHER
-  GENERAL_PUBLIC
   ADMIN
+  ROOT
+  GUEST
+  PROFESSOR
 }
+
+  //address_street String?
+  //address_number String?
+  //address_city   String?
+  //address_zip    String?
