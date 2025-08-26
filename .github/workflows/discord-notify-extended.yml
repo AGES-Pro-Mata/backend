@@ -1,5 +1,9 @@
 name: Discord Extended Notifications
 
+permissions:
+  actions: read
+  contents: read
+
 on:
   # Reviews em PRs
   pull_request_review:
@@ -11,12 +15,8 @@ on:
     
   # Deploys e CI/CD completados
   workflow_run:
-    workflows: ["Backend CI/CD", "Backend CI/CD Pipeline", "CI/CD Pipeline", "Push to Dev Branch", "Push to Main branch"]
+    workflows: ["Backend CI/CD"]
     types: [completed]
-    
-  # Push para branches principais
-  push:
-    branches: [main, dev]
 
 jobs:
   notify-reviews:
@@ -158,12 +158,19 @@ jobs:
           BRANCH: ${{ github.event.workflow_run.head_branch }}
           RUN_URL: ${{ github.event.workflow_run.html_url }}
         run: |
+          # Debug: Log workflow run details
+          echo "🔍 DEBUG: Workflow run details:"
+          echo "  - Event: ${{ github.event_name }}"
+          echo "  - Workflow Name: $WORKFLOW_NAME"
+          echo "  - Conclusion: $CONCLUSION"
+          echo "  - Branch: $BRANCH"
+          echo "  - Repository: $REPO"
           # Determinar tipo de build baseado na branch
           BUILD_TYPE=""
           DOCKER_IMAGE=""
           if [[ "$BRANCH" == "dev" ]]; then
             BUILD_TYPE="Development Build"
-            DOCKER_IMAGE="norohim/pro-mata-backend:dev"
+            DOCKER_IMAGE="norohim/pro-mata-backend-dev:latest"
           elif [[ "$BRANCH" == "main" ]]; then
             BUILD_TYPE="Production Build"
             DOCKER_IMAGE="norohim/pro-mata-backend:latest"
@@ -171,15 +178,26 @@ jobs:
           
           # Determinar se é build/CI baseado no nome do workflow
           IS_BUILD=false
+          echo "🔍 Checking if this is a build workflow..."
           if echo "$WORKFLOW_NAME" | grep -i "ci.*cd\|build\|pipeline"; then
             IS_BUILD=true
+            echo "✅ This is a build/CI workflow: $WORKFLOW_NAME"
+          else
+            echo "❌ This is NOT a build workflow: $WORKFLOW_NAME, skipping notification"
+            exit 0
+          fi
+          
+          # Verificar se é do repositório backend
+          if [[ "$REPO" != *"backend"* ]]; then
+            echo "❌ This is not the backend repository: $REPO, skipping notification"
+            exit 0
           fi
           
           # Configurar emoji, título e cor baseado no resultado
           MENTION=""
           if [[ "$CONCLUSION" == "success" ]]; then
             if [[ "$IS_BUILD" == "true" ]]; then
-              EMOJI="�"
+              EMOJI="🚀"
               TITLE="Build & Push Docker Realizado com Sucesso!"
             else
               EMOJI="✅"
@@ -214,6 +232,14 @@ jobs:
             }"
             
             if [[ "$CONCLUSION" == "success" && -n "$DOCKER_IMAGE" ]]; then
+              # Definir link do DockerHub baseado na branch
+              DOCKERHUB_LINK=""
+              if [[ "$BRANCH" == "dev" ]]; then
+                DOCKERHUB_LINK="https://hub.docker.com/r/norohim/pro-mata-backend-dev"
+              else
+                DOCKERHUB_LINK="https://hub.docker.com/r/norohim/pro-mata-backend"
+              fi
+              
               ADDITIONAL_FIELDS="$ADDITIONAL_FIELDS
               ,{
                 \"name\": \"Imagem Docker\",
@@ -222,7 +248,7 @@ jobs:
               },
               {
                 \"name\": \"DockerHub\",
-                \"value\": \"[Ver no DockerHub](https://hub.docker.com/r/norohim/pro-mata-backend)\",
+                \"value\": \"[Ver no DockerHub]($DOCKERHUB_LINK)\",
                 \"inline\": false
               }"
             fi
@@ -269,7 +295,7 @@ jobs:
           curl -sS -X POST -H "Content-Type: application/json" -d @payload.json "$WEBHOOK"
 
   notify-push:
-    if: github.event_name == 'push'
+    if: false  # Temporarily disabled to avoid conflicts with workflow_run notifications
     runs-on: ubuntu-latest
     steps:
       - name: Post Push Info to Discord
