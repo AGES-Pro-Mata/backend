@@ -7,7 +7,6 @@
 generator client {
   provider      = "prisma-client-js"
   output        = "../generated/prisma"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -16,20 +15,22 @@ datasource db {
 }
 
 model User {
-  id             Int      @id @default(autoincrement())
-  user_type      UserType
-  name           String
-  email          String   @unique
-  password       String
-  phone          String
-  cpf            String  @unique
-  gender         String
-  rg             String?  @unique
-  dob            DateTime
-  institution    String?
-  active  Boolean
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  user_type   UserType
+  name        String
+  email       String   @unique
+  password    String
+  phone       String
+  cpf         String   @unique
+  gender      String
+  rg          String?  @unique
+  dob         DateTime
+  institution String?
+  active      Boolean  @default(true)
+  address     Address? @relation(fields: [addressId], references: [id])
+  addressId   Int?     @unique
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 }
 
 enum UserType {
@@ -39,7 +40,13 @@ enum UserType {
   PROFESSOR
 }
 
-  //address_street String?
-  //address_number String?
-  //address_city   String?
-  //address_zip    String?
+model Address {
+  id         Int      @id @default(autoincrement())
+  street     String?
+  number     String?
+  city       String?
+  zip        String?
+  user       User?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
