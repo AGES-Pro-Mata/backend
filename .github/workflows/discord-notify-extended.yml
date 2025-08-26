@@ -162,13 +162,6 @@ jobs:
           BRANCH: ${{ github.event.workflow_run.head_branch }}
           RUN_URL: ${{ github.event.workflow_run.html_url }}
         run: |
-          # Debug: Log workflow run details
-          echo "🔍 DEBUG: Workflow run details:"
-          echo "  - Event: ${{ github.event_name }}"
-          echo "  - Workflow Name: $WORKFLOW_NAME"
-          echo "  - Conclusion: $CONCLUSION"
-          echo "  - Branch: $BRANCH"
-          echo "  - Repository: $REPO"
           # Determinar tipo de build baseado na branch
           BUILD_TYPE=""
           DOCKER_IMAGE=""
@@ -179,24 +172,13 @@ jobs:
             BUILD_TYPE="Production Build"
             DOCKER_IMAGE="norohim/pro-mata-backend:latest"
           fi
-          
+
           # Determinar se é build/CI baseado no nome do workflow
           IS_BUILD=false
-          echo "🔍 Checking if this is a build workflow..."
           if echo "$WORKFLOW_NAME" | grep -i "ci.*cd\|build\|pipeline"; then
             IS_BUILD=true
-            echo "✅ This is a build/CI workflow: $WORKFLOW_NAME"
-          else
-            echo "❌ This is NOT a build workflow: $WORKFLOW_NAME, skipping notification"
-            exit 0
           fi
-          
-          # Verificar se é do repositório backend
-          if [[ "$REPO" != *"backend"* ]]; then
-            echo "❌ This is not the backend repository: $REPO, skipping notification"
-            exit 0
-          fi
-          
+
           # Configurar emoji, título e cor baseado no resultado
           MENTION=""
           if [[ "$CONCLUSION" == "success" ]]; then
@@ -224,7 +206,7 @@ jobs:
             TITLE="Pipeline Cancelado/Timeout"
             COLOR=16776960
           fi
-          
+
           # Construir campos adicionais
           ADDITIONAL_FIELDS=""
           if [[ -n "$BUILD_TYPE" ]]; then
@@ -257,13 +239,13 @@ jobs:
               }"
             fi
           fi
-          
+
           # Criar payload
           CONTENT_FIELD=""
           if [[ -n "$MENTION" ]]; then
             CONTENT_FIELD="\"content\": \"$MENTION **Backend Build Falhou**\","
           fi
-          
+
           cat > payload.json << EOF
           {
             $CONTENT_FIELD
@@ -295,7 +277,7 @@ jobs:
             ]
           }
           EOF
-          
+
           curl -sS -X POST -H "Content-Type: application/json" -d @payload.json "$WEBHOOK"
 
   notify-push:
