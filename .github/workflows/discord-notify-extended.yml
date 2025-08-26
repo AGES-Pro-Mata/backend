@@ -7,9 +7,9 @@ on:
   issues:
     types: [opened, closed]
     
-  # BACKEND: Monitora apenas workflows do backend
+  # BACKEND: Monitora apenas workflows do backend  
   workflow_run:
-    workflows: ["Backend CI/CD Pipeline", "CI/CD Pipeline"]
+    workflows: ["Backend CI/CD"]
     types: [completed]
     
   push:
