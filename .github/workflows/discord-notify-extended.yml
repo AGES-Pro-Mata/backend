@@ -17,6 +17,10 @@ on:
   workflow_run:
     workflows: ["Backend CI/CD"]
     types: [completed]
+    
+  # Push para branches principais
+  push:
+    branches: [main, dev]
 
 jobs:
   notify-reviews:
@@ -295,7 +299,7 @@ jobs:
           curl -sS -X POST -H "Content-Type: application/json" -d @payload.json "$WEBHOOK"
 
   notify-push:
-    if: false  # Temporarily disabled to avoid conflicts with workflow_run notifications
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Post Push Info to Discord
