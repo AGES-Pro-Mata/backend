@@ -15,9 +15,9 @@ on:
     
   # Deploys e CI/CD completados
   workflow_run:
-    workflows: ["Backend CI/CD"]
+    workflows: ["Backend CI/CD Pipeline", "Backend CI/CD", "CI/CD Pipeline", "Build and Deploy", "Test", "Deploy", "Push to Dev Branch", "Push to Main branch"]
     types: [completed]
-    
+
   # Push para branches principais
   push:
     branches: [main, dev]
