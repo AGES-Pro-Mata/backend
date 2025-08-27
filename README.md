@@ -16,8 +16,13 @@ Este repositório contém o backend do projeto Pró-Mata.
 
 Certifique-se de ter Docker instalado.
 
+### 1.1 Dependências locais
+
+Antes de rodar os containers, é importante instalar as dependências do projeto e o CLI do NestJS:
+
 ```bash
-npm install  # Para auto-complete do editor
+npm install          # Instala dependências do projeto
+npm install -g @nestjs/cli  # Instala o NestJS CLI globalmente
 ```
 
 ### 2. Profiles de execução
@@ -37,7 +42,6 @@ Backend + banco PostgreSQL locais.
 ```bash
 docker compose --env-file .env.local --profile local up database
 ```
-
 Para rodar backend localmente: `npm run start:local`
 
 #### 🔹 Teste de TST e HLG
@@ -58,6 +62,15 @@ Testa build de produção localmente.
 
 ```bash
 docker compose --env-file .env.local --profile test up
+```
+
+#### 🔹 Rodar local
+```bash
+npx run start:local
+# ou
+npx run start:tst
+# ou
+npx run start:hlg
 ```
 
 #### 🔹 Prisma Studio

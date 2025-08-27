@@ -20,7 +20,7 @@ jobs:
   test:
     name: Tests & Quality
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || contains(github.event.head_commit.message, '[run-tests]')
 
     services:
       postgres:
@@ -97,7 +97,7 @@ jobs:
   build-dev:
     name: Build Dev Image
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/dev'
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     
     steps:
       - name: Checkout
@@ -116,6 +116,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push dev image
+        id: docker_build_dev
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -135,8 +136,7 @@ jobs:
   build-prod:
     name: Build Prod Image
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    needs: [test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     steps:
       - name: Checkout
@@ -166,6 +166,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push prod image
+        id: docker_build_prod
         uses: docker/build-push-action@v5
         with:
           context: .
