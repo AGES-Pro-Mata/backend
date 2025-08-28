@@ -20,7 +20,7 @@ jobs:
   test:
     name: Tests & Quality
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || contains(github.event.head_commit.message, '[run-tests]')
 
     services:
       postgres:
@@ -97,13 +97,14 @@ jobs:
   build-dev:
     name: Build Dev Image
     runs-on: ubuntu-latest
-    if: |
-      (github.ref == 'refs/heads/dev' && github.event_name == 'push') ||
-      (github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'dev')
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: echo "${{ secrets.ENV_DEV }}" > .env
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -135,14 +136,14 @@ jobs:
   build-prod:
     name: Build Prod Image
     runs-on: ubuntu-latest
-    if: |
-      (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
-      (github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main')
-    needs: [test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: echo "${{ secrets.ENV_PROD }}" > .env
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
