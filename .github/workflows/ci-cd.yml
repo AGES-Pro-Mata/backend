@@ -9,6 +9,16 @@ on:
     branches:
       - main
       - dev
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - prod
 
 env:
   NODE_VERSION: '20'
@@ -97,7 +107,7 @@ jobs:
   build-dev:
     name: Build Dev Image
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    if: (github.ref == 'refs/heads/dev' && github.event_name == 'push') || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
     
     steps:
       - name: Checkout
@@ -112,8 +122,18 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
+          registry: docker.io
           username: ${{ vars.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: docker.io/norohim/pro-mata-backend-dev
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix={{branch}}-
 
       - name: Build and push dev image
         id: docker_build_dev
@@ -122,9 +142,8 @@ jobs:
           context: .
           file: ./Dockerfile.dev
           push: true
-          tags: |
-            norohim/pro-mata-backend-dev:latest
-            norohim/pro-mata-backend-dev:${{ github.sha }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
@@ -132,11 +151,26 @@ jobs:
       - name: Image digest
         run: echo "Dev image pushed with digest ${{ steps.docker_build_dev.outputs.digest }}"
 
+      - name: Trigger Infrastructure Deployment
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.PAT_INFRASTRUCTURE_REPO }}
+          repository: AGES-Pro-Mata/infrastructure
+          event-type: ${{ github.ref == 'refs/heads/main' && 'deploy-prod-backend' || 'deploy-dev-backend' }}
+          client-payload: |
+            {
+              "image": "${{ steps.meta.outputs.tags }}",
+              "commit": "${{ github.sha }}",
+              "branch": "${{ github.ref_name }}",
+              "triggered_by": "backend",
+              "timestamp": "${{ github.event.head_commit.timestamp }}"
+            }
+
   # Build de produção
   build-prod:
     name: Build Prod Image
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod')
     
     steps:
       - name: Checkout
@@ -151,6 +185,7 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
+          registry: docker.io
           username: ${{ vars.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
@@ -158,12 +193,11 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: norohim/pro-mata-backend
+          images: docker.io/norohim/pro-mata-backend
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
+            type=raw,value=latest
             type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=v${{ github.run_number }}
 
       - name: Build and push prod image
         id: docker_build_prod
@@ -172,10 +206,7 @@ jobs:
           context: .
           file: ./Dockerfile.prod
           push: true
-          tags: |
-            norohim/pro-mata-backend:latest
-            norohim/pro-mata-backend:${{ github.sha }}
-            norohim/pro-mata-backend:v${{ github.run_number }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -187,3 +218,18 @@ jobs:
 
       - name: Image digest
         run: echo "Production image pushed with digest ${{ steps.docker_build_prod.outputs.digest }}"
+
+      - name: Trigger Infrastructure Deployment (Prod)
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.PAT_INFRASTRUCTURE_REPO }}
+          repository: AGES-Pro-Mata/infrastructure
+          event-type: deploy-prod-backend
+          client-payload: |
+            {
+              "image": "docker.io/norohim/pro-mata-backend:latest",
+              "commit": "${{ github.sha }}",
+              "triggered_by": "backend",
+              "environment": "prod",
+              "version": "v${{ github.run_number }}"
+            }
