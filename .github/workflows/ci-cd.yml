@@ -158,12 +158,12 @@ jobs:
           repository: AGES-Pro-Mata/infrastructure
           event-type: ${{ github.ref == 'refs/heads/main' && 'deploy-prod-backend' || 'deploy-dev-backend' }}
           client-payload: |
-            {
-              "image": "${{ steps.meta.outputs.tags }}",
-              "commit": "${{ github.sha }}",
-              "branch": "${{ github.ref_name }}",
-              "triggered_by": "backend"
-            }
+        {
+          "image": "${{ steps.meta.outputs.tags }}",
+          "commit": "${{ github.sha }}",
+          "branch": "${{ github.ref_name }}",
+          "triggered_by": "backend"
+        }
 
   # Build de produção
   build-prod:
