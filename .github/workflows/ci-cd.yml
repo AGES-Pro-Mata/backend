@@ -162,8 +162,7 @@ jobs:
               "image": "${{ steps.meta.outputs.tags }}",
               "commit": "${{ github.sha }}",
               "branch": "${{ github.ref_name }}",
-              "triggered_by": "backend",
-              "timestamp": "${{ github.event.head_commit.timestamp }}"
+              "triggered_by": "backend"
             }
 
   # Build de produção
