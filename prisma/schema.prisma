@@ -15,22 +15,23 @@ datasource db {
 }
 
 model User {
-  id          String   @default(uuid())
+  id          String    @default(uuid())
   userType    UserType
   name        String
-  email       String   @unique
+  email       String    @unique
   password    String
   phone       String
-  cpf         String   @unique
+  cpf         String?   @unique
   gender      String
-  rg          String?  @unique
-  dob         DateTime
+  rg          String?   @unique
+  dob         DateTime?
   institution String?
-  active      Boolean  @default(true)
-  address     Address? @relation(fields: [addressId], references: [id])
-  addressId   Int?     @unique
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isForeign   Boolean
+  active      Boolean   @default(true)
+  address     Address?  @relation(fields: [addressId], references: [id])
+  addressId   Int?      @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 enum UserType {

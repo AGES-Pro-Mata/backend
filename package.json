@@ -25,7 +25,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e:parallel": "jest --config ./test/jest-e2e.json",
     "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
-    "prisma:dev:local": "dotenv -e .env.local -- prisma migrate dev"
+    "prisma:migrate:local": "dotenv -e .env.local -- prisma migrate"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.863.0",
@@ -37,6 +37,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@prisma/client": "^6.14.0",
     "dotenv-cli": "^10.0.0",
+    "nestjs-zod": "^5.0.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "zod": "^4.1.2"
