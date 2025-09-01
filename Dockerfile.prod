@@ -41,7 +41,7 @@ RUN npm run build
 FROM node:20-alpine AS runtime
 
 # Instalar dependências do sistema
-RUN apk add --no-cache openssl libc6-compat curl
+RUN apk add --no-cache openssl libc6-compat curl netcat-openbsd
 
 # Criar usuário não-root
 RUN addgroup -g 1001 -S nodejs && \
@@ -73,5 +73,41 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3000/health || exit 1
 
-# Comando de inicialização
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+# Script de inicialização - apenas aplicação
+COPY <<'EOF' /app/start.sh
+#!/bin/sh
+set -e
+
+echo "🚀 Pro-Mata Backend Starting..."
+echo "Environment: ${NODE_ENV:-production}"
+
+# Aguardar banco ficar disponível via pgbouncer
+echo "⏳ Aguardando banco de dados..."
+until nc -z ${DB_HOST:-pgbouncer} ${DB_PORT:-6432}; do
+    echo "   Banco não disponível, tentando novamente..."
+    sleep 2
+done
+echo "✅ Banco de dados disponível!"
+
+# Verificar conectividade simples com Prisma
+if ! node -e "
+const { PrismaClient } = require('@prisma/client'); 
+new PrismaClient().\$connect()
+  .then(() => console.log('✅ Prisma conectado'))
+  .catch(e => {
+    console.error('❌ Erro Prisma:', e.message); 
+    process.exit(1);
+  })
+"; then
+    echo "❌ Falha na conexão com banco"
+    exit 1
+fi
+
+echo "🎯 Iniciando aplicação NestJS..."
+exec node dist/main.js
+EOF
+
+RUN chmod +x /app/start.sh
+
+# Comando de inicialização - apenas aplicação (sem migrations)
+CMD ["/app/start.sh"]
