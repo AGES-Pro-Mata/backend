@@ -8,4 +8,8 @@ module.exports = {
   collectCoverageFrom: ['**/*.(t|j)s'],
   coverageDirectory: '../coverage',
   testEnvironment: 'node',
+
+  moduleNameMapper: {
+    '^generated/prisma$': '<rootDir>/../generated/prisma',
+  },
 };
