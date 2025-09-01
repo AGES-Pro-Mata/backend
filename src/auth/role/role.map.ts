@@ -1,8 +1,8 @@
-import { Role } from '../roles/roles.decorator';
+import { UserType } from 'generated/prisma';
 
-export const ROLE_MAP = {
-  [Role.User]: new Set([Role.User]),
-  [Role.Professor]: new Set([Role.User, Role.Professor]),
-  [Role.Admin]: new Set([Role.Admin]),
-  [Role.Root]: new Set([Role.Admin, Role.Root]),
+export const ROLE_MAP: Record<UserType, Set<UserType>> = {
+  [UserType.GUEST]: new Set([UserType.GUEST]),
+  [UserType.PROFESSOR]: new Set([UserType.GUEST, UserType.PROFESSOR]),
+  [UserType.ADMIN]: new Set([UserType.ADMIN]),
+  [UserType.ROOT]: new Set([UserType.ADMIN, UserType.ROOT]),
 };

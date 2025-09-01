@@ -4,6 +4,10 @@ import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { ConfigModule } from '@nestjs/config';
 import { getEnvFile } from './config/env.utils';
+import { AuthModule } from './auth/auth.module';
+import { JwtModule } from '@nestjs/jwt';
+import { APP_GUARD } from '@nestjs/core';
+import { RoleGuard } from './auth/role/role.guard';
 
 @Module({
   imports: [
@@ -13,8 +17,16 @@ import { getEnvFile } from './config/env.utils';
       expandVariables: true,
       envFilePath: getEnvFile(),
     }),
+    JwtModule,
+    AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: RoleGuard,
+    },
+  ],
 })
 export class AppModule {}
