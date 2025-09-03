@@ -9,6 +9,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { RoleGuard } from './auth/role/role.guard';
 import { AnalyticsModule } from './analytics/analytics.module';
 
+
 @Module({
   imports: [
     DatabaseModule,
@@ -29,4 +30,4 @@ import { AnalyticsModule } from './analytics/analytics.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
