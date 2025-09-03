@@ -3,18 +3,18 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
+      target: dev
     container_name: promata-backend
     environment:
       - NODE_ENV=development
-      - PORT=${BACKEND_DEV_PORT:-3000}
+      - PORT=${BACKEND_PORT:-3000}
       - DATABASE_URL=${DATABASE_URL}
-      - BACKEND_ENV=${BACKEND_ENV:-local}
       - CHOKIDAR_USEPOLLING=true
       - UMAMI_URL=${UMAMI_URL}
       - UMAMI_WEBSITE_ID=${UMAMI_WEBSITE_ID}
     ports:
-      - "${BACKEND_DEV_PORT_MAPPING:-3000:3000}"
+      - ${BACKEND_PORT:-3000}:${BACKEND_PORT:-3000}
     volumes:
       - .:/app
       - backend_node_modules:/app/node_modules
@@ -31,56 +31,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-
-  # Production Backend (for testing)
-  backend-prod:
-    build:
-      context: .
-      dockerfile: Dockerfile.prod
-      args:
-        BUILD_DATE: ${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}
-        VCS_REF: ${VCS_REF:-local}
-        VERSION: ${VERSION:-local}
-    container_name: promata-backend-prod
-    environment:
-      - NODE_ENV=production
-      - PORT=${BACKEND_PROD_PORT:-3000}
-      - DATABASE_URL=${DATABASE_URL}
-    ports:
-      - "${BACKEND_PROD_PORT_MAPPING:-3001:3000}"
-    networks:
-      - promata_dev
-    depends_on:
-      - database
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "${BACKEND_PROD_HEALTHCHECK_URL:-http://localhost:3000/health}"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    profiles: ["prod-test"]
-
-  # Testing Container
-  backend-test:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    container_name: promata-backend-test
-    environment:
-      - NODE_ENV=test
-      - CI=true
-      - DATABASE_URL=${TEST_DATABASE_URL}
-    volumes:
-      - .:/app
-      - backend_node_modules:/app/node_modules
-      - /app/generated
-    networks:
-      - promata_dev
-    depends_on:
-      - database-test
-    command: ["npm", "run", "test:ci"]
-    profiles: ["test"]
 
   # Database para desenvolvimento
   database:
@@ -103,60 +53,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  # Database para testes
-  database-test:
-    image: postgres:15-alpine
-    container_name: promata-database-test
-    environment:
-      - POSTGRES_DB=${TEST_POSTGRES_DB:-promata_test}
-      - POSTGRES_USER=${POSTGRES_USER:-promata}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-promata123}
-    ports:
-      - "${TEST_DATABASE_PORT_MAPPING:-5433:5432}"
-    volumes:
-      - postgres_test_data:/var/lib/postgresql/data
-    networks:
-      - promata_dev
-    restart: unless-stopped
-    profiles: ["test"]
-
-  # Prisma Studio
-  prisma-studio:
-    image: node:20-alpine
-    container_name: promata-prisma-studio
-    working_dir: /app
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-    volumes:
-      - .:/app
-      - backend_node_modules:/app/node_modules
-      - /app/generated
-    ports:
-      - "${PRISMA_STUDIO_PORT:-5555:5555}"
-    networks:
-      - promata_dev
-    depends_on:
-      - database
-    command: ["npx", "prisma", "studio", "--hostname", "0.0.0.0"]
-    profiles: ["studio"]
-
-  # Watcher para rebuild automático em desenvolvimento
-  backend-watcher:
-    image: node:20-alpine
-    container_name: promata-backend-watcher
-    working_dir: /app
-    volumes:
-      - .:/app
-      - backend_node_modules:/app/node_modules
-      - /app/generated
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    command: ["npm", "run", "start:dev"]
-    networks:
-      - promata_dev
-    profiles: ["watch"]
-
   # Umami Analytics
   umami:
     image: ghcr.io/umami-software/umami:postgresql-latest
@@ -205,15 +101,10 @@ volumes:
     name: promata-backend-node-modules
   postgres_data:
     name: promata-postgres-data
-  postgres_test_data:
-    name: promata-postgres-test-data
   umami-db-data:
     name: promata-umami-db-data
 
 networks:
   promata_dev:
     name: promata-network-dev
-    driver: bridge
-  promata_prod:
-    name: promata-network-prod
     driver: bridge

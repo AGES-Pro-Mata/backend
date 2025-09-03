@@ -69,7 +69,7 @@ export class AnalyticsService implements OnModuleInit {
       if (response.status !== 200) {
         throw new Error(`Failed to track event: ${response.status} ${response.statusText}`);
       }
-      
+
       this.logger.log(
         `Event tracked successfully: ${options.name || 'page_view'} on ${options.url} - ${response.status} ${response.statusText}`,
       );
