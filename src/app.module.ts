@@ -3,7 +3,6 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { ConfigModule } from '@nestjs/config';
-import { getEnvFile } from './config/env.utils';
 import { AuthModule } from './auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_GUARD } from '@nestjs/core';
@@ -16,7 +15,6 @@ import { AnalyticsModule } from './analytics/analytics.module';
     ConfigModule.forRoot({
       isGlobal: true,
       expandVariables: true,
-      envFilePath: getEnvFile(),
     }),
     JwtModule,
     AuthModule,
