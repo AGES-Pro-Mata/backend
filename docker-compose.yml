@@ -11,6 +11,8 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - BACKEND_ENV=${BACKEND_ENV:-local}
       - CHOKIDAR_USEPOLLING=true
+      - UMAMI_URL=${UMAMI_URL}
+      - UMAMI_WEBSITE_ID=${UMAMI_WEBSITE_ID}
     ports:
       - "${BACKEND_DEV_PORT_MAPPING:-3000:3000}"
     volumes:
@@ -21,6 +23,7 @@ services:
       - promata_dev
     depends_on:
       - database
+      - umami
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "${BACKEND_DEV_HEALTHCHECK_URL:-http://localhost:3000/health}"]
@@ -154,6 +157,49 @@ services:
       - promata_dev
     profiles: ["watch"]
 
+  # Umami Analytics
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    container_name: promata-umami
+    ports:
+      - "5050:3000"
+    environment:
+      DATABASE_URL: postgresql://umami:umami@umami-db:5432/umami
+      DATABASE_TYPE: postgresql
+    depends_on:
+      umami-db:
+        condition: service_healthy
+    init: true
+    restart: always
+    networks:
+      - promata_dev
+    healthcheck:
+      test: ["CMD-SHELL", "curl http://localhost:3000/api/heartbeat"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Umami Database
+  umami-db:
+    image: postgres:15-alpine
+    container_name: promata-umami-db
+    ports:
+      - "5051:5432"
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami
+      POSTGRES_PASSWORD: umami
+    volumes:
+      - umami-db-data:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - promata_dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
   backend_node_modules:
     name: promata-backend-node-modules
@@ -161,6 +207,8 @@ volumes:
     name: promata-postgres-data
   postgres_test_data:
     name: promata-postgres-test-data
+  umami-db-data:
+    name: promata-umami-db-data
 
 networks:
   promata_dev:
