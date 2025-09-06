@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ChangePasswordDto, CreateUserFormDto, ForgotPasswordDto } from './auth.model';
 import { UserType } from 'generated/prisma';
@@ -21,7 +21,7 @@ export class AuthController {
   }
 
   @Get('forgot/:token')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   async checkToken(@Param('token') token: string) {
     return await this.authService.checkToken(token);
   }
@@ -32,7 +32,7 @@ export class AuthController {
     await this.authService.forgotPassword(forgotPasswordDto);
   }
 
-  @Post('changePassword')
+  @Patch('forgot')
   @HttpCode(HttpStatus.NO_CONTENT)
   async changePassword(@Body() changePasswordDto: ChangePasswordDto) {
     return await this.authService.changePassword(changePasswordDto);

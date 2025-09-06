@@ -5,6 +5,14 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Configuração CORS
+  app.enableCors({
+    origin: ['http://localhost:3002', 'http://localhost:3001'], // Frontend local
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  });
+
   const config = new DocumentBuilder().setTitle('Pró-Mata Api').setVersion('0.1').build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
