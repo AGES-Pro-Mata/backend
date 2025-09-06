@@ -1,6 +1,6 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CreateUserFormDto } from './auth.model';
+import { CreateUserFormDto, LoginDto } from './auth.model';
 import { UserType } from 'generated/prisma';
 import { Roles } from './role/roles.decorator';
 
@@ -17,5 +17,10 @@ export class AuthController {
   @Roles(UserType.ADMIN)
   async createUserAsAdmin() {
     // TODO: This will be implemented on task #31
+  }
+
+  @Post('signIn')
+  async signIn(@Body() body: LoginDto) {
+    return this.authService.signIn(body);
   }
 }

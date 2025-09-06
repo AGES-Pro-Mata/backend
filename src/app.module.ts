@@ -8,7 +8,6 @@ import { AuthModule } from './auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_GUARD } from '@nestjs/core';
 import { RoleGuard } from './auth/role/role.guard';
-import { ServiceController } from './service/service.controller';
 
 @Module({
   imports: [
@@ -21,7 +20,7 @@ import { ServiceController } from './service/service.controller';
     JwtModule,
     AuthModule,
   ],
-  controllers: [AppController, ServiceController],
+  controllers: [AppController],
   providers: [
     AppService,
     {

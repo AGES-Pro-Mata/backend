@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
-import { CreateUserFormDto } from './auth.model';
+import { CreateUserFormDto, LoginDto } from './auth.model';
 import { UserType } from 'generated/prisma';
 import { timingSafeEqual } from 'node:crypto';
 
@@ -29,5 +29,21 @@ export class AuthService {
         isForeign: dto.isForeign,
       },
     });
+  }
+
+  async signIn(dto:LoginDto){
+    const user = await this.databaseService.user.findUnique({
+      where: {email:dto.email}
+    });
+
+    if (!user) {
+      throw new BadRequestException('Nenhum usuário encontrado com esse email.');
+    }
+
+    if(user?.password === dto.password){
+      return user;
+    }else{
+      throw new BadRequestException('Senha incorreta.');
+    }
   }
 }
