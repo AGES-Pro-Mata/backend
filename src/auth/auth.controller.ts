@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ChangePasswordDto, CreateUserFormDto, ForgotPasswordDto } from './auth.model';
 import { UserType } from 'generated/prisma';
@@ -9,8 +9,9 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('signUp')
+  @HttpCode(HttpStatus.CREATED)
   async createUser(@Body() body: CreateUserFormDto) {
-    await this.authService.createUser(body);
+    return await this.authService.createUser(body);
   }
 
   @Post('dashboard/user')
@@ -20,12 +21,14 @@ export class AuthController {
   }
 
   @Post('forgot')
+  @HttpCode(HttpStatus.NO_CONTENT)
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     await this.authService.forgotPassword(forgotPasswordDto);
   }
 
   @Post('changePassword')
+  @HttpCode(HttpStatus.NO_CONTENT)
   async changePassword(@Body() changePasswordDto: ChangePasswordDto) {
-    await this.authService.changePassword(changePasswordDto);
+    return await this.authService.changePassword(changePasswordDto);
   }
 }
