@@ -32,3 +32,17 @@ export const CreateUserFormSchema = z.object({
 });
 
 export class CreateUserFormDto extends createZodDto(CreateUserFormSchema) {}
+
+export const ForgotPasswordSchema = z.object({
+  email: z.email(),
+});
+
+export class ForgotPasswordDto extends createZodDto(ForgotPasswordSchema) {}
+
+export const ChangePasswordSchema = z.object({
+  token: z.string().length(40),
+  password: z.hash('sha256'),
+  confirmPassword: z.hash('sha256'),
+});
+
+export class ChangePasswordDto extends createZodDto(ChangePasswordSchema) {}

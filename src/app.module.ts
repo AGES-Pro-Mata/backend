@@ -5,10 +5,10 @@ import { DatabaseModule } from './database/database.module';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { RoleGuard } from './auth/role/role.guard';
 import { AnalyticsModule } from './analytics/analytics.module';
-
+import { ZodValidationPipe } from 'nestjs-zod';
 
 @Module({
   imports: [
@@ -27,6 +27,10 @@ import { AnalyticsModule } from './analytics/analytics.module';
     {
       provide: APP_GUARD,
       useClass: RoleGuard,
+    },
+    {
+      provide: APP_PIPE,
+      useClass: ZodValidationPipe,
     },
   ],
 })
