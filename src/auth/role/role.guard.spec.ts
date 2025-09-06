@@ -17,6 +17,7 @@ describe('RoleGuard', () => {
         getRequest: () => req,
       }),
       getHandler: () => ({}),
+      getClass: () => ({}),
     } as ExecutionContext;
 
     return context;
@@ -25,6 +26,7 @@ describe('RoleGuard', () => {
   beforeEach(() => {
     reflector = {
       get: jest.fn(),
+      getAllAndOverride: jest.fn(),
     } as unknown as Reflector;
 
     authGuard = {
@@ -35,6 +37,7 @@ describe('RoleGuard', () => {
   });
 
   it('deve permitir quando não há metadata de roles (roles = undefined)', async () => {
+    (reflector.getAllAndOverride as jest.Mock).mockReturnValue(false);
     (reflector.get as jest.Mock).mockReturnValue(undefined);
 
     const ctx = makeExecutionContext(UserType.GUEST);
@@ -46,6 +49,7 @@ describe('RoleGuard', () => {
   });
 
   it('deve permitir quando o usuário possui um dos papéis requeridos', async () => {
+    (reflector.getAllAndOverride as jest.Mock).mockReturnValue(false);
     (reflector.get as jest.Mock).mockReturnValue([
       UserType.PROFESSOR,
       UserType.ADMIN,
@@ -58,6 +62,7 @@ describe('RoleGuard', () => {
   });
 
   it('deve permitir quando o usuário não possui um dos papéis requeridos', async () => {
+    (reflector.getAllAndOverride as jest.Mock).mockReturnValue(false);
     (reflector.get as jest.Mock).mockReturnValue([
       UserType.PROFESSOR,
       UserType.ADMIN,
@@ -70,6 +75,7 @@ describe('RoleGuard', () => {
   });
 
   it('deve permitir um professor acessar todas as rotas de usuários comuns', async () => {
+    (reflector.getAllAndOverride as jest.Mock).mockReturnValue(false);
     (reflector.get as jest.Mock).mockReturnValue([UserType.GUEST] as UserType[]);
 
     const ctx = makeExecutionContext(UserType.PROFESSOR);
@@ -79,6 +85,7 @@ describe('RoleGuard', () => {
   });
 
   it('deve permitir um root acessar todas as rotas de admins comuns', async () => {
+    (reflector.getAllAndOverride as jest.Mock).mockReturnValue(false);
     (reflector.get as jest.Mock).mockReturnValue([UserType.ADMIN] as UserType[]);
 
     const ctx = makeExecutionContext(UserType.ROOT);

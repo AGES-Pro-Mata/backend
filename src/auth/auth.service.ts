@@ -8,8 +8,9 @@ import {
 import { DatabaseService } from 'src/database/database.service';
 import { ChangePasswordDto, CreateUserFormDto, ForgotPasswordDto } from './auth.model';
 import { UserType } from 'generated/prisma';
-import { timingSafeEqual, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { AnalyticsService } from 'src/analytics/analytics.service';
+const bcrypt = require('bcryptjs');
 
 @Injectable()
 export class AuthService {
@@ -20,8 +21,40 @@ export class AuthService {
     private readonly analyticsService: AnalyticsService,
   ) {}
 
-  private comparePasswords(password: string, confirmPassword: string) {
-    return timingSafeEqual(Buffer.from(password, 'hex'), Buffer.from(confirmPassword, 'hex'));
+  private async hashPassword(password: string): Promise<string> {
+    const saltRounds = 12;
+    return await bcrypt.hash(password, saltRounds);
+  }
+
+  private async verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+    return await bcrypt.compare(password, hashedPassword);
+  }
+
+  private comparePasswords(password: string, confirmPassword: string): boolean {
+    return password === confirmPassword;
+  }
+
+  async createUserAsAdmin(dto: CreateUserFormDto) {
+    if (!this.comparePasswords(dto.password, dto.confirmPassword)) {
+      throw new BadRequestException('As senhas não são identicas.');
+    }
+
+    const hashedPassword = await this.hashPassword(dto.password);
+
+    await this.databaseService.user.create({
+      data: {
+        name: dto.name,
+        email: dto.email,
+        password: hashedPassword,
+        phone: dto.phone,
+        cpf: dto.cpf,
+        gender: dto.gender,
+        rg: dto.rg,
+        userType: UserType.ADMIN,
+        institution: dto.institution,
+        isForeign: dto.isForeign,
+      },
+    });
   }
 
   async createUser(dto: CreateUserFormDto) {
@@ -29,11 +62,13 @@ export class AuthService {
       throw new BadRequestException('As senhas não são identicas.');
     }
 
+    const hashedPassword = await this.hashPassword(dto.password);
+
     await this.databaseService.user.create({
       data: {
         name: dto.name,
         email: dto.email,
-        password: dto.password,
+        password: hashedPassword,
         phone: dto.phone,
         cpf: dto.cpf,
         gender: dto.gender,
@@ -81,12 +116,14 @@ export class AuthService {
 
     const passwordResetToken = await this.checkToken(changePasswordDto.token);
 
+    const hashedPassword = await this.hashPassword(changePasswordDto.password);
+
     await this.databaseService.user.update({
       where: {
         id: passwordResetToken.userId,
       },
       data: {
-        password: changePasswordDto.password,
+        password: hashedPassword,
       },
     });
 
@@ -114,5 +151,15 @@ export class AuthService {
     }
 
     return passwordResetToken;
+  }
+
+  /**
+   * Verifica se a senha fornecida corresponde à senha hash do usuário
+   * @param plainPassword Senha em texto limpo
+   * @param hashedPassword Senha hash armazenada no banco
+   * @returns Promise<boolean> true se a senha estiver correta
+   */
+  async verifyUserPassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
+    return await this.verifyPassword(plainPassword, hashedPassword);
   }
 }
