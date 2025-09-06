@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ChangePasswordDto, CreateUserFormDto, ForgotPasswordDto } from './auth.model';
 import { UserType } from 'generated/prisma';
@@ -18,6 +18,12 @@ export class AuthController {
   @Roles(UserType.ADMIN)
   async createUserAsAdmin() {
     // TODO: This will be implemented on task #31
+  }
+
+  @Get('forgot/:token')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async checkToken(@Param('token') token: string) {
+    return await this.authService.checkToken(token);
   }
 
   @Post('forgot')

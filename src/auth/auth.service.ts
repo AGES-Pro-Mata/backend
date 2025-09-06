@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -12,6 +13,8 @@ import { AnalyticsService } from 'src/analytics/analytics.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly analyticsService: AnalyticsService,
@@ -48,7 +51,8 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new NotFoundException('Email não cadastrado!');
+      this.logger.log('POST /auth/forgot: Email não encontrado!');
+      return;
     }
 
     const token = randomBytes(20).toString('hex');
@@ -75,19 +79,7 @@ export class AuthService {
       throw new BadRequestException('As senhas não são identicas.');
     }
 
-    const passwordResetToken = await this.databaseService.passwordResetToken.findUnique({
-      where: { token: changePasswordDto.token, isActive: true },
-    });
-
-    if (!passwordResetToken) {
-      throw new BadRequestException('Token inválido.');
-    }
-
-    const now = new Date();
-
-    if (passwordResetToken.expiredAt < now) {
-      throw new UnauthorizedException('Token expirado.');
-    }
+    const passwordResetToken = await this.checkToken(changePasswordDto.token);
 
     await this.databaseService.user.update({
       where: {
@@ -106,5 +98,21 @@ export class AuthService {
     });
 
     await this.analyticsService.trackPasswordChange(passwordResetToken.userId);
+  }
+
+  async checkToken(token: string) {
+    const passwordResetToken = await this.databaseService.passwordResetToken.findUnique({
+      where: { token: token, isActive: true },
+    });
+
+    if (!passwordResetToken) {
+      throw new BadRequestException('Token inválido.');
+    }
+
+    if (passwordResetToken.expiredAt < new Date()) {
+      throw new UnauthorizedException('Token expirado.');
+    }
+
+    return passwordResetToken;
   }
 }
