@@ -5,15 +5,21 @@ services:
       context: .
       dockerfile: Dockerfile
       target: dev
+      dockerfile: Dockerfile
+      target: dev
     container_name: promata-backend
     environment:
       - NODE_ENV=development
+      - PORT=${BACKEND_PORT:-3000}
       - PORT=${BACKEND_PORT:-3000}
       - DATABASE_URL=${DATABASE_URL}
       - CHOKIDAR_USEPOLLING=true
       - UMAMI_URL=${UMAMI_URL}
       - UMAMI_WEBSITE_ID=${UMAMI_WEBSITE_ID}
+      - UMAMI_URL=${UMAMI_URL}
+      - UMAMI_WEBSITE_ID=${UMAMI_WEBSITE_ID}
     ports:
+      - ${BACKEND_PORT:-3000}:${BACKEND_PORT:-3000}
       - ${BACKEND_PORT:-3000}:${BACKEND_PORT:-3000}
     volumes:
       - .:/app
@@ -24,6 +30,7 @@ services:
     depends_on:
       - database
       - umami
+      - umami
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "${BACKEND_DEV_HEALTHCHECK_URL:-http://localhost:3000/health}"]
@@ -31,6 +38,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+  metabase:
+    image: metabase/metabase:latest
+    container_name: promata-metabase
+    ports:
+      - "3001:3000"
   metabase:
     image: metabase/metabase:latest
     container_name: promata-metabase
@@ -46,12 +58,24 @@ services:
     depends_on:
       - database
     restart: always
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: ${POSTGRES_DB}
+      MB_DB_PORT: 5432
+      MB_DB_USER: ${POSTGRES_USER}
+      MB_DB_PASS: ${POSTGRES_PASSWORD}
+      MB_DB_HOST: database
+    depends_on:
+      - database
+    restart: always
     networks:
       - promata_dev
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:3001 || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:3001 || exit 1"]
       interval: 30s
       timeout: 10s
+      retries: 5
+
       retries: 5
 
 
@@ -126,7 +150,9 @@ services:
     ports:
       - "5555:5555"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami
+      POSTGRES_PASSWORD: umami
     volumes:
       - .:/app
       - backend_node_modules:/app/node_modules
@@ -143,6 +169,8 @@ volumes:
     name: promata-backend-node-modules
   postgres_data:
     name: promata-postgres-data
+  umami-db-data:
+    name: promata-umami-db-data
   umami-db-data:
     name: promata-umami-db-data
 

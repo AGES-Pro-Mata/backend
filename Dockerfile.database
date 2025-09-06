@@ -1,0 +1,229 @@
+# Pro-Mata Base Database Container with PostgreSQL and Prisma Migration
+FROM postgres:16-alpine
+
+# Metadata labels
+LABEL org.label-schema.name="pro-mata-database-base" \
+      org.label-schema.description="Base PostgreSQL image with Prisma migration support for Pro-Mata" \
+      org.label-schema.vendor="AGES PUCRS" \
+      org.label-schema.version="16-alpine-base"
+
+# Install Node.js for Prisma migrations and additional tools
+RUN apk add --no-cache \
+    nodejs \
+    npm \
+    postgresql-client \
+    postgresql-contrib \
+    openssl \
+    libc6-compat \
+    netcat-openbsd \
+    curl \
+    bash \
+    tzdata \
+    gzip \
+    procps
+
+# Set timezone to Brazil
+RUN cp /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime && \
+    echo "America/Sao_Paulo" > /etc/timezone
+
+# Set default PGDATA location (can be overridden)
+ENV PGDATA=/var/lib/postgresql/data/pgdata
+ENV TZ=America/Sao_Paulo
+ENV PGTZ=America/Sao_Paulo
+
+# Create app directory for migration scripts
+WORKDIR /app
+
+# Copy package files and prisma schema
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Install only production dependencies needed for migrations
+RUN npm ci --only=production && npm cache clean --force
+RUN npx prisma generate
+
+# Create basic initialization script (database-specific initialization to be handled by extending images)
+COPY <<'EOF' /docker-entrypoint-initdb.d/00-base-init.sh
+#!/bin/bash
+set -e
+
+echo "🚀 Pro-Mata Base Database Initialization"
+echo "Timestamp: $(date)"
+echo "PostgreSQL Version: $(postgres --version)"
+echo "Timezone: $(date +'%Z %z')"
+
+# Create directory structure for extensibility
+mkdir -p /var/lib/postgresql/scripts
+mkdir -p /var/lib/postgresql/backups
+mkdir -p /etc/postgresql/conf.d
+
+# Set proper permissions
+chown -R postgres:postgres /var/lib/postgresql/scripts
+chown -R postgres:postgres /var/lib/postgresql/backups
+
+echo "✅ Base database initialization completed!"
+EOF
+
+# Create migration script (requires DATABASE_URL to be set at runtime)
+COPY <<'EOF' /app/migrate.sh
+#!/bin/bash
+set -e
+
+echo "🔄 Pro-Mata Database Migration Tool"
+echo "Environment: ${NODE_ENV:-development}"
+echo "Database Host: ${POSTGRES_HOST:-localhost}"
+echo "Database Port: ${POSTGRES_PORT:-5432}"
+
+# Validate required environment variables
+if [ -z "$DATABASE_URL" ] && [ -z "$POSTGRES_USER" ]; then
+    echo "❌ Error: DATABASE_URL or POSTGRES_USER must be set"
+    exit 1
+fi
+
+# Wait for PostgreSQL to be ready
+echo "⏳ Aguardando PostgreSQL..."
+until pg_isready -h ${POSTGRES_HOST:-localhost} -p ${POSTGRES_PORT:-5432} -U ${POSTGRES_USER:-postgres}; do
+    echo "   Banco não disponível, tentando novamente..."
+    sleep 2
+done
+echo "✅ PostgreSQL disponível!"
+
+# Use DATABASE_URL if provided, otherwise construct from parts
+if [ -z "$DATABASE_URL" ]; then
+    export DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST:-localhost}:${POSTGRES_PORT:-5432}/${POSTGRES_DB}?schema=public"
+fi
+
+# Check database connection with Prisma
+echo "Verificando conexão com Prisma..."
+if ! node -e "
+const { PrismaClient } = require('@prisma/client');
+new PrismaClient().\$connect()
+  .then(() => {
+    console.log('Prisma conectado com sucesso!');
+    process.exit(0);
+  })
+  .catch(e => {
+    console.error('Erro na conexão Prisma:', e.message);
+    process.exit(1);
+  })
+"; then
+    echo "Falha na conexão com banco via Prisma"
+    exit 1
+fi
+
+# Create backup if in production
+if [ "$NODE_ENV" = "production" ]; then
+    echo "Criando backup de segurança..."
+    BACKUP_FILE="/tmp/backup-$(date +%Y%m%d-%H%M%S).sql"
+    if pg_dump "${DATABASE_URL}" > "$BACKUP_FILE" 2>/dev/null; then
+        echo "Backup criado: $BACKUP_FILE"
+        # Optionally upload to storage (implement as needed)
+    else
+        echo "Backup falhou, continuando com migrações..."
+    fi
+fi
+
+# Check migration status
+echo "Verificando status das migrações..."
+if npx prisma migrate status; then
+    echo "Status das migrações verificado"
+else
+    echo "Problemas no status das migrações, tentando resolver..."
+fi
+
+# Deploy migrations
+echo "Executando migrações..."
+if npx prisma migrate deploy; then
+    echo "Migrações executadas com sucesso!"
+else
+    echo "Erro ao executar migrações!"
+    exit 1
+fi
+
+# Seed database if requested
+if [ "$RUN_SEED" = "true" ]; then
+    echo "Executando seed do banco..."
+    if npx prisma db seed; then
+        echo "Seed executado com sucesso!"
+    else
+        echo "Seed não disponível ou falhou"
+    fi
+fi
+
+# Final verification
+echo "Verificação final da conectividade..."
+if node -e "
+const { PrismaClient } = require('@prisma/client');
+new PrismaClient().\$connect()
+  .then(() => {
+    console.log('Verificação final: Conexão OK');
+    process.exit(0);
+  })
+  .catch(e => {
+    console.error('Verificação final falhou:', e.message);
+    process.exit(1);
+  })
+"; then
+    echo "Migration container completado com sucesso!"
+else
+    echo "Verificação final falhou!"
+    exit 1
+fi
+EOF
+
+# Create startup script that runs both PostgreSQL and migrations
+COPY <<'EOF' /app/start-database.sh
+#!/bin/bash
+set -e
+
+echo "🚀 Starting Pro-Mata Database Container..."
+
+# Check if running as migration-only mode
+if [ "$MIGRATION_MODE" = "true" ]; then
+    echo "🔄 Running in migration-only mode"
+    /app/migrate.sh
+    exit 0
+fi
+
+# Start PostgreSQL in background
+echo "🗄️  Starting PostgreSQL..."
+docker-entrypoint.sh postgres &
+PG_PID=$!
+
+# Wait for PostgreSQL to be ready
+echo "⏳ Waiting for PostgreSQL to be ready..."
+sleep 10
+
+# Run migrations if AUTO_MIGRATE is enabled
+if [ "$AUTO_MIGRATE" = "true" ]; then
+    echo "🔄 Running automatic migrations..."
+    /app/migrate.sh
+fi
+
+# Keep PostgreSQL running in foreground
+echo "✅ Database ready! PostgreSQL running."
+wait $PG_PID
+EOF
+
+# Make scripts executable
+RUN chmod +x /docker-entrypoint-initdb.d/00-base-init.sh
+RUN chmod +x /app/migrate.sh
+RUN chmod +x /app/start-database.sh
+
+# Create default directories for extending images
+RUN mkdir -p /etc/postgresql/conf.d \
+             /var/lib/postgresql/backups \
+             /var/lib/postgresql/scripts
+
+# Expose PostgreSQL port
+EXPOSE 5432
+
+# Health check (flexible for different configurations)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD pg_isready -h localhost -p 5432 -U ${POSTGRES_USER:-postgres} || exit 1
+
+# Use the startup script as entrypoint
+ENTRYPOINT ["/app/start-database.sh"]
+
+# Default command (can be overridden by extending images)
+CMD []
