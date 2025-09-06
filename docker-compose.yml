@@ -31,6 +31,29 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+  metabase:
+    image: metabase/metabase:latest
+    container_name: promata-metabase
+    ports:
+      - "3001:3000"
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: ${POSTGRES_DB}
+      MB_DB_PORT: 5432
+      MB_DB_USER: ${POSTGRES_USER}
+      MB_DB_PASS: ${POSTGRES_PASSWORD}
+      MB_DB_HOST: database
+    depends_on:
+      - database
+    restart: always
+    networks:
+      - promata_dev
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3001 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
 
   # Database para desenvolvimento
   database:
