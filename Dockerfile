@@ -34,7 +34,7 @@ COPY . .
 EXPOSE $BACKEND_PORT
 
 # Comando de desenvolvimento com hot reload
-CMD ["sh", "-c", "npx prisma generate && npx prisma migrate dev && npm run start:dev"]
+CMD ["sh", "-c", "npx prisma generate && npx prisma migrate reset --force && npm run start:dev"]
 
 # Dockerfile.dev - Ambiente de desenvolvimento
 FROM node:20-alpine AS prod
