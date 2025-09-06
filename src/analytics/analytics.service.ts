@@ -107,4 +107,15 @@ export class AnalyticsService implements OnModuleInit {
       },
     });
   }
+
+  async trackPasswordChange(userId: string): Promise<void> {
+    await this.trackEvent({
+      url: '/api/auth/changePassword',
+      title: 'User Change Password',
+      name: 'change_password',
+      data: {
+        id: userId,
+      },
+    });
+  }
 }

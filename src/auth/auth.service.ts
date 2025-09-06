@@ -1,17 +1,28 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
-import { CreateUserFormDto } from './auth.model';
+import { ChangePasswordDto, CreateUserFormDto, ForgotPasswordDto } from './auth.model';
 import { UserType } from 'generated/prisma';
-import { timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual, randomBytes } from 'node:crypto';
+import { AnalyticsService } from 'src/analytics/analytics.service';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly analyticsService: AnalyticsService,
+  ) {}
+
+  private comparePasswords(password: string, confirmPassword: string) {
+    return timingSafeEqual(Buffer.from(password, 'hex'), Buffer.from(confirmPassword, 'hex'));
+  }
 
   async createUser(dto: CreateUserFormDto) {
-    if (
-      !timingSafeEqual(Buffer.from(dto.password, 'hex'), Buffer.from(dto.confirmPassword, 'hex'))
-    ) {
+    if (!this.comparePasswords(dto.password, dto.confirmPassword)) {
       throw new BadRequestException('As senhas não são identicas.');
     }
 
@@ -29,5 +40,71 @@ export class AuthService {
         isForeign: dto.isForeign,
       },
     });
+  }
+
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
+    const user = await this.databaseService.user.findUnique({
+      where: { email: forgotPasswordDto.email },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Email não cadastrado!');
+    }
+
+    const token = randomBytes(20).toString('hex');
+
+    const createdAt = new Date();
+
+    const expiredAt = new Date(createdAt);
+    expiredAt.setHours(createdAt.getHours() + 1);
+
+    await this.databaseService.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        token: token,
+        createdAt,
+        expiredAt,
+      },
+    });
+
+    // TODO: Send a link to the user's email where they can change the password
+  }
+
+  async changePassword(changePasswordDto: ChangePasswordDto) {
+    if (!this.comparePasswords(changePasswordDto.password, changePasswordDto.confirmPassword)) {
+      throw new BadRequestException('As senhas não são identicas.');
+    }
+
+    const passwordResetToken = await this.databaseService.passwordResetToken.findUnique({
+      where: { token: changePasswordDto.token, isActive: true },
+    });
+
+    if (!passwordResetToken) {
+      throw new BadRequestException('Token inválido.');
+    }
+
+    const now = new Date();
+
+    if (passwordResetToken.expiredAt < now) {
+      throw new UnauthorizedException('Token expirado.');
+    }
+
+    await this.databaseService.user.update({
+      where: {
+        id: passwordResetToken.userId,
+      },
+      data: {
+        password: changePasswordDto.password,
+      },
+    });
+
+    await this.databaseService.passwordResetToken.update({
+      where: { token: changePasswordDto.token },
+      data: {
+        isActive: false,
+      },
+    });
+
+    await this.analyticsService.trackPasswordChange(passwordResetToken.userId);
   }
 }
