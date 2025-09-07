@@ -9,6 +9,7 @@ import {
 } from './auth.model';
 import { UserType } from 'generated/prisma';
 import { Roles } from './role/roles.decorator';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('auth')
 export class AuthController {
@@ -21,7 +22,9 @@ export class AuthController {
   }
 
   @Post('dashboard/user')
+  @ApiBearerAuth('access-token')
   @Roles(UserType.ADMIN)
+  @HttpCode(HttpStatus.CREATED)
   async createUserAsAdmin(@Body() body: CreateRootUserDto) {
     return await this.authService.createRootUser(body);
   }

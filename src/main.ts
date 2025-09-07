@@ -13,7 +13,18 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const config = new DocumentBuilder().setTitle('Pró-Mata Api').setVersion('0.1').build();
+  const config = new DocumentBuilder()
+    .setTitle('Pró-Mata Api')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      },
+      'access-token',
+    )
+    .setVersion('0.1')
+    .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
 
