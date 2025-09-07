@@ -41,6 +41,12 @@ export class AuthService {
         userType: UserType.GUEST,
         institution: dto.institution,
         isForeign: dto.isForeign,
+        address: { create: {
+          zip: dto.zipCode,
+          street: dto.address,
+          city: dto.city,
+          number: dto.number.toString(),
+        }}
       },
     });
   }
