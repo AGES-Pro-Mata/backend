@@ -7,7 +7,7 @@ import {
   ForgotPasswordDto,
   LoginDto,
 } from './auth.model';
-import { UserType } from 'generated/prisma';
+import { ReceiptType, UserType } from 'generated/prisma';
 import { timingSafeEqual, randomBytes } from 'node:crypto';
 import { AnalyticsService } from 'src/analytics/analytics.service';
 import { JwtService } from '@nestjs/jwt';
@@ -28,10 +28,12 @@ export class AuthService {
     return timingSafeEqual(Buffer.from(password, 'hex'), Buffer.from(confirmPassword, 'hex'));
   }
 
-  async createUser(dto: CreateUserFormDto) {
+  async createUser(arquivo: File, dto: CreateUserFormDto) {
     if (!this.comparePasswords(dto.password, dto.confirmPassword)) {
       throw new BadRequestException('As senhas não são identicas.');
     }
+
+    console.log(arquivo); // TODO: implementar upload pra s3 e salvar o url no banco
 
     await this.databaseService.user.create({
       data: {
@@ -42,15 +44,22 @@ export class AuthService {
         cpf: dto.cpf,
         gender: dto.gender,
         rg: dto.rg,
-        userType: UserType.GUEST,
+        userType: dto.userType,
         institution: dto.institution,
         isForeign: dto.isForeign,
+        Receipt: {
+          create: {
+            type: ReceiptType.DOCENCY,
+            url: 'url_default',
+          },
+        },
         address: {
           create: {
             zip: dto.zipCode,
-            street: dto.address,
+            street: dto.addressLine,
             city: dto.city,
-            number: dto.number.toString(),
+            number: dto.number?.toString(),
+            country: dto.country,
           },
         },
       },
