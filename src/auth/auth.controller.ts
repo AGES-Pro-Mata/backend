@@ -1,4 +1,15 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
   ChangePasswordDto,
@@ -10,15 +21,17 @@ import {
 import { UserType } from 'generated/prisma';
 import { Roles } from './role/roles.decorator';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('signUp')
+  @UseInterceptors(FileInterceptor('arquivo'))
   @HttpCode(HttpStatus.CREATED)
-  async createUser(@Body() body: CreateUserFormDto) {
-    return await this.authService.createUser(body);
+  async createUser(@UploadedFile() arquivo: File, @Body() body: CreateUserFormDto) {
+    return await this.authService.createUser(arquivo, body);
   }
 
   @Post('dashboard/user')
