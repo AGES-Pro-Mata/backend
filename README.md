@@ -29,10 +29,12 @@ npm install -g @nestjs/cli  # Instala o NestJS CLI globalmente
 
 O projeto utiliza **profiles** do `docker compose` para diferentes ambientes:
 
+Copiar o `.env.exemple` para o `.env` para o desenvolvimento local.
+
 #### 🔹 Desenvolvimento completo
 
 ```bash
-docker compose --env-file .env.local --profile local up
+docker compose local up
 ```
 
 Backend + banco PostgreSQL locais.
@@ -40,29 +42,9 @@ Backend + banco PostgreSQL locais.
 #### 🔹 Apenas banco de dados
 
 ```bash
-docker compose --env-file .env.local --profile local up database
+docker compose up database
 ```
-Para rodar backend localmente: `npm run start:local`
-
-#### 🔹 Teste de TST e HLG
-
-Basta substituir o arquivo `.env` para o determinado ambiente `.env.tst` ou `.env.hlg`, 
-para ter acesso à esser arquivos deve-se entrar em contato com os AGES III e IV.
-
-```bash
-# Exemplo
-docker compose --env-file .env.hlg up backend
-# ou
-docker compose --env-file .env.hlg up backend-watcher
-```
-
-Testa build de produção localmente.
-
-#### 🔹 Testes automatizados
-
-```bash
-docker compose --env-file .env.local --profile test up
-```
+Para rodar backend localmente: `npm run start:dev`
 
 #### 🔹 Rodar local
 ```bash
@@ -75,47 +57,27 @@ npx run start:hlg
 
 #### 🔹 Prisma Studio
 
+Via docker:
+
 ```bash
-docker compose --env-file .env.local --profile studio up
+docker compose upprisma-studio
+```
+
+Local:
+
+```bash
+npx prisma studio
 ```
 
 Interface visual do banco: <http://localhost:5555>
-
-## 🛠️ Variáveis de ambiente
-
-### Arquivos disponíveis
-
-- `.env.local` - Desenvolvimento local
-- `.env.dev` - Staging/desenvolvimento
-- `.env.prod` - Produção
-
-### Principais variáveis
-
-```bash
-DATABASE_URL="postgresql://user:pass@host:port/db"
-NODE_ENV=development|production
-BACKEND_ENV=local|dev|prod
-```
 
 ## 🐳 Docker
 
 ### Dockerfiles
 
+- `Dockerfile` - Desenvolvimento local
 - `Dockerfile.dev` - Desenvolvimento com hot reload
 - `Dockerfile.prod` - Build otimizado para produção
-
-### Scripts úteis
-
-```bash
-# Build das imagens
-docker compose build
-
-# Logs dos containers
-docker compose logs -f
-
-# Limpar volumes
-docker compose down -v
-```
 
 ## 🗄️ Banco de dados
 
