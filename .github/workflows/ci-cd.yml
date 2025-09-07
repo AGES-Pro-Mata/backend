@@ -159,9 +159,9 @@ jobs:
       - name: Print Image Digest
         run: echo "Image pushed with digest ${{ steps.docker_build.outputs.digest }}"
 
-  # Job 3: Build Migration Image
-  build-migration:
-    name: 🔄 Build Migration Image
+  # Job 3: Build Database Image
+  build-database:
+    name: 🗃️ Build Database Image
     needs: [test]
     runs-on: ubuntu-latest
     if: >-
@@ -174,8 +174,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: ⚙️ Set Migration Configuration
-        id: migration_config
+      - name: ⚙️ Set Database Configuration
+        id: database_config
         run: |
           # Determina o ambiente baseado no gatilho do workflow
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -194,10 +194,10 @@ jobs:
           # Define as variáveis baseadas no ambiente
           if [ "$ENV" = "prod" ]; then
             echo "environment=production" >> $GITHUB_OUTPUT
-            echo "image_name=norohim/pro-mata-migration" >> $GITHUB_OUTPUT
+            echo "image_name=norohim/pro-mata-database" >> $GITHUB_OUTPUT
           else
             echo "environment=development" >> $GITHUB_OUTPUT
-            echo "image_name=norohim/pro-mata-migration-dev" >> $GITHUB_OUTPUT
+            echo "image_name=norohim/pro-mata-database-dev" >> $GITHUB_OUTPUT
           fi
 
       - name: Set up Docker Buildx
@@ -210,40 +210,56 @@ jobs:
           username: ${{ vars.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Extract migration metadata
-        id: migration_meta
+      - name: Extract database metadata
+        id: database_meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ steps.migration_config.outputs.image_name }}
+          images: ${{ steps.database_config.outputs.image_name }}
           tags: |
             type=raw,value=latest
             type=sha,prefix={{branch}}-
 
-      - name: Build and push migration image
+      - name: Build and push database image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: Dockerfile.migration
+          file: Dockerfile.database
           push: true
-          tags: ${{ steps.migration_meta.outputs.tags }}
-          labels: ${{ steps.migration_meta.outputs.labels }}
-          cache-from: type=gha,scope=migration
-          cache-to: type=gha,mode=max,scope=migration
+          tags: ${{ steps.database_meta.outputs.tags }}
+          labels: ${{ steps.database_meta.outputs.labels }}
+          cache-from: type=gha,scope=database
+          cache-to: type=gha,mode=max,scope=database
           platforms: linux/amd64,linux/arm64
 
-      - name: Migration Build Summary
+      - name: Database Build Summary
         run: |
-          echo "## 🔄 Migration Image Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🗃️ Database Image Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Image Name** | ${{ steps.migration_config.outputs.image_name }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Environment** | ${{ steps.migration_config.outputs.environment }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Tags** | ${{ steps.migration_meta.outputs.tags }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Image Name** | ${{ steps.database_config.outputs.image_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Environment** | ${{ steps.database_config.outputs.environment }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Tags** | ${{ steps.database_meta.outputs.tags }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Trigger Infrastructure Database Build
+        if: success()
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.PAT_INFRASTRUCTURE_REPO }}
+          repository: AGES-Pro-Mata/infrastructure
+          event-type: backend-database-built
+          client-payload: |
+            {
+              "base_image": "${{ steps.database_config.outputs.image_name }}:latest",
+              "environment": "${{ steps.database_config.outputs.environment }}",
+              "commit": "${{ github.sha }}",
+              "branch": "${{ github.ref_name }}",
+              "triggered_by": "backend-database"
+            }
 
   # Job 4: Disparo do Deploy de Infraestrutura
   trigger-deploy:
     name: 🚀 Trigger Infrastructure Deployment
-    needs: [build-and-push, build-migration]
+    needs: [build-and-push, build-database]
     runs-on: ubuntu-latest
     # Garante que este job só rode se o build for bem-sucedido
     if: success() && needs.build-and-push.outputs.event_type != ''

@@ -3,11 +3,12 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { ConfigModule } from '@nestjs/config';
-import { getEnvFile } from './config/env.utils';
 import { AuthModule } from './auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { RoleGuard } from './auth/role/role.guard';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { ZodValidationPipe } from 'nestjs-zod';
 
 @Module({
   imports: [
@@ -15,10 +16,10 @@ import { RoleGuard } from './auth/role/role.guard';
     ConfigModule.forRoot({
       isGlobal: true,
       expandVariables: true,
-      envFilePath: getEnvFile(),
     }),
     JwtModule,
     AuthModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [
@@ -26,6 +27,10 @@ import { RoleGuard } from './auth/role/role.guard';
     {
       provide: APP_GUARD,
       useClass: RoleGuard,
+    },
+    {
+      provide: APP_PIPE,
+      useClass: ZodValidationPipe,
     },
   ],
 })
