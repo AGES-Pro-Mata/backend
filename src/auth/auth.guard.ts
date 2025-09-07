@@ -67,6 +67,7 @@ export class AuthGuard implements CanActivate {
     }
 
     const [type, token] = authorizationHeader.split(' ') ?? [];
+
     if (type !== 'Bearer') {
       this.logger.error('The authorization token must be in a `Bearer` pattern');
       throw new UnauthorizedException();

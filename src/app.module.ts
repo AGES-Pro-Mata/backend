@@ -9,6 +9,7 @@ import { APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { RoleGuard } from './auth/role/role.guard';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ZodValidationPipe } from 'nestjs-zod';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ZodValidationPipe } from 'nestjs-zod';
     JwtModule,
     AuthModule,
     AnalyticsModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [
