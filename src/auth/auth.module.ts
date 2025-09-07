@@ -7,7 +7,12 @@ import { AnalyticsModule } from 'src/analytics/analytics.module';
 import { AnalyticsService } from 'src/analytics/analytics.service';
 
 @Module({
-  imports: [JwtModule, AnalyticsModule],
+  imports: [
+    JwtModule.register({
+      secret: process.env.JWT_SECRET,
+    }),
+    AnalyticsModule,
+  ],
   providers: [JwtService, AuthGuard, AuthService, AnalyticsService],
   exports: [AuthGuard],
   controllers: [AuthController],

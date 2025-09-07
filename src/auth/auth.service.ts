@@ -1,15 +1,10 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
-import { ChangePasswordDto, CreateUserFormDto, ForgotPasswordDto } from './auth.model';
+import { ChangePasswordDto, CreateUserFormDto, ForgotPasswordDto, LoginDto } from './auth.model';
 import { UserType } from 'generated/prisma';
 import { timingSafeEqual, randomBytes } from 'node:crypto';
 import { AnalyticsService } from 'src/analytics/analytics.service';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +12,7 @@ export class AuthService {
 
   constructor(
     private readonly databaseService: DatabaseService,
+    private readonly jwtService: JwtService,
     private readonly analyticsService: AnalyticsService,
   ) {}
 
@@ -43,6 +39,29 @@ export class AuthService {
         isForeign: dto.isForeign,
       },
     });
+  }
+
+  async signIn(dto: LoginDto) {
+    const user = await this.databaseService.user.findUnique({
+      where: { email: dto.email },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Nenhum usuário encontrado com esse email.');
+    }
+
+    if (user?.password === dto.password) {
+      const payload = {
+        sub: user.id,
+        userType: user.userType,
+      };
+
+      const token = await this.jwtService.signAsync(payload);
+
+      return { token };
+    } else {
+      throw new BadRequestException('Senha incorreta.');
+    }
   }
 
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
