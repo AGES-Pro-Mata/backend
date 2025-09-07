@@ -39,7 +39,7 @@ export class AuthService {
         phone: dto.phone,
         cpf: dto.cpf,
         gender: dto.gender,
-        rg: dto.rg, // nao precisa
+        rg: dto.rg,
         userType: UserType.GUEST,
         institution: dto.institution,
         isForeign: dto.isForeign,
