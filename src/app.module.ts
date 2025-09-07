@@ -34,4 +34,4 @@ import { ZodValidationPipe } from 'nestjs-zod';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}
