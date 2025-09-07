@@ -5,8 +5,12 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 
 @Module({
-  imports: [JwtModule],
-  providers: [JwtService, AuthGuard, AuthService],
+  imports: [
+    JwtModule.register({
+      secret: process.env.JWT_SECRET, 
+    })
+  ],
+  providers: [AuthGuard, AuthService],
   exports: [AuthGuard],
   controllers: [AuthController],
 })

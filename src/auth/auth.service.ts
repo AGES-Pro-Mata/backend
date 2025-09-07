@@ -3,10 +3,11 @@ import { DatabaseService } from 'src/database/database.service';
 import { CreateUserFormDto, LoginDto } from './auth.model';
 import { UserType } from 'generated/prisma';
 import { timingSafeEqual } from 'node:crypto';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(private readonly databaseService: DatabaseService, private jwtService: JwtService) {}
 
   async createUser(dto: CreateUserFormDto) {
     if (
@@ -41,7 +42,15 @@ export class AuthService {
     }
 
     if(user?.password === dto.password){
-      return user;
+      const payload = {
+        sub: user.id,
+        email: user.email,
+      }
+
+      const token = await this.jwtService.signAsync(payload);
+
+      return {token};
+
     }else{
       throw new BadRequestException('Senha incorreta.');
     }
