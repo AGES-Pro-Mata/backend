@@ -7,7 +7,10 @@ import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly databaseService: DatabaseService, private jwtService: JwtService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   async createUser(dto: CreateUserFormDto) {
     if (
@@ -32,26 +35,25 @@ export class AuthService {
     });
   }
 
-  async signIn(dto:LoginDto){
+  async signIn(dto: LoginDto) {
     const user = await this.databaseService.user.findUnique({
-      where: {email:dto.email}
+      where: { email: dto.email },
     });
 
     if (!user) {
       throw new BadRequestException('Nenhum usuário encontrado com esse email.');
     }
 
-    if(user?.password === dto.password){
+    if (user?.password === dto.password) {
       const payload = {
         sub: user.id,
-        email: user.email,
-      }
+        userType: user.userType,
+      };
 
       const token = await this.jwtService.signAsync(payload);
 
-      return {token};
-
-    }else{
+      return { token };
+    } else {
       throw new BadRequestException('Senha incorreta.');
     }
   }
