@@ -57,12 +57,4 @@ export class UserController {
   async searchUser(@Query() searchParams: SearchParamsDto) {
     return await this.userService.searchUser(searchParams);
   }
-
-  @Get('me')
-  @Roles(UserType.GUEST, UserType.ADMIN)
-  @ApiBearerAuth('access-token')
-  @HttpCode(HttpStatus.OK)
-  async getMe(@Req() req: Request) {
-    return await this.userService.getMe(req.user.id);
-  }
-} 
+}

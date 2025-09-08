@@ -89,9 +89,4 @@ export class UserService {
       throw new BadRequestException('O `id` deve vir no formato `uuid`.');
     }
   }
-
-  async getMe(userId: string) {
-    this.verifyUserId(userId);
-    return await this.databaseService.user.findUnique({ where: { id: userId } });
-  }
 }
