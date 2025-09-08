@@ -63,6 +63,7 @@ export class UserService {
         email: {
           contains: searchParams.email,
         },
+        active: true,
       },
       select: {
         id: true,
