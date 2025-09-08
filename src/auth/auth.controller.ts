@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -24,6 +25,7 @@ import { Roles } from './role/roles.decorator';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { User } from 'src/user/user.decorator';
+import type { Request } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -34,6 +36,12 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   async createUser(@UploadedFile() arquivo: File, @Body() body: CreateUserFormDto) {
     return await this.authService.createUser(arquivo, body);
+  }
+
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  async verifyToken(@Req() req: Request) {
+    return await this.authService.verifyToken(req);
   }
 
   @Post('dashboard/user')

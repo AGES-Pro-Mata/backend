@@ -13,6 +13,7 @@ import { AnalyticsService } from 'src/analytics/analytics.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import argon2 from 'argon2';
+import { Request } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -27,6 +28,24 @@ export class AuthService {
 
   private comparePasswords(password: string, confirmPassword: string) {
     return timingSafeEqual(Buffer.from(password, 'hex'), Buffer.from(confirmPassword, 'hex'));
+  }
+
+  async verifyToken(req: Request) {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      throw new BadRequestException('Token não encontrado.');
+    }
+
+    const [type, token] = authHeader.split(' ') ?? [];
+
+    if (type !== 'Bearer') {
+      throw new BadRequestException('Token inválido.');
+    }
+
+    return await this.jwtService.verifyAsync(token, {
+      secret: this.configService.get('JWT_SECRET'),
+    });
   }
 
   async createUser(arquivo: File, dto: CreateUserFormDto) {
