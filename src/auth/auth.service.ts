@@ -45,6 +45,7 @@ export class AuthService {
         gender: dto.gender,
         rg: dto.rg,
         userType: dto.userType,
+        verified: dto.userType !== 'PROFESSOR',
         institution: dto.institution,
         isForeign: dto.isForeign,
         Receipt: {
@@ -66,7 +67,7 @@ export class AuthService {
     });
   }
 
-  async createRootUser(dto: CreateRootUserDto) {
+  async createRootUser(userId: string, dto: CreateRootUserDto) {
     if (!this.comparePasswords(dto.password, dto.confirmPassword)) {
       throw new BadRequestException('As senhas não são identicas.');
     }
@@ -81,6 +82,8 @@ export class AuthService {
         gender: dto.gender,
         userType: UserType.ADMIN,
         isForeign: false,
+        verified: true,
+        createdByUserId: userId,
       },
     });
   }

@@ -6,28 +6,35 @@ export const UpdateUserFormSchema = z.object({
   name: z.string().optional(),
   email: z.email().optional(),
   phone: z.string().optional(),
-  cpf: z.string().optional(),
-  rg: z.string().optional(),
+  cpf: z.string().nullable().optional(),
+  rg: z.string().nullable().optional(),
   gender: z.string().optional(),
   zipCode: z.string().optional(),
-  city: z.string().optional(),
-  address: z.string().optional(),
-  number: z.number().optional(),
-  institution: z.string().optional(),
-  isForeign: z.boolean().optional(),
-  userType: z.enum(Object.values(UserType)).optional(),
+  userType: z.enum([UserType.GUEST, UserType.PROFESSOR]).optional(),
+  city: z.string().nullable().optional(),
+  country: z.string().optional(),
+  addressLine: z.string().nullable().optional(),
+  number: z
+    .string()
+    .nullable()
+    .transform((val) => (val ? parseInt(val, 10) : null))
+    .optional(),
+  institution: z.string().nullable().optional(),
+  isForeign: z
+    .string()
+    .transform((val) => val === 'true')
+    .optional(),
 });
 
 export class UpdateUserFormDto extends createZodDto(UpdateUserFormSchema) {}
 
 export const SearchParamsSchema = z.object({
-  page: z.number(),
-  limit: z.number(),
-  dir: z.enum(['ASC', 'DESC']),
+  page: z.string().transform((val) => parseInt(val, 10)),
+  limit: z.string().transform((val) => parseInt(val, 10)),
+  dir: z.enum(['asc', 'desc']),
   sort: z.enum(['name', 'email', 'cratedBy']),
-  name: z.string(),
-  email: z.email(),
-  createdBy: z.uuid(),
+  name: z.string().optional(),
+  email: z.email().optional(),
 });
 
 export class SearchParamsDto extends createZodDto(SearchParamsSchema) {}

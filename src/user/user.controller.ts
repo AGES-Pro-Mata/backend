@@ -49,7 +49,7 @@ export class UserController {
   }
 
   @Get()
-  @Roles(UserType.ADMIN)
+  // @Roles(UserType.ADMIN)
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   async searchUser(@Query() searchParams: SearchParamsDto) {
