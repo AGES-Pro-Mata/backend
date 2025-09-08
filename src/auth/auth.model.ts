@@ -22,13 +22,18 @@ export const CreateUserFormSchema = z.object({
   rg: z.string().nullable(),
   gender: z.string(),
   zipCode: z.string(),
-  city: z.string(),
-  address: z.string(),
-  number: z.number(),
+  userType: z.enum([UserType.GUEST, UserType.PROFESSOR]),
+  city: z.string().nullable(),
+  country: z.string(),
+  addressLine: z.string().nullable(),
+  number: z
+    .string()
+    .nullable()
+    .transform((val) => (val ? parseInt(val, 10) : null)),
   password: z.hash('sha256'),
   confirmPassword: z.hash('sha256'),
-  institution: z.string(),
-  isForeign: z.boolean(),
+  institution: z.string().nullable(),
+  isForeign: z.string().transform((val) => val === 'true'),
 });
 
 export class CreateUserFormDto extends createZodDto(CreateUserFormSchema) {}
@@ -41,6 +46,15 @@ export const CreateRootUserSchema = z.object({
   phone: z.string(),
   gender: z.string(),
   cpf: z.string().nullable(),
+  rg: z.string().nullable(),
+  country: z.string(),
+  userType: z.enum(Object.values(UserType)),
+  institution: z.string().nullable(),
+  isForeign: z.boolean(),
+  addressLine: z.string().nullable(),
+  city: z.string().nullable(),
+  zipCode: z.string(),
+  number: z.number().nullable(),
 });
 
 export class CreateRootUserDto extends createZodDto(CreateRootUserSchema) {}

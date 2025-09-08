@@ -7,10 +7,11 @@ import {
   ForgotPasswordDto,
   LoginDto,
 } from './auth.model';
-import { UserType } from 'generated/prisma';
+import { ReceiptType, UserType } from 'generated/prisma';
 import { timingSafeEqual, randomBytes } from 'node:crypto';
 import { AnalyticsService } from 'src/analytics/analytics.service';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
@@ -20,16 +21,19 @@ export class AuthService {
     private readonly databaseService: DatabaseService,
     private readonly jwtService: JwtService,
     private readonly analyticsService: AnalyticsService,
+    private readonly configService: ConfigService,
   ) {}
 
   private comparePasswords(password: string, confirmPassword: string) {
     return timingSafeEqual(Buffer.from(password, 'hex'), Buffer.from(confirmPassword, 'hex'));
   }
 
-  async createUser(dto: CreateUserFormDto) {
+  async createUser(arquivo: File, dto: CreateUserFormDto) {
     if (!this.comparePasswords(dto.password, dto.confirmPassword)) {
       throw new BadRequestException('As senhas não são identicas.');
     }
+
+    console.log(arquivo); // TODO: implementar upload pra s3 e salvar o url no banco
 
     await this.databaseService.user.create({
       data: {
@@ -40,22 +44,30 @@ export class AuthService {
         cpf: dto.cpf,
         gender: dto.gender,
         rg: dto.rg,
-        userType: UserType.GUEST,
+        userType: dto.userType,
+        verified: dto.userType !== 'PROFESSOR',
         institution: dto.institution,
         isForeign: dto.isForeign,
+        Receipt: {
+          create: {
+            type: ReceiptType.DOCENCY,
+            url: 'url_default',
+          },
+        },
         address: {
           create: {
             zip: dto.zipCode,
-            street: dto.address,
+            street: dto.addressLine,
             city: dto.city,
-            number: dto.number.toString(),
+            number: dto.number?.toString(),
+            country: dto.country,
           },
         },
       },
     });
   }
 
-  async createRootUser(dto: CreateRootUserDto) {
+  async createRootUser(userId: string, dto: CreateRootUserDto) {
     if (!this.comparePasswords(dto.password, dto.confirmPassword)) {
       throw new BadRequestException('As senhas não são identicas.');
     }
@@ -70,6 +82,8 @@ export class AuthService {
         gender: dto.gender,
         userType: UserType.ADMIN,
         isForeign: false,
+        verified: true,
+        createdByUserId: userId,
       },
     });
   }
@@ -89,7 +103,9 @@ export class AuthService {
         userType: user.userType,
       };
 
-      const token = await this.jwtService.signAsync(payload);
+      const token = await this.jwtService.signAsync(payload, {
+        secret: this.configService.get('JWT_SECRET'),
+      });
 
       return { token };
     } else {
