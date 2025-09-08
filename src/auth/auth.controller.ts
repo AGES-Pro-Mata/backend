@@ -74,4 +74,12 @@ export class AuthController {
   async changePassword(@Body() changePasswordDto: ChangePasswordDto) {
     return await this.authService.changePassword(changePasswordDto);
   }
+
+  @Get('profile')
+  @Roles(UserType.GUEST, UserType.ADMIN)
+  @ApiBearerAuth('access-token')
+  @HttpCode(HttpStatus.OK)
+  async findProfile(@User() user: CurrentUser) {
+    return await this.authService.findProfile(user.id);
+  }
 }

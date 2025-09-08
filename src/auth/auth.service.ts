@@ -216,4 +216,23 @@ export class AuthService {
   async verifyPassword(hash: string, plain: string): Promise<boolean> {
     return argon2.verify(hash, plain);
   }
+
+  async findProfile(id: string) {
+    return await this.databaseService.user.findUnique({
+      where: { id },
+      omit: {
+        id: true,
+        password: true,
+        createdAt: true,
+        addressId: true,
+        createdByUserId: true,
+        active: true,
+      },
+      include: {
+        address: {
+          omit: { id: true, createdAt: true },
+        },
+      },
+    });
+  }
 }
