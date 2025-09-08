@@ -12,6 +12,7 @@ import { timingSafeEqual, randomBytes } from 'node:crypto';
 import { AnalyticsService } from 'src/analytics/analytics.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import argon2 from 'argon2';
 
 @Injectable()
 export class AuthService {
@@ -39,7 +40,7 @@ export class AuthService {
       data: {
         name: dto.name,
         email: dto.email,
-        password: dto.password,
+        password: await this.hashPassword(dto.password),
         phone: dto.phone,
         cpf: dto.cpf,
         gender: dto.gender,
@@ -97,7 +98,7 @@ export class AuthService {
       throw new BadRequestException('Nenhum usuário encontrado com esse email.');
     }
 
-    if (user?.password === dto.password) {
+    if (await this.verifyPassword(user.password, dto.password)) {
       const payload = {
         sub: user.id,
         userType: user.userType,
@@ -182,5 +183,18 @@ export class AuthService {
     }
 
     return passwordResetToken;
+  }
+
+  async hashPassword(plain: string): Promise<string> {
+    return argon2.hash(plain, {
+      type: argon2.argon2id,
+      memoryCost: 65536,
+      timeCost: 3,
+      parallelism: 1,
+    });
+  }
+
+  async verifyPassword(hash: string, plain: string): Promise<boolean> {
+    return argon2.verify(hash, plain);
   }
 }
