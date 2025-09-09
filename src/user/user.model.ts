@@ -32,7 +32,7 @@ export const SearchParamsSchema = z.object({
   page: z.string().transform((val) => parseInt(val, 10)),
   limit: z.string().transform((val) => parseInt(val, 10)),
   dir: z.enum(['asc', 'desc']),
-  sort: z.enum(['name', 'email', 'cratedBy']),
+  sort: z.enum(['name', 'email', 'createdBy']),
   name: z.string().optional(),
   email: z.email().optional(),
 });

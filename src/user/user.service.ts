@@ -55,7 +55,7 @@ export class UserService {
   }
 
   async searchUser(searchParams: SearchParamsDto) {
-    return this.databaseService.user.findMany({
+    const users = await this.databaseService.user.findMany({
       where: {
         name: {
           contains: searchParams.name,
@@ -82,6 +82,13 @@ export class UserService {
       skip: searchParams.limit * (searchParams.page - 1),
       take: searchParams.limit,
     });
+
+    return {
+      page: searchParams.page,
+      limit: searchParams.limit,
+      total: users.length,
+      items: users,
+    };
   }
 
   private verifyUserId(userId: string) {
