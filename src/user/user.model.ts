@@ -31,8 +31,14 @@ export class UpdateUserFormDto extends createZodDto(UpdateUserFormSchema) {}
 export const SearchParamsSchema = z.object({
   page: z.string().transform((val) => parseInt(val, 10)),
   limit: z.string().transform((val) => parseInt(val, 10)),
-  dir: z.enum(['asc', 'desc']),
-  sort: z.enum(['name', 'email', 'createdBy']),
+  dir: z
+    .enum(['asc', 'desc'])
+    .optional()
+    .transform((val) => val ?? 'asc'),
+  sort: z
+    .enum(['name', 'email', 'createdBy'])
+    .optional()
+    .transform((val) => val ?? 'createdAt'),
   name: z.string().optional(),
   email: z.email().optional(),
 });
