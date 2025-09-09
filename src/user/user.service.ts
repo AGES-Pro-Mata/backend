@@ -79,7 +79,7 @@ export class UserService {
       orderBy: {
         [searchParams.sort]: searchParams.dir,
       },
-      skip: searchParams.limit * (searchParams.page - 1),
+      skip: searchParams.limit * searchParams.page,
       take: searchParams.limit,
     });
 
