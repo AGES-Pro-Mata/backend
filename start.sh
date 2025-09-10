@@ -12,6 +12,10 @@ until nc -z ${DB_HOST:-pgbouncer} ${DB_PORT:-6432}; do
 done
 echo "✅ Banco de dados disponível!"
 
+# CORREÇÃO: Regenerar Prisma Client no runtime (importante para consistency)
+echo "🔄 Regenerando Prisma Client..."
+npx prisma generate
+
 # Verificar conectividade simples com Prisma
 if ! node -e "
 const { PrismaClient } = require('@prisma/client'); 

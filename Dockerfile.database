@@ -40,7 +40,9 @@ COPY prisma ./prisma/
 
 # Install only production dependencies needed for migrations
 RUN npm ci --only=production && npm cache clean --force
-RUN npx prisma generate
+
+# CORREÇÃO: Adicionar try-catch para prisma generate
+RUN npx prisma generate || echo "⚠️  Prisma generate failed during build, will retry at runtime"
 
 # Create basic initialization script (database-specific initialization to be handled by extending images)
 COPY <<'EOF' /docker-entrypoint-initdb.d/00-base-init.sh
@@ -64,7 +66,7 @@ chown -R postgres:postgres /var/lib/postgresql/backups
 echo "✅ Base database initialization completed!"
 EOF
 
-# Create migration script (requires DATABASE_URL to be set at runtime)
+# Create improved migration script
 COPY <<'EOF' /app/migrate.sh
 #!/bin/bash
 set -e
@@ -93,6 +95,10 @@ if [ -z "$DATABASE_URL" ]; then
     export DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST:-localhost}:${POSTGRES_PORT:-5432}/${POSTGRES_DB}?schema=public"
 fi
 
+# CORREÇÃO: Regenerar Prisma Client antes de conectar
+echo "🔄 Regenerando Prisma Client..."
+npx prisma generate
+
 # Check database connection with Prisma
 echo "Verificando conexão com Prisma..."
 if ! node -e "
@@ -114,10 +120,12 @@ fi
 # Create backup if in production
 if [ "$NODE_ENV" = "production" ]; then
     echo "Criando backup de segurança..."
-    BACKUP_FILE="/tmp/backup-$(date +%Y%m%d-%H%M%S).sql"
+    BACKUP_FILE="/var/lib/postgresql/backups/backup-$(date +%Y%m%d-%H%M%S).sql"
     if pg_dump "${DATABASE_URL}" > "$BACKUP_FILE" 2>/dev/null; then
         echo "Backup criado: $BACKUP_FILE"
-        # Optionally upload to storage (implement as needed)
+        # Compress backup
+        gzip "$BACKUP_FILE"
+        echo "Backup comprimido: ${BACKUP_FILE}.gz"
     else
         echo "Backup falhou, continuando com migrações..."
     fi
@@ -129,6 +137,8 @@ if npx prisma migrate status; then
     echo "Status das migrações verificado"
 else
     echo "Problemas no status das migrações, tentando resolver..."
+    # MELHORIA: Tentar resolver problemas automaticamente
+    npx prisma migrate resolve --applied || echo "Não foi possível resolver automaticamente"
 fi
 
 # Deploy migrations
@@ -171,7 +181,7 @@ else
 fi
 EOF
 
-# Create startup script that runs both PostgreSQL and migrations
+# Create improved startup script
 COPY <<'EOF' /app/start-database.sh
 #!/bin/bash
 set -e
@@ -190,9 +200,20 @@ echo "🗄️  Starting PostgreSQL..."
 docker-entrypoint.sh postgres &
 PG_PID=$!
 
-# Wait for PostgreSQL to be ready
+# Wait for PostgreSQL to be ready with better retry logic
 echo "⏳ Waiting for PostgreSQL to be ready..."
-sleep 10
+retry_count=0
+max_retries=30
+until pg_isready -h localhost -p 5432 -U ${POSTGRES_USER:-postgres} || [ $retry_count -eq $max_retries ]; do
+    echo "   PostgreSQL não pronto, tentativa $((retry_count + 1))/$max_retries"
+    sleep 2
+    retry_count=$((retry_count + 1))
+done
+
+if [ $retry_count -eq $max_retries ]; then
+    echo "❌ PostgreSQL não ficou disponível após $max_retries tentativas"
+    exit 1
+fi
 
 # Run migrations if AUTO_MIGRATE is enabled
 if [ "$AUTO_MIGRATE" = "true" ]; then
@@ -218,9 +239,9 @@ RUN mkdir -p /etc/postgresql/conf.d \
 # Expose PostgreSQL port
 EXPOSE 5432
 
-# Health check (flexible for different configurations)
+# Improved health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD pg_isready -h localhost -p 5432 -U ${POSTGRES_USER:-postgres} || exit 1
+    CMD pg_isready -h localhost -p 5432 -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres} || exit 1
 
 # Use the startup script as entrypoint
 ENTRYPOINT ["/app/start-database.sh"]
