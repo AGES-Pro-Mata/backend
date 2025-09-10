@@ -13,8 +13,6 @@ services:
       - CHOKIDAR_USEPOLLING=true
       - UMAMI_URL=${UMAMI_URL}
       - UMAMI_WEBSITE_ID=${UMAMI_WEBSITE_ID}
-      - UMAMI_URL=${UMAMI_URL}
-      - UMAMI_WEBSITE_ID=${UMAMI_WEBSITE_ID}
     ports:
       - ${BACKEND_PORT:-3000}:${BACKEND_PORT:-3000}
     volumes:

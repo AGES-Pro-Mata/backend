@@ -30,5 +30,19 @@ new PrismaClient().\$connect()
     exit 1
 fi
 
+# Execute seed if requested (for demo/staging environments)
+if [ "$RUN_SEED" = "true" ]; then
+    echo "🌱 Executando seed do banco de dados..."
+    if [ -f "prisma/seed.js" ]; then
+        if node prisma/seed.js; then
+            echo "✅ Seed executado com sucesso!"
+        else
+            echo "⚠️ Seed falhou, continuando com aplicação..."
+        fi
+    else
+        echo "⚠️ Arquivo seed.js não encontrado"
+    fi
+fi
+
 echo "🎯 Iniciando aplicação NestJS..."
 exec node dist/main.js

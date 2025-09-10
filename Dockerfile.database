@@ -150,13 +150,18 @@ else
     exit 1
 fi
 
-# Seed database if requested
-if [ "$RUN_SEED" = "true" ]; then
+# Seed database if requested or in development
+if [ "$RUN_SEED" = "true" ] || [ "$NODE_ENV" = "development" ]; then
     echo "Executando seed do banco..."
     if npx prisma db seed; then
         echo "Seed executado com sucesso!"
     else
-        echo "Seed não disponível ou falhou"
+        echo "Seed não disponível ou falhou, tentando script direto..."
+        if [ -f "prisma/seed.js" ]; then
+            node prisma/seed.js
+        else
+            echo "Arquivo seed.js não encontrado"
+        fi
     fi
 fi
 
