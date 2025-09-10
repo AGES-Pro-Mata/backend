@@ -74,37 +74,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3000/health || exit 1
 
 # Script de inicialização - apenas aplicação
-RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'set -e' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
-    echo 'echo "🚀 Pro-Mata Backend Starting..."' >> /app/start.sh && \
-    echo 'echo "Environment: ${NODE_ENV:-production}"' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
-    echo '# Aguardar banco ficar disponível via pgbouncer' >> /app/start.sh && \
-    echo 'echo "⏳ Aguardando banco de dados..."' >> /app/start.sh && \
-    echo 'until nc -z ${DB_HOST:-pgbouncer} ${DB_PORT:-6432}; do' >> /app/start.sh && \
-    echo '    echo "   Banco não disponível, tentando novamente..."' >> /app/start.sh && \
-    echo '    sleep 2' >> /app/start.sh && \
-    echo 'done' >> /app/start.sh && \
-    echo 'echo "✅ Banco de dados disponível!"' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
-    echo '# Verificar conectividade simples com Prisma' >> /app/start.sh && \
-    echo 'if ! node -e "' >> /app/start.sh && \
-    echo 'const { PrismaClient } = require('\''@prisma/client'\'');' >> /app/start.sh && \
-    echo 'new PrismaClient().$connect()' >> /app/start.sh && \
-    echo '  .then(() => console.log('\''✅ Prisma conectado'\''))' >> /app/start.sh && \
-    echo '  .catch(e => {' >> /app/start.sh && \
-    echo '    console.error('\''❌ Erro Prisma:'\'', e.message);' >> /app/start.sh && \
-    echo '    process.exit(1);' >> /app/start.sh && \
-    echo '  })' >> /app/start.sh && \
-    echo '"; then' >> /app/start.sh && \
-    echo '    echo "❌ Falha na conexão com banco"' >> /app/start.sh && \
-    echo '    exit 1' >> /app/start.sh && \
-    echo 'fi' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
-    echo 'echo "🎯 Iniciando aplicação NestJS..."' >> /app/start.sh && \
-    echo 'exec node dist/main.js' >> /app/start.sh && \
-    chmod +x /app/start.sh
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
 
 # Comando de inicialização - apenas aplicação (sem migrations)
 CMD ["/app/start.sh"]
