@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { UserPayload, UserPayloadSchema } from './auth.model';
 import { Request } from 'express';
+import { DatabaseService } from 'src/database/database.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -18,6 +19,7 @@ export class AuthGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly databaseService: DatabaseService,
   ) {
     const envSecret = this.configService.get('JWT_SECRET');
 
@@ -50,10 +52,18 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Invalid token payload');
     }
 
-    request.user = {
-      id: parsed.data.sub,
-      userType: parsed.data.userType,
-    };
+    const user = await this.databaseService.user.findUnique({
+      where: {
+        id: parsed.data.sub,
+      },
+      select: { id: true, userType: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    request.user = user;
 
     return true;
   }

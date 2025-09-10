@@ -8,7 +8,6 @@ import {
   Param,
   Patch,
   Query,
-  Req,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { Roles } from 'src/auth/role/roles.decorator';
@@ -17,7 +16,6 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 import { SearchParamsDto, UpdateUserFormDto } from './user.model';
 import { User } from './user.decorator';
 import type { CurrentUser } from 'src/auth/auth.model';
-import type { Request } from 'express';
 
 @Controller('user')
 export class UserController {
@@ -51,9 +49,9 @@ export class UserController {
   }
 
   @Get()
-  @Roles(UserType.ADMIN)
-  @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('access-token')
+  @Roles(UserType.ADMIN)
   async searchUser(@Query() searchParams: SearchParamsDto) {
     return await this.userService.searchUser(searchParams);
   }
