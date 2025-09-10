@@ -26,7 +26,7 @@ env:
   IMAGE_NAME_BASE: norohim/pro-mata-backend
 
 jobs:
-  # Job 1: Testes e Qualidade (permanece o mesmo)
+  # Job 1: Testes e Qualidade
   test:
     name: Tests & Quality
     runs-on: ubuntu-latest
@@ -105,11 +105,11 @@ jobs:
           if [ "$ENV" = "prod" ]; then
             echo "environment=production" >> $GITHUB_OUTPUT
             echo "dockerfile=Dockerfile.prod" >> $GITHUB_OUTPUT
-            echo "image_name=${{ env.IMAGE_NAME_BASE }}" >> $GITHUB_OUTPUT
+            echo "image_name=${{ env.IMAGE_NAME_BASE }}-dev" >> $GITHUB_OUTPUT
             echo "event_type=deploy-prod-backend" >> $GITHUB_OUTPUT
           else
             echo "environment=development" >> $GITHUB_OUTPUT
-            echo "dockerfile=Dockerfile.dev" >> $GITHUB_OUTPUT
+            echo "dockerfile=Dockerfile.prod" >> $GITHUB_OUTPUT  # Changed from Dockerfile.dev to Dockerfile.prod
             echo "image_name=${{ env.IMAGE_NAME_BASE }}-dev" >> $GITHUB_OUTPUT
             echo "event_type=deploy-dev-backend" >> $GITHUB_OUTPUT
           fi
@@ -194,7 +194,7 @@ jobs:
           # Define as variáveis baseadas no ambiente
           if [ "$ENV" = "prod" ]; then
             echo "environment=production" >> $GITHUB_OUTPUT
-            echo "image_name=norohim/pro-mata-database" >> $GITHUB_OUTPUT
+            echo "image_name=norohim/pro-mata-database-dev" >> $GITHUB_OUTPUT
           else
             echo "environment=development" >> $GITHUB_OUTPUT
             echo "image_name=norohim/pro-mata-database-dev" >> $GITHUB_OUTPUT
