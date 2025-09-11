@@ -18,11 +18,11 @@ export class AnalyticsService implements OnModuleInit {
     this.umamiWebsiteId = this.configService.get<string>('UMAMI_WEBSITE_ID');
   }
 
-  async onModuleInit() {
-    await this.initializeUmami();
+  onModuleInit() {
+    this.initializeUmami();
   }
 
-  private async initializeUmami(): Promise<void> {
+  private initializeUmami() {
     if (this.isTestEnv) {
       this.logger.log('Test environment detected, skipping Umami initialization');
       return;

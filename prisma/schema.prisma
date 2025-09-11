@@ -88,3 +88,52 @@ enum ReceiptType {
   PAYMENT
   DOCENCY
 }
+
+enum WeekDay {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum TrailDifficulty {
+  LIGHT
+  MODERATED
+  HEAVY
+  EXTREME
+}
+
+enum Category {
+  TRAIL
+  HOSTING
+  LABORATORY
+  EVENT
+}
+
+model Image {
+  id         String       @id @default(uuid())
+  url        String       @unique
+  active     Boolean      @default(true)
+  Experience Experience[]
+}
+
+model Experience {
+  id              String           @id @default(uuid())
+  name            String
+  description     String
+  category        Category
+  capacity        Int
+  image           Image?           @relation(fields: [imageId], references: [id])
+  startDate       DateTime?
+  endDate         DateTime?
+  price           Decimal?
+  weekDays        WeekDay[]
+  durationMinutes Int?
+  trailDifficulty TrailDifficulty?
+  trailLength     Float?
+  imageId         String?
+  active          Boolean
+}
