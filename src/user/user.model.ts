@@ -28,7 +28,7 @@ export const UpdateUserFormSchema = z.object({
 
 export class UpdateUserFormDto extends createZodDto(UpdateUserFormSchema) {}
 
-export const SearchParamsSchema = z.object({
+export const UserSearchParamsSchema = z.object({
   page: z.string().transform((val) => parseInt(val, 10)),
   limit: z.string().transform((val) => parseInt(val, 10)),
   dir: z
@@ -40,7 +40,7 @@ export const SearchParamsSchema = z.object({
     .optional()
     .transform((val) => val ?? 'createdAt'),
   name: z.string().optional(),
-  email: z.email().optional(),
+  email: z.string().optional(),
 });
 
-export class SearchParamsDto extends createZodDto(SearchParamsSchema) {}
+export class UserSearchParamsDto extends createZodDto(UserSearchParamsSchema) {}

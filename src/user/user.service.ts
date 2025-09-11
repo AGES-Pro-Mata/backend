@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import z from 'zod';
 import { Prisma, UserType } from 'generated/prisma';
-import { SearchParamsDto, UpdateUserFormDto } from './user.model';
+import { UserSearchParamsDto, UpdateUserFormDto } from './user.model';
 
 @Injectable()
 export class UserService {
@@ -54,7 +54,7 @@ export class UserService {
     });
   }
 
-  async searchUser(searchParams: SearchParamsDto) {
+  async searchUser(searchParams: UserSearchParamsDto) {
     const orderBy: Prisma.UserOrderByWithRelationInput =
       searchParams.sort === 'createdBy'
         ? { createdBy: { name: searchParams.dir } }
