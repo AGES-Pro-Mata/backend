@@ -9,7 +9,7 @@ CREATE TABLE "public"."User" (
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "phone" TEXT,
-    "cpf" TEXT,
+    "document" TEXT,
     "gender" TEXT,
     "rg" TEXT,
     "address" TEXT,
@@ -28,7 +28,7 @@ CREATE TABLE "public"."User" (
 CREATE UNIQUE INDEX "User_email_key" ON "public"."User"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_cpf_key" ON "public"."User"("cpf");
+CREATE UNIQUE INDEX "User_document_key" ON "public"."User"("document");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_rg_key" ON "public"."User"("rg");
