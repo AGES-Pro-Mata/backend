@@ -17,21 +17,21 @@ export const CreateUserFormSchema = z.object({
   name: z.string(),
   email: z.email(),
   phone: z.string(),
-  document: z.string().nullable(),
-  rg: z.string().nullable(),
+  document: z.string().optional(),
+  rg: z.string().optional(),
   gender: z.string(),
   zipCode: z.string(),
   userType: z.enum([UserType.GUEST, UserType.PROFESSOR]),
-  city: z.string().nullable(),
+  city: z.string().optional(),
   country: z.string(),
-  addressLine: z.string().nullable(),
+  addressLine: z.string().optional(),
   number: z
     .string()
-    .nullable()
+    .optional()
     .transform((val) => (val ? parseInt(val, 10) : null)),
   password: z.hash('sha256'),
   confirmPassword: z.hash('sha256'),
-  institution: z.string().nullable(),
+  institution: z.string().optional(),
   isForeign: z.string().transform((val) => val === 'true'),
 });
 
@@ -44,16 +44,16 @@ export const CreateRootUserSchema = z.object({
   confirmPassword: z.hash('sha256'),
   phone: z.string(),
   gender: z.string(),
-  document: z.string().nullable(),
-  rg: z.string().nullable(),
+  document: z.string().optional(),
+  rg: z.string().optional(),
   country: z.string(),
   userType: z.enum(Object.values(UserType)),
-  institution: z.string().nullable(),
+  institution: z.string().optional(),
   isForeign: z.boolean(),
-  addressLine: z.string().nullable(),
-  city: z.string().nullable(),
+  addressLine: z.string().optional(),
+  city: z.string().optional(),
   zipCode: z.string(),
-  number: z.number().nullable(),
+  number: z.number().optional(),
 });
 
 export class CreateRootUserDto extends createZodDto(CreateRootUserSchema) {}
