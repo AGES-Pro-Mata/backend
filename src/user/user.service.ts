@@ -24,7 +24,7 @@ export class UserService {
         name: updateUserDto.name,
         email: updateUserDto.email,
         phone: updateUserDto.phone,
-        cpf: updateUserDto.cpf,
+        document: updateUserDto.document,
         gender: updateUserDto.gender,
         rg: updateUserDto.rg,
         userType: updateUserDto.userType,

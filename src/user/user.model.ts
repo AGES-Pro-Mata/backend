@@ -6,7 +6,7 @@ export const UpdateUserFormSchema = z.object({
   name: z.string().optional(),
   email: z.email().optional(),
   phone: z.string().optional(),
-  cpf: z.string().nullable().optional(),
+  document: z.string().nullable().optional(),
   rg: z.string().nullable().optional(),
   gender: z.string().optional(),
   zipCode: z.string().optional(),
