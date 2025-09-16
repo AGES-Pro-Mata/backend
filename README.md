@@ -34,7 +34,7 @@ Copiar o `.env.exemple` para o `.env` para o desenvolvimento local.
 #### 🔹 Desenvolvimento completo
 
 ```bash
-docker compose local up
+docker compose up
 ```
 
 Backend + banco PostgreSQL locais.
@@ -44,11 +44,11 @@ Backend + banco PostgreSQL locais.
 ```bash
 docker compose up database
 ```
-Para rodar backend localmente: `npm run start:dev`
+Para rodar backend localmente: `npm run start:dev` e mudar o host da URL do database no `.env` de `database` para `localhost`
 
 #### 🔹 Rodar local
 ```bash
-npx run start:local
+npx run start:dev
 # ou
 npx run start:tst
 # ou
