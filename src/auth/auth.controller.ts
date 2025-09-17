@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -17,6 +18,7 @@ import {
   CreateUserFormDto,
   type CurrentUser,
   ForgotPasswordDto,
+  GetSolicitacoesDto,
   LoginDto,
 } from './auth.model';
 import { UserType } from 'generated/prisma';
@@ -24,6 +26,7 @@ import { Roles } from './role/roles.decorator';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { User } from 'src/user/user.decorator';
+//import { Get } from '@aws-sdk/client-dynamodb';
 
 @Controller('auth')
 export class AuthController {
@@ -73,5 +76,15 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async findProfile(@User() user: CurrentUser) {
     return await this.authService.findProfile(user.id);
+  }
+
+  @Get()
+  async getSolicitacoes(@Query() query: GetSolicitacoesDto){
+    return await this.authService.getSolicitacoes(query);
+  }
+
+  @Get(':id')
+  async getReserva(@Param('id') id: string){
+    return await this.authService.getReservasById(id);
   }
 }

@@ -6,6 +6,9 @@ import {
   CreateUserFormDto,
   ForgotPasswordDto,
   LoginDto,
+  GetSolicitacoesDto,
+  ReservaAdminDto,
+  ReservaUserDto,
 } from './auth.model';
 import { ReceiptType, UserType } from 'generated/prisma';
 import { timingSafeEqual, randomBytes } from 'node:crypto';
@@ -13,6 +16,7 @@ import { AnalyticsService } from 'src/analytics/analytics.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import argon2 from 'argon2';
+import { User } from 'src/user/user.decorator';
 
 @Injectable()
 export class AuthService {
@@ -216,4 +220,100 @@ export class AuthService {
       },
     });
   }
+
+  async getSolicitacoes(query: GetSolicitacoesDto) {
+    const {page = '1', limit = '10', status} = query;
+    const pageNumber = parseInt(page, 10);
+    const pageSize = parseInt(limit, 10);
+
+    // Map status string to UserType enum if provided
+    const userTypeEnum = status ? (UserType as any)[status] : undefined;
+    const whereClause = userTypeEnum ? { userType: userTypeEnum } : undefined;
+
+    const total = await this.databaseService.user.count({ where: whereClause });
+    const totalPages = Math.ceil(total / pageSize);
+
+    if (pageNumber > totalPages && totalPages > 0) {
+      throw new BadRequestException(`A página ${pageNumber} não existe. O total de páginas é ${totalPages}.`);
+    }
+
+    const solicitacoes = await this.databaseService.user.findMany({
+      where: whereClause,
+      skip: (pageNumber - 1) * pageSize,
+      take: pageSize,
+      orderBy: { createdAt: 'desc' },
+    });
+    return {
+      total, 
+      totalPages,
+      page: pageNumber,
+      limit: pageSize,
+      data: solicitacoes
+    };
+  } 
+
+  async getReservasById(id: string) {
+  const user = await this.databaseService.user.findUnique({
+    where: { id },
+    include: {
+      Receipt: true, 
+    },
+  });
+
+  if (!user) {
+    throw new Error("Usuário não encontrado");
+  }
+
+  const pessoa = {
+    nome: user.name,
+    telefone: user.phone,
+    dataNascimento: user.createdAt,
+    documento: user.cpf || user.rg || "",
+    genero: user.gender,
+  };
+
+  const observacao = user.institution || null;
+
+  const experiencias = await this.databaseService.experience.findMany({
+    where: { active: true },
+  });
+
+  const experienciasMapeadas = experiencias.map((exp) => ({
+    nome: exp.name,
+    preco: exp.price,
+    dataInicio: exp.startDate,
+    dataFim: exp.endDate,
+    numeroPessoas: exp.capacity,
+    distanciaTrilha: exp.trailLength,
+    duracaoTrilha: exp.durationMinutes,
+  }));
+
+  // Ações com base nos recibos
+  const acoes =
+    user.userType === UserType.ADMIN
+      ? user.Receipt.map((rec) => ({
+          tipo: rec.type, 
+          data: rec.createdAt,
+          usuario: rec.userId,
+          status: rec.status, 
+          valor: rec.value,
+          url: rec.url,
+        }))
+      : undefined;
+
+  if (user.userType === UserType.ADMIN) {
+    return {
+      ...pessoa,
+      observacao,
+      experiencias: experienciasMapeadas,
+      acoes,
+    };
+  } else {
+    return {
+      ...pessoa,
+      observacao,
+      experiencias: experienciasMapeadas,
+    };
+  }
+}
 }
