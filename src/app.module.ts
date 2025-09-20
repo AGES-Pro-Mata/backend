@@ -12,6 +12,7 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { UserModule } from './user/user.module';
 import { ReservationService } from './reservation/reservation.service';
 import { ReservationController } from './reservation/reservation.controller';
+import { ReservationModule } from './reservation/reservation.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ReservationController } from './reservation/reservation.controller';
     AuthModule,
     AnalyticsModule,
     UserModule,
+    ReservationModule,
   ],
   controllers: [AppController, ReservationController],
   providers: [
