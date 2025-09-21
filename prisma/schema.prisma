@@ -34,6 +34,7 @@ model User {
   updatedAt          DateTime             @updatedAt
   PasswordResetToken PasswordResetToken[]
   Receipt            Receipt[]
+  Reservation        Reservation[]
   createdBy          User?                @relation("createdBy", fields: [createdByUserId], references: [id])
   createdByUserId    String?
   User               User[]               @relation("createdBy")
@@ -136,4 +137,18 @@ model Experience {
   trailLength     Float?
   imageId         String?
   active          Boolean
+  Reservation     Reservation[]
+}
+
+model Reservation {
+  id              String           @id @default(uuid())
+  user            User             @relation(fields: [userId], references: [id])
+  userId          String
+  experience      Experience       @relation(fields: [experienceId], references: [id])
+  experienceId    String
+  startDate       DateTime?
+  endDate         DateTime?
+  status          String?
+  notes           String?
+  createdAt       DateTime         @default(now())
 }
