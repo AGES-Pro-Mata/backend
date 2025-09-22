@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import z from 'zod';
 import { Prisma, UserType } from 'generated/prisma';
@@ -91,6 +91,53 @@ export class UserService {
       limit: searchParams.limit,
       total: users.length,
       items: users,
+    };
+  }
+
+  async getUser(userId: string) {
+    const user = await this.databaseService.user.findUnique({
+      where: { id: userId },
+      select: {
+        name: true,
+        email: true,
+        phone: true,
+        document: true, 
+        rg: true,
+        gender: true,
+        userType: true,
+        institution: true,
+        isForeign: true,
+        address: {
+          select: {
+            zip: true, 
+            city: true,
+            country: true,
+            street: true,
+            number: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return {
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      document: user.document,
+      rg: user.rg,
+      gender: user.gender,
+      zipCode: user.address?.zip,
+      userType: user.userType,
+      city: user.address?.city,
+      country: user.address?.country,
+      addressLine: user.address?.street,
+      number: user.address?.number ? parseInt(user.address.number) : null,
+      institution: user.institution,
+      isForeign: user.isForeign,
     };
   }
 
