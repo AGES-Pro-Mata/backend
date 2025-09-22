@@ -38,6 +38,7 @@ model User {
   createdBy          User?                @relation("createdBy", fields: [createdByUserId], references: [id])
   createdByUserId    String?
   User               User[]               @relation("createdBy")
+  Requests           Requests[]
 }
 
 enum UserType {
@@ -151,4 +152,29 @@ model Reservation {
   status          String?
   notes           String?
   createdAt       DateTime         @default(now())
+  Requests        Requests[]
+}
+
+model Requests {
+  id        String        @id @default(uuid())
+  type      RequestType
+  createdAt DateTime      @default(now())
+  createdBy User          @relation(fields: [createdByUserId], references: [id])
+  createdByUserId String
+  description String?
+  reservation Reservation? @relation(fields: [reservationId], references: [id])
+  reservationId String?
+}
+
+enum RequestType {
+  CREATED
+  CANCELED
+  CANCELED_REQUESTED
+  EDITED
+  REJECTED
+  APPROVED
+  PEOPLE_REQUESTED
+  PAYMENT_REQUESTED
+  PEOPLE_SENT
+  PAYMENT_SENT
 }
