@@ -10,6 +10,9 @@ import { RoleGuard } from './auth/role/role.guard';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { UserModule } from './user/user.module';
+import { ReservationService } from './reservation/reservation.service';
+import { ReservationController } from './reservation/reservation.controller';
+import { ReservationModule } from './reservation/reservation.module';
 
 @Module({
   imports: [
@@ -22,8 +25,9 @@ import { UserModule } from './user/user.module';
     AuthModule,
     AnalyticsModule,
     UserModule,
+    ReservationModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, ReservationController],
   providers: [
     AppService,
     {
@@ -34,6 +38,7 @@ import { UserModule } from './user/user.module';
       provide: APP_PIPE,
       useClass: ZodValidationPipe,
     },
+    ReservationService,
   ],
 })
 export class AppModule {}

@@ -34,9 +34,9 @@ COPY . .
 EXPOSE $BACKEND_PORT
 
 # Comando de desenvolvimento com hot reload
-CMD ["sh", "-c", "npx prisma generate && npx prisma migrate reset --force && npm run start:dev"]
+CMD ["npm", "run", "start:dev"]
 
-# Dockerfile.dev - Ambiente de desenvolvimento
+# Dockerfile.prod - Ambiente de produção
 FROM node:20-alpine AS prod
 
 # Instalar dependências do sistema
@@ -45,9 +45,8 @@ RUN apk add --no-cache openssl libc6-compat
 # Definir diretório de trabalho
 WORKDIR /app
 
-# Definir variáveis de ambiente para desenvolvimento
-ENV NODE_ENV=development
-ENV CHOKIDAR_USEPOLLING=true
+# Definir variáveis de ambiente para produção
+ENV NODE_ENV=production
 
 # Copiar package.json e package-lock.json
 COPY package*.json ./
@@ -55,22 +54,20 @@ COPY package*.json ./
 # Copiar schema do Prisma
 COPY prisma ./prisma/
 
-# Instalar dependências
-RUN npm ci
+# Instalar apenas dependências de produção
+RUN npm ci --only=production && npm cache clean --force
 
 # Gerar cliente Prisma
 RUN npx prisma generate
 
-# Verificar se foi gerado
-RUN ls -la generated/ || echo "Generated folder not found"
-
-RUN npm run build
-
 # Copiar código fonte
 COPY . .
+
+# Build da aplicação
+RUN npm run build
 
 # Expor porta
 EXPOSE $BACKEND_PORT
 
-# Comando de desenvolvimento com hot reload
-CMD ["npm", "run", "start:prod"]
+# Comando de produção com migração segura
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run start:prod"]

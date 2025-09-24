@@ -21,7 +21,7 @@ model User {
   email              String               @unique
   password           String
   phone              String
-  cpf                String?              @unique
+  document           String?              @unique
   gender             String
   rg                 String?              @unique
   institution        String?
@@ -34,9 +34,11 @@ model User {
   updatedAt          DateTime             @updatedAt
   PasswordResetToken PasswordResetToken[]
   Receipt            Receipt[]
+  Reservation        Reservation[]
   createdBy          User?                @relation("createdBy", fields: [createdByUserId], references: [id])
   createdByUserId    String?
   User               User[]               @relation("createdBy")
+  Requests           Requests[]
 }
 
 enum UserType {
@@ -136,4 +138,43 @@ model Experience {
   trailLength     Float?
   imageId         String?
   active          Boolean
+  Reservation     Reservation[]
+}
+
+model Reservation {
+  id              String           @id @default(uuid())
+  user            User             @relation(fields: [userId], references: [id])
+  userId          String
+  experience      Experience       @relation(fields: [experienceId], references: [id])
+  experienceId    String
+  startDate       DateTime?
+  endDate         DateTime?
+  status          String?
+  notes           String?
+  createdAt       DateTime         @default(now())
+  Requests        Requests[]
+}
+
+model Requests {
+  id        String        @id @default(uuid())
+  type      RequestType
+  createdAt DateTime      @default(now())
+  createdBy User          @relation(fields: [createdByUserId], references: [id])
+  createdByUserId String
+  description String?
+  reservation Reservation? @relation(fields: [reservationId], references: [id])
+  reservationId String?
+}
+
+enum RequestType {
+  CREATED
+  CANCELED
+  CANCELED_REQUESTED
+  EDITED
+  REJECTED
+  APPROVED
+  PEOPLE_REQUESTED
+  PAYMENT_REQUESTED
+  PEOPLE_SENT
+  PAYMENT_SENT
 }

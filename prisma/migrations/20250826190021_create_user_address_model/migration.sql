@@ -11,7 +11,7 @@
   - A unique constraint covering the columns `[addressId]` on the table `User` will be added. If there are existing duplicate values, this will fail.
   - Added the required column `dob` to the `User` table without a default value. This is not possible if the table is not empty.
   - Made the column `phone` on table `User` required. This step will fail if there are existing NULL values in that column.
-  - Made the column `cpf` on table `User` required. This step will fail if there are existing NULL values in that column.
+  - Made the column `document` on table `User` required. This step will fail if there are existing NULL values in that column.
   - Made the column `gender` on table `User` required. This step will fail if there are existing NULL values in that column.
 
 */
@@ -36,7 +36,7 @@ ADD COLUMN     "addressId" INTEGER,
 ADD COLUMN     "dob" TIMESTAMP(3) NOT NULL,
 ADD COLUMN     "institution" TEXT,
 ALTER COLUMN "phone" SET NOT NULL,
-ALTER COLUMN "cpf" SET NOT NULL,
+ALTER COLUMN "document" SET NOT NULL,
 ALTER COLUMN "gender" SET NOT NULL;
 
 -- CreateTable
