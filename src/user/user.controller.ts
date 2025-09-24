@@ -40,6 +40,11 @@ export class UserController {
     await this.userService.updateUser(userId, updateUserDto);
   }
 
+  @Get(':userId')
+  async getAdmin(@Param('userId') userId:string){
+    return await this.userService.getUser(userId);
+  }
+
   @Patch()
   @Roles(UserType.GUEST, UserType.ADMIN)
   @ApiBearerAuth('access-token')
