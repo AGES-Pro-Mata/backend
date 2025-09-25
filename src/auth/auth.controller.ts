@@ -18,7 +18,6 @@ import {
   CreateUserFormDto,
   type CurrentUser,
   ForgotPasswordDto,
-  GetSolicitacoesDto,
   LoginDto,
 } from './auth.model';
 import { UserType } from 'generated/prisma';
@@ -76,15 +75,5 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async findProfile(@User() user: CurrentUser) {
     return await this.authService.findProfile(user.id);
-  }
-
-  @Get()
-  async getSolicitacoes(@Query() query: GetSolicitacoesDto){
-    return await this.authService.getSolicitacoes(query);
-  }
-
-  @Get(':id')
-  async getReserva(@Param('id') id: string){
-    return await this.authService.getReservasById(id);
   }
 }

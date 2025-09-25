@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch } from '@nestjs/common';
 import { ReservationService } from './reservation.service';
 import { Roles } from 'src/auth/role/roles.decorator';
 import { UserType } from 'generated/prisma';
@@ -18,5 +18,9 @@ export class ReservationController {
     @Body() updateReservationDto: UpdateReservationDto,
   ) {
     await this.reservationService.updateReservation(reservationId, updateReservationDto);
+  }
+   @Get(':id')
+  async getReservation(@Param('id') id: string){
+    return await this.reservationService.getReservationById(id);
   }
 }

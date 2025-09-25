@@ -79,46 +79,21 @@ export const ChangePasswordSchema = z.object({
 
 export class ChangePasswordDto extends createZodDto(ChangePasswordSchema) {}
 
-export const GetSolicitacoesSchema = z.object({
+export const GetRequestsSchema = z.object({
   page: z.string().optional(),
   limit: z.string().optional(),
-  //status: z.array(z.enum([...])).optional(),
   status: z.enum([
-    "PENDENTE",
-    "RECUSADA",
-    "CONFIRMADA",
-    "CANCELADA",
-    "USUARIOS_SOLICITADO",
-    "PAGAMENTO_SOLICITADO",
-    "CANCELAMENTO_SOLICITADO",
-    "EDICAO_SOLICITADA",
+    "CREATED",
+    "CANCELED",
+    "CANCELED_REQUESTED",
+    "EDITED",
+    "REJECTED",
+    "APPROVED",
+    "PEOPLE_REQUESTED",
+    "PAYMENT_REQUESTED",
+    "PEOPLE_SENT",
+    "PAYMENT_SENT",
   ]).optional(),
 });
 
-export class GetSolicitacoesDto extends createZodDto(GetSolicitacoesSchema) {}
-
-export const ReservaAdminSchema = z.object({
-  nome: z.string().min(1),
-  telefone: z.string().min(8),
-  dataNascimento: z.coerce.date(),
-  documento: z.string().min(1),
-  genero: z.string().min(1),
-  observacao: z.string().nullable().optional(),
-  experiencias: z.array(z.any()), // agora é array de objetos vindos do experience
-  acoes: z.array(z.any()), // agora é array de objetos vindos do experience
-});
-
-export class ReservaAdminDto extends createZodDto(ReservaAdminSchema) {}
-
-// Reserva para Usuário
-export const ReservaUserSchema = z.object({
-  nome: z.string().min(1),
-  telefone: z.string().min(8),
-  dataNascimento: z.coerce.date(),
-  documento: z.string().min(1),
-  genero: z.string().min(1),
-  observacao: z.string().nullable().optional(),
-  experiencias: z.array(z.any()), // agora é array de objetos vindos do experience
-});
-
-export class ReservaUserDto extends createZodDto(ReservaUserSchema) {}
+export class GetRequestsDto extends createZodDto(GetRequestsSchema) {}
