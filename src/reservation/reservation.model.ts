@@ -1,3 +1,6 @@
+import { z } from 'zod';
+import { createZodDto } from 'nestjs-zod';
+
 const ExperienceSchema = z.object({
   experienceId: z.string(),
   peopleCount: z.number().int().min(1),
@@ -13,20 +16,18 @@ const PersonSchema = z.object({
 });
 
 export const FinalizeReservationSchema = z.object({
+  userId: z.string(),
   experiences: z.array(ExperienceSchema),
   totalPeople: z.number().int().min(1),
   peopleList: z.array(PersonSchema).optional(),
-  note: z.string().optional(),
-  clientId: z.string(),
+  notes: z.string().optional(),
 });
 
 export class CreateFinalizeReservationDto extends createZodDto(FinalizeReservationSchema) {}
-import { createZodDto } from 'nestjs-zod';
-import z from 'zod';
 
-const UpdateReservation = z.object({
+const UpdateReservationSchema = z.object({
   action: z.string(),
   text: z.string().optional(),
 });
 
-export class UpdateReservationDto extends createZodDto(UpdateReservation) {}
+export class UpdateReservationDto extends createZodDto(UpdateReservationSchema) {}
