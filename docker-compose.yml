@@ -27,7 +27,7 @@ services:
       umami:
         condition: service_healthy
     restart: unless-stopped
-    command: sh -c "npx prisma migrate deploy && npm run start:dev"
+    command: sh -c "npx prisma migrate dev && npm run start:dev"
     healthcheck:
       test: ["CMD", "curl", "-f", "${BACKEND_DEV_HEALTHCHECK_URL:-http://localhost:3000/health}"]
       interval: 30s
