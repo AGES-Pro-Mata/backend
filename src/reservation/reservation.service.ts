@@ -17,51 +17,36 @@ export class ReservationService {
   }
 
   async finalizeReservation(payload: CreateFinalizeReservationDto) {
-    // Cria a reserva principal
-    const reservation = await this.databaseService.reservation.create({
-      data: {
-        clientId: payload.clientId,
-        totalPeople: payload.totalPeople,
-        note: payload.note,
-        status: 'PENDING',
-      },
-    });
+    const createdReservations = [] as any[];
 
-    // Cria as experiências vinculadas à reserva
+    // Cria uma reserva por experiência informada
     for (const exp of payload.experiences) {
-      await this.databaseService.reservationExperience.create({
+      const created = await this.databaseService.reservation.create({
         data: {
-          reservationId: reservation.id,
+          userId: payload.userId,
           experienceId: exp.experienceId,
-          peopleCount: exp.peopleCount,
-          date: exp.date,
+          startDate: new Date(exp.date),
+          status: 'PENDING',
+          notes: payload.notes,
         },
       });
+      createdReservations.push(created);
     }
 
-    // Cria a lista de pessoas, se fornecida
-    if (payload.peopleList && payload.peopleList.length > 0) {
-      for (const person of payload.peopleList) {
-        await this.databaseService.reservationPerson.create({
-          data: {
-            reservationId: reservation.id,
-            name: person.name,
-            phone: person.phone,
-            birthDate: person.birthDate,
-            document: person.document,
-            gender: person.gender,
-          },
-        });
-      }
-    }
+    const peopleSummary = payload.peopleList && payload.peopleList.length > 0
+      ? payload.peopleList.map((p) => `${p.name} (${p.document})`).join(', ')
+      : '';
 
-    await this.databaseService.reservationRequest.create({
+    await this.databaseService.requests.create({
       data: {
-        reservationId: reservation.id,
-        status: 'PENDING',
+        type: 'CREATED',
+        createdByUserId: payload.userId,
+        reservationId: createdReservations[0]?.id || null,
+        description: `Total people: ${payload.totalPeople}. ${peopleSummary} ${payload.notes ?? ''}`,
       },
     });
 
-    return reservation;
+    // Retorna todas as reservas criadas (uma por experiência)
+    return createdReservations;
   }
 }

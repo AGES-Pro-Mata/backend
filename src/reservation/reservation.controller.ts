@@ -23,6 +23,7 @@ export class ReservationController {
   @Post('finish')
   @HttpCode(HttpStatus.CREATED)
   @Roles(UserType.ADMIN, UserType.GUEST, UserType.PROFESSOR)
+  @ApiBearerAuth('access-token')
   async finalizeReservation(
     @Body() payload: CreateFinalizeReservationDto,
   ) {
