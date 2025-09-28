@@ -52,7 +52,7 @@ export class ExperienceService {
   }
 
   async searchExperience(experienceSearchParamsDto: ExperienceSearchParamsDto) {
-    return this.databaseService.experience.findMany({
+    return await this.databaseService.experience.findMany({
       where: {
         name: {
           contains: experienceSearchParamsDto.name,
