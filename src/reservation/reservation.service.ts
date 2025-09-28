@@ -15,4 +15,34 @@ export class ReservationService {
       },
     });
   }
+
+  async getReservations(id: string) {
+    return await this.databaseService.user.findUnique({
+      where: {
+        id: id,
+      },
+      select: {
+        Reservation: {
+          select: {
+            id: true,
+            startDate: true,
+            endDate: true,
+            status: true,
+            notes: true,
+            experience: {
+              select: {
+                name: true,
+                startDate: true,
+                endDate: true,
+                price: true,
+                capacity: true,
+                trailLength: true,
+                durationMinutes: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
 }
