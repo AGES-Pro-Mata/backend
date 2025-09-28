@@ -11,8 +11,8 @@ const UpdateExperienceFormSchema = z.object({
     .transform((val) => parseInt(val))
     .optional(),
   experienceImage: z.url().optional(),
-  experienceStartDate: z.iso.date().optional(),
-  experienceEndDate: z.iso.date().optional(),
+  experienceStartDate: z.iso.datetime().optional(),
+  experienceEndDate: z.iso.datetime().optional(),
   experiencePrice: z
     .string()
     .transform((val) => parseFloat(val))
@@ -37,8 +37,8 @@ const CreateExperienceFormSchema = z.object({
   experienceCategory: z.enum(Object.values(Category)),
   experienceCapacity: z.string().transform((val) => parseInt(val)),
   experienceImage: z.url(),
-  experienceStartDate: z.iso.date().optional(),
-  experienceEndDate: z.iso.date().optional(),
+  experienceStartDate: z.iso.datetime().optional(),
+  experienceEndDate: z.iso.datetime().optional(),
   experiencePrice: z
     .string()
     .transform((val) => parseFloat(val))
@@ -79,7 +79,7 @@ export const ExperienceSearchParamsSchema = z.object({
     .transform((val) => val ?? 'createdAt'),
   name: z.string().optional(),
   description: z.email().optional(),
-  date: z.iso.date().optional(),
+  date: z.iso.datetime().optional(),
 });
 
 export class ExperienceSearchParamsDto extends createZodDto(ExperienceSearchParamsSchema) {}
