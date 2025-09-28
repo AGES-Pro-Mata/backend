@@ -39,6 +39,7 @@ model User {
   createdByUserId    String?
   User               User[]               @relation("createdBy")
   Requests           Requests[]
+  Guest              Guest[]
 }
 
 enum UserType {
@@ -142,28 +143,29 @@ model Experience {
 }
 
 model Reservation {
-  id              String           @id @default(uuid())
-  user            User             @relation(fields: [userId], references: [id])
-  userId          String
-  experience      Experience       @relation(fields: [experienceId], references: [id])
-  experienceId    String
-  startDate       DateTime?
-  endDate         DateTime?
-  status          String?
-  notes           String?
-  createdAt       DateTime         @default(now())
-  Requests        Requests[]
+  id           String     @id @default(uuid())
+  user         User       @relation(fields: [userId], references: [id])
+  userId       String
+  experience   Experience @relation(fields: [experienceId], references: [id])
+  experienceId String
+  startDate    DateTime?
+  endDate      DateTime?
+  status       String?
+  notes        String?
+  createdAt    DateTime   @default(now())
+  Requests     Requests[]
+  Guests       Guest[]
 }
 
 model Requests {
-  id        String        @id @default(uuid())
-  type      RequestType
-  createdAt DateTime      @default(now())
-  createdBy User          @relation(fields: [createdByUserId], references: [id])
+  id              String       @id @default(uuid())
+  type            RequestType
+  createdAt       DateTime     @default(now())
+  createdBy       User         @relation(fields: [createdByUserId], references: [id])
   createdByUserId String
-  description String?
-  reservation Reservation? @relation(fields: [reservationId], references: [id])
-  reservationId String?
+  description     String?
+  reservation     Reservation? @relation(fields: [reservationId], references: [id])
+  reservationId   String?
 }
 
 enum RequestType {
@@ -177,4 +179,18 @@ enum RequestType {
   PAYMENT_REQUESTED
   PEOPLE_SENT
   PAYMENT_SENT
+}
+
+model Guest {
+  id              String       @id @default(uuid())
+  name            String
+  phone           String
+  document        String
+  gender          String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  createdBy       User?        @relation(fields: [createdByUserId], references: [id])
+  createdByUserId String?
+  Reservation     Reservation? @relation(fields: [reservationId], references: [id])
+  reservationId   String?
 }

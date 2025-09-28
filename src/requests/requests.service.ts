@@ -11,9 +11,7 @@ export class RequestsService {
     const pageNumber = parseInt(page, 10);
     const pageSize = parseInt(limit, 10);
 
-    const requestsTypeEnum = status
-      ? (this.databaseService.RequestType as any)[status]
-      : undefined;
+    const requestsTypeEnum = status ? (this.databaseService.RequestType as any)[status] : undefined;
 
     const whereClause = requestsTypeEnum ? { type: requestsTypeEnum } : undefined;
 
