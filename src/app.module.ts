@@ -13,6 +13,7 @@ import { UserModule } from './user/user.module';
 import { ReservationService } from './reservation/reservation.service';
 import { ReservationController } from './reservation/reservation.controller';
 import { ReservationModule } from './reservation/reservation.module';
+import { ExperienceModule } from './experience/experience.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ReservationModule } from './reservation/reservation.module';
     AnalyticsModule,
     UserModule,
     ReservationModule,
+    ExperienceModule,
   ],
   controllers: [AppController, ReservationController],
   providers: [
