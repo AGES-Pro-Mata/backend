@@ -5,6 +5,7 @@ import { UserType } from 'generated/prisma';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { UpdateReservationDto } from './reservation.model';
 import type { CurrentUser } from 'src/auth/auth.model';
+import { User } from 'src/user/user.decorator';
 
 @Controller('reservation')
 export class ReservationController {
@@ -22,7 +23,10 @@ export class ReservationController {
   }
 
   @Get("/getReservations")
-  async getReservations(@Body() user:CurrentUser){
-    await this.reservationService.getReservations(user.id);
+  @Roles(UserType.GUEST)
+  @ApiBearerAuth('access-token')
+  @HttpCode(HttpStatus.OK)
+  async getReservations(@User() user:CurrentUser){
+    return await this.reservationService.getReservations(user.id);
   }
 }
