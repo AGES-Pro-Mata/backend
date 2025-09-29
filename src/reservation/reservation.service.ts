@@ -15,4 +15,25 @@ export class ReservationService {
       },
     });
   }
+
+async attachDocument(reservationId: string, url: string, userId: string) {
+  return this.databaseService.document.create({
+    data: {
+      url,
+      reservationId,
+      uploadedByUserId: userId,
+    },
+  });
+}
+
+async createDocumentRequest(reservationId: string, userId: string) {
+  return this.databaseService.requests.create({
+    data: {
+      type: 'DOCUMENT_REQUESTED',
+      createdByUserId: userId,
+      reservationId,
+    },
+  });
+}
+
 }

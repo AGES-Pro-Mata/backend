@@ -155,6 +155,16 @@ model Reservation {
   Requests        Requests[]
 }
 
+model Document {
+  id            String           @id @default(uuid())
+  reservation   Reservation      @relation(fields: [reservationId], references: [id])
+  reservationId String
+  url           String           @unique
+  uploadedByUserId String
+  uploadedByUser User @relation(fields: [uploadedByUserId], references: [id])
+  uploadedAt    DateTime         @default(now())
+}
+
 model Requests {
   id        String        @id @default(uuid())
   type      RequestType
@@ -177,4 +187,7 @@ enum RequestType {
   PAYMENT_REQUESTED
   PEOPLE_SENT
   PAYMENT_SENT
+  DOCUMENT_REQUESTED 
+  DOCUMENT_APPROVED
+  DOCUMENT_REJECTED
 }
