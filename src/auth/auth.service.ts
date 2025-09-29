@@ -13,7 +13,6 @@ import { AnalyticsService } from 'src/analytics/analytics.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import argon2 from 'argon2';
-import { User } from 'src/user/user.decorator';
 
 @Injectable()
 export class AuthService {

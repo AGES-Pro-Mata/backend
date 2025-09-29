@@ -4,9 +4,6 @@ import { PrismaClient } from 'generated/prisma';
 @Injectable()
 export class DatabaseService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DatabaseService.name);
-  Reservation: any;
-  Requests: any;
-  RequestType: any;
 
   async onModuleInit() {
     try {

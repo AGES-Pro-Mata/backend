@@ -25,7 +25,6 @@ import { Roles } from './role/roles.decorator';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { User } from 'src/user/user.decorator';
-//import { Get } from '@aws-sdk/client-dynamodb';
 
 @Controller('auth')
 export class AuthController {
