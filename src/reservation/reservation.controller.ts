@@ -4,11 +4,7 @@ import { Roles } from 'src/auth/role/roles.decorator';
 import { UserType } from 'generated/prisma';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { UpdateReservationDto } from './reservation.model';
-import { AttachReceiptDto } from './dtos/attach-receipt.dto';
-
-interface AuthUser {
-  id: string;
-}
+import { AttachReceiptDto } from './dtos/attach-receipt.dto'; //Chamando @Body da linha 43
 
 @Controller('reservation')
 export class ReservationController {
@@ -44,7 +40,7 @@ export class ReservationController {
   @ApiResponse({ status: 201, description: 'Comprovante anexado e solicitação de aprovação criada com sucesso.' })
   async attachReceiptAndRequestApproval(
   @Param('reservationId') reservationId: string,
-  @Body() attachReceiptDto: AttachReceiptDto,)
+  @Body() attachReceiptDto: AttachReceiptDto,) 
     
   {const userId = 'USER_ID_PLACEHOLDER'; 
 

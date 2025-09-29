@@ -39,6 +39,7 @@ model User {
   createdByUserId    String?
   User               User[]               @relation("createdBy")
   Requests           Requests[]
+  documents          Document[]
 }
 
 enum UserType {
@@ -142,38 +143,39 @@ model Experience {
 }
 
 model Reservation {
-  id              String           @id @default(uuid())
-  user            User             @relation(fields: [userId], references: [id])
-  userId          String
-  experience      Experience       @relation(fields: [experienceId], references: [id])
-  experienceId    String
-  startDate       DateTime?
-  endDate         DateTime?
-  status          String?
-  notes           String?
-  createdAt       DateTime         @default(now())
-  Requests        Requests[]
+  id           String     @id @default(uuid())
+  user         User       @relation(fields: [userId], references: [id])
+  userId       String
+  experience   Experience @relation(fields: [experienceId], references: [id])
+  experienceId String
+  startDate    DateTime?
+  endDate      DateTime?
+  status       String?
+  notes        String?
+  createdAt    DateTime   @default(now())
+  Requests     Requests[]
+  documents    Document[]
 }
 
 model Document {
-  id            String           @id @default(uuid())
-  reservation   Reservation      @relation(fields: [reservationId], references: [id])
-  reservationId String
-  url           String           @unique
+  id               String      @id @default(uuid())
+  reservation      Reservation @relation(fields: [reservationId], references: [id])
+  reservationId    String
+  url              String      @unique
   uploadedByUserId String
-  uploadedByUser User @relation(fields: [uploadedByUserId], references: [id])
-  uploadedAt    DateTime         @default(now())
+  uploadedByUser   User        @relation(fields: [uploadedByUserId], references: [id])
+  uploadedAt       DateTime    @default(now())
 }
 
 model Requests {
-  id        String        @id @default(uuid())
-  type      RequestType
-  createdAt DateTime      @default(now())
-  createdBy User          @relation(fields: [createdByUserId], references: [id])
+  id              String       @id @default(uuid())
+  type            RequestType
+  createdAt       DateTime     @default(now())
+  createdBy       User         @relation(fields: [createdByUserId], references: [id])
   createdByUserId String
-  description String?
-  reservation Reservation? @relation(fields: [reservationId], references: [id])
-  reservationId String?
+  description     String?
+  reservation     Reservation? @relation(fields: [reservationId], references: [id])
+  reservationId   String?
 }
 
 enum RequestType {
@@ -187,7 +189,7 @@ enum RequestType {
   PAYMENT_REQUESTED
   PEOPLE_SENT
   PAYMENT_SENT
-  DOCUMENT_REQUESTED 
+  DOCUMENT_REQUESTED
   DOCUMENT_APPROVED
   DOCUMENT_REJECTED
 }
