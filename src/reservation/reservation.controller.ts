@@ -4,6 +4,7 @@ import { Roles } from 'src/auth/role/roles.decorator';
 import { UserType } from 'generated/prisma';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { UpdateReservationDto } from './reservation.model';
+import type { CurrentUser } from 'src/auth/auth.model';
 
 @Controller('reservation')
 export class ReservationController {
@@ -21,7 +22,7 @@ export class ReservationController {
   }
 
   @Get("/getReservations")
-  async getReservations(@Body() jwt:any){
-    await this.reservationService.getReservations(jwt.userId);
+  async getReservations(@Body() user:CurrentUser){
+    await this.reservationService.getReservations(user.id);
   }
 }

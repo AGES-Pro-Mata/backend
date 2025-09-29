@@ -16,30 +16,34 @@ export class ReservationService {
     });
   }
 
-  async getReservations(id: string) {
-    return await this.databaseService.user.findUnique({
+  async getReservations(userId: string) {
+    return await this.databaseService.reservation.findMany({
       where: {
-        id: id,
+        userId: userId,
       },
       select: {
-        Reservation: {
+        id: true,
+        startDate: true,
+        endDate: true,
+        status: true,
+        notes: true,
+        user: {
           select: {
-            id: true,
+            name: true,
+            phone: true,
+            document: true,
+            gender: true,
+          },
+        },
+        experience: {
+          select: {
+            name: true,
             startDate: true,
             endDate: true,
-            status: true,
-            notes: true,
-            experience: {
-              select: {
-                name: true,
-                startDate: true,
-                endDate: true,
-                price: true,
-                capacity: true,
-                trailLength: true,
-                durationMinutes: true,
-              },
-            },
+            price: true,
+            capacity: true,
+            trailLength: true,
+            durationMinutes: true,
           },
         },
       },
