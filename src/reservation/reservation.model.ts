@@ -3,8 +3,6 @@ import { createZodDto } from 'nestjs-zod';
 
 const ExperienceSchema = z.object({
   experienceId: z.string(),
-  peopleCount: z.number().int().min(1),
-  date: z.string(),
 });
 
 const PersonSchema = z.object({
@@ -18,9 +16,10 @@ const PersonSchema = z.object({
 export const FinalizeReservationSchema = z.object({
   userId: z.string(),
   experiences: z.array(ExperienceSchema),
-  totalPeople: z.number().int().min(1),
   peopleList: z.array(PersonSchema).optional(),
   notes: z.string().optional(),
+  startDate: z.string(),
+  endDate: z.string(),
 });
 
 export class CreateFinalizeReservationDto extends createZodDto(FinalizeReservationSchema) {}
