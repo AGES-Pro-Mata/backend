@@ -15,4 +15,17 @@ export class ReservationService {
       },
     });
   }
+
+  async sendDeleteReservation(reservationId: string): Promise<any> {
+    return await this.databaseService.reservation.update({
+      where: { id: reservationId },
+      data: { status: 'cancelamento_pendente' },
+    });
+  }
+
+  async deleteReservation(reservationId: string): Promise<any> {
+    return await this.databaseService.prisma.reservation.delete({
+      where: { id: reservationId },
+    });
+  }
 }
