@@ -149,21 +149,22 @@ model Reservation {
   experienceId String
   startDate    DateTime?
   endDate      DateTime?
-  status       String?
   notes        String?
   createdAt    DateTime   @default(now())
   Requests     Requests[]
+  active       Boolean    @default(true)
+  members      Member[]
 }
 
 model Requests {
   id              String       @id @default(uuid())
   type            RequestType
+  description     String?
   createdAt       DateTime     @default(now())
   createdBy       User         @relation(fields: [createdByUserId], references: [id])
   createdByUserId String
-  description     String?
   reservation     Reservation? @relation(fields: [reservationId], references: [id])
-  reservationId   String?
+  reservationId   String
 }
 
 enum RequestType {
@@ -177,4 +178,17 @@ enum RequestType {
   PAYMENT_REQUESTED
   PEOPLE_SENT
   PAYMENT_SENT
+}
+
+model Member {
+  id            String       @id @default(uuid())
+  name          String
+  document      String?      @unique
+  gender        String
+  birthdate     DateTime     @db.Date
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  active        Boolean      @default(true)
+  Reservation   Reservation? @relation(fields: [reservationId], references: [id])
+  reservationId String?
 }
