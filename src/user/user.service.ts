@@ -3,19 +3,16 @@ import { DatabaseService } from 'src/database/database.service';
 import z from 'zod';
 import { Prisma, UserType } from 'generated/prisma';
 import { UserSearchParamsDto, UpdateUserFormDto } from './user.model';
-import { createHash } from 'node:crypto';
+import { ObfuscateService } from 'src/obfuscate/obfuscate.service';
 
 @Injectable()
 export class UserService {
   private readonly logger = new Logger(UserService.name);
 
-  constructor(private readonly databaseService: DatabaseService) {}
-
-  private obfuscateField(field: string) {
-    return createHash('sha256')
-      .update(field + Date.now())
-      .digest('base64');
-  }
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly obfuscateService: ObfuscateService,
+  ) {}
 
   async deleteUser(userId: string) {
     this.verifyUserId(userId);
@@ -32,9 +29,9 @@ export class UserService {
     await this.databaseService.user.update({
       where: { id: userId },
       data: {
-        email: this.obfuscateField(user.email),
-        document: user.document ? this.obfuscateField(user.document) : null,
-        rg: user.rg ? this.obfuscateField(user.rg) : null,
+        email: this.obfuscateService.obfuscateField(user.email),
+        document: user.document ? this.obfuscateService.obfuscateField(user.document) : null,
+        rg: user.rg ? this.obfuscateService.obfuscateField(user.rg) : null,
         active: false,
       },
     });
