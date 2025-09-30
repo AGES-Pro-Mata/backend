@@ -41,6 +41,7 @@ export const UserSearchParamsSchema = z.object({
     .transform((val) => val ?? 'createdAt'),
   name: z.string().optional(),
   email: z.string().optional(),
+  createdBy: z.string().optional(),
 });
 
 export class UserSearchParamsDto extends createZodDto(UserSearchParamsSchema) {}
