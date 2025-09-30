@@ -41,7 +41,7 @@ export class UserController {
   }
 
   @Get(':userId')
-  async getAdmin(@Param('userId') userId:string){
+  async getAdmin(@Param('userId') userId: string) {
     return await this.userService.getUser(userId);
   }
 

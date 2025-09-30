@@ -3,6 +3,7 @@ import { DatabaseService } from 'src/database/database.service';
 import z from 'zod';
 import { Prisma, UserType } from 'generated/prisma';
 import { UserSearchParamsDto, UpdateUserFormDto } from './user.model';
+import { createHash } from 'node:crypto';
 
 @Injectable()
 export class UserService {
@@ -10,9 +11,33 @@ export class UserService {
 
   constructor(private readonly databaseService: DatabaseService) {}
 
+  private obfuscateField(field: string) {
+    return createHash('sha256')
+      .update(field + Date.now())
+      .digest('base64');
+  }
+
   async deleteUser(userId: string) {
     this.verifyUserId(userId);
-    await this.databaseService.user.update({ where: { id: userId }, data: { active: false } });
+
+    const user = await this.databaseService.user.findUnique({
+      where: { id: userId },
+      select: { email: true, document: true, rg: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.databaseService.user.update({
+      where: { id: userId },
+      data: {
+        email: this.obfuscateField(user.email),
+        document: user.document ? this.obfuscateField(user.document) : null,
+        rg: user.rg ? this.obfuscateField(user.rg) : null,
+        active: false,
+      },
+    });
   }
 
   async updateUser(userId: string, updateUserDto: UpdateUserFormDto) {
@@ -96,12 +121,12 @@ export class UserService {
 
   async getUser(userId: string) {
     const user = await this.databaseService.user.findUnique({
-      where: { id: userId },
+      where: { id: userId, active: true },
       select: {
         name: true,
         email: true,
         phone: true,
-        document: true, 
+        document: true,
         rg: true,
         gender: true,
         userType: true,
@@ -109,7 +134,7 @@ export class UserService {
         isForeign: true,
         address: {
           select: {
-            zip: true, 
+            zip: true,
             city: true,
             country: true,
             street: true,
