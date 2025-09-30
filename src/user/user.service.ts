@@ -93,6 +93,11 @@ export class UserService {
         email: {
           contains: searchParams.email,
         },
+        createdBy: {
+          name: {
+            contains: searchParams.createdBy,
+          },
+        },
         active: true,
       },
       select: {
@@ -111,10 +116,12 @@ export class UserService {
       take: searchParams.limit,
     });
 
+    const total = await this.databaseService.user.count({ where: { active: true } });
+
     return {
       page: searchParams.page,
       limit: searchParams.limit,
-      total: users.length,
+      total,
       items: users,
     };
   }

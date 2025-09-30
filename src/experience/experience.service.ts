@@ -52,7 +52,7 @@ export class ExperienceService {
   }
 
   async searchExperience(experienceSearchParamsDto: ExperienceSearchParamsDto) {
-    return await this.databaseService.experience.findMany({
+    const experiences = await this.databaseService.experience.findMany({
       where: {
         name: {
           contains: experienceSearchParamsDto.name,
@@ -81,6 +81,15 @@ export class ExperienceService {
       skip: experienceSearchParamsDto.limit * (experienceSearchParamsDto.page - 1),
       take: experienceSearchParamsDto.limit,
     });
+
+    const total = await this.databaseService.experience.count({ where: { active: true } });
+
+    return {
+      page: experienceSearchParamsDto.page,
+      limit: experienceSearchParamsDto.limit,
+      total,
+      items: experiences,
+    };
   }
 
   async createExperience(createExperienceDto: CreateExperienceFormDto) {
