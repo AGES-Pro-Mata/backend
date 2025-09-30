@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
 import { ReservationService } from './reservation.service';
 import { Roles } from 'src/auth/role/roles.decorator';
 import { UserType } from 'generated/prisma';
@@ -40,5 +40,13 @@ export class ReservationController {
   @ApiBearerAuth('access-token')
   async deleteReservation(@Param('reservationId') reservationId: string) {
     return await this.reservationService.deleteReservation(reservationId);
+  }
+
+  @Get('mine')
+  @Roles(UserType.GUEST)
+  @ApiBearerAuth('access-token')
+  @HttpCode(HttpStatus.OK)
+  async getReservations(@User() user: CurrentUser) {
+    return await this.reservationService.getReservations(user.id);
   }
 }
