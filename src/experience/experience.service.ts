@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
+import { Prisma } from 'generated/prisma';
 import {
   CreateExperienceFormDto,
   ExperienceSearchParamsDto,
@@ -52,22 +53,24 @@ export class ExperienceService {
   }
 
   async searchExperience(experienceSearchParamsDto: ExperienceSearchParamsDto) {
-    const experiences = await this.databaseService.experience.findMany({
-      where: {
-        name: {
-          contains: experienceSearchParamsDto.name,
-        },
-        description: {
-          contains: experienceSearchParamsDto.description,
-        },
-        startDate: {
-          lte: experienceSearchParamsDto.date,
-        },
-        endDate: {
-          gte: experienceSearchParamsDto.date,
-        },
-        active: true,
+    const where: Prisma.ExperienceWhereInput = {
+      name: {
+        contains: experienceSearchParamsDto.name,
       },
+      description: {
+        contains: experienceSearchParamsDto.description,
+      },
+      startDate: {
+        lte: experienceSearchParamsDto.date,
+      },
+      endDate: {
+        gte: experienceSearchParamsDto.date,
+      },
+      active: true,
+    };
+
+    const experiences = await this.databaseService.experience.findMany({
+      where,
       select: {
         id: true,
         name: true,
@@ -82,7 +85,7 @@ export class ExperienceService {
       take: experienceSearchParamsDto.limit,
     });
 
-    const total = await this.databaseService.experience.count({ where: { active: true } });
+    const total = await this.databaseService.experience.count({ where });
 
     return {
       page: experienceSearchParamsDto.page,

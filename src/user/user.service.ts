@@ -85,21 +85,23 @@ export class UserService {
         ? { createdBy: { name: searchParams.dir } }
         : { [searchParams.sort]: searchParams.dir };
 
-    const users = await this.databaseService.user.findMany({
-      where: {
-        name: {
-          contains: searchParams.name,
-        },
-        email: {
-          contains: searchParams.email,
-        },
-        createdBy: {
-          name: {
-            contains: searchParams.createdBy,
-          },
-        },
-        active: true,
+    const where: Prisma.UserWhereInput = {
+      name: {
+        contains: searchParams.name,
       },
+      email: {
+        contains: searchParams.email,
+      },
+      createdBy: {
+        name: {
+          contains: searchParams.createdBy,
+        },
+      },
+      active: true,
+    };
+
+    const users = await this.databaseService.user.findMany({
+      where,
       select: {
         id: true,
         name: true,
@@ -116,7 +118,7 @@ export class UserService {
       take: searchParams.limit,
     });
 
-    const total = await this.databaseService.user.count({ where: { active: true } });
+    const total = await this.databaseService.user.count({ where });
 
     return {
       page: searchParams.page,
