@@ -142,28 +142,28 @@ model Experience {
 }
 
 model Reservation {
-  id              String           @id @default(uuid())
-  user            User             @relation(fields: [userId], references: [id])
-  userId          String
-  experience      Experience       @relation(fields: [experienceId], references: [id])
-  experienceId    String
-  startDate       DateTime?
-  endDate         DateTime?
-  status          String?
-  notes           String?
-  createdAt       DateTime         @default(now())
-  Requests        Requests[]
+  id           String     @id @default(uuid())
+  user         User       @relation(fields: [userId], references: [id])
+  userId       String
+  experience   Experience @relation(fields: [experienceId], references: [id])
+  experienceId String
+  startDate    DateTime?
+  endDate      DateTime?
+  status       String?
+  notes        String?
+  createdAt    DateTime   @default(now())
+  Requests     Requests[]
 }
 
 model Requests {
-  id        String        @id @default(uuid())
-  type      RequestType
-  createdAt DateTime      @default(now())
-  createdBy User          @relation(fields: [createdByUserId], references: [id])
+  id              String       @id @default(uuid())
+  type            RequestType
+  createdAt       DateTime     @default(now())
+  createdBy       User         @relation(fields: [createdByUserId], references: [id])
   createdByUserId String
-  description String?
-  reservation Reservation? @relation(fields: [reservationId], references: [id])
-  reservationId String?
+  description     String?
+  reservation     Reservation? @relation(fields: [reservationId], references: [id])
+  reservationId   String?
 }
 
 enum RequestType {
