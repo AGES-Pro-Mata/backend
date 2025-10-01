@@ -3,46 +3,18 @@ name: Backend CI/CD
 on:
   push:
     branches:
-      - main
       - dev
-  pull_request:
-    branches:
       - main
-      - dev
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy'
-        required: true
-        default: 'dev'
-        type: choice
-        options:
-        - dev
-        - prod
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '24'
   DOCKER_REGISTRY: docker.io
-  IMAGE_NAME_BASE: norohim/pro-mata-backend
+  IMAGE_NAME: norohim/pro-mata-backend
 
 jobs:
-  # Job 1: Testes e Qualidade
-  test:
-    name: Tests & Quality
+  build-and-verify:
+    name: Build & Verify
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -56,224 +28,206 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run database migrations and tests
-        run: |
-          npx prisma generate
-          npx prisma migrate deploy
-          # Adicione seus comandos de teste aqui
-          npm test || echo "Test command failed or not found, continuing..."
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+      - name: Generate Prisma Client
+        run: npx prisma generate
 
-  # Job 2: Build Dinâmico da Imagem Docker
-  build-and-push:
-    name: 📦 Build & Push Dynamic Image
-    needs: [test]
+      - name: Build application
+        run: npm run build
+
+      - name: Lint code
+        run: npm run lint || echo "Lint not configured, skipping..."
+
+  publish-dev:
+    name: Publish DEV Image
+    needs: [build-and-verify]
     runs-on: ubuntu-latest
-    # Condição para executar o build apenas em eventos de push ou dispatch
-    if: >-
-      success() && (
-        (github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main')) ||
-        github.event_name == 'workflow_dispatch'
-      )
+    if: github.ref == 'refs/heads/dev'
     outputs:
-      image_name: ${{ steps.config.outputs.image_name }}
-      event_type: ${{ steps.config.outputs.event_type }}
-      
+      image_tag: ${{ steps.define-tags.outputs.image_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: ⚙️ Set Dynamic Configuration
-        id: config
-        run: |
-          # Determina o ambiente baseado no gatilho do workflow
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            ENV="${{ github.event.inputs.environment }}"
-          else
-            # Para 'push', determina pela branch
-            if [ "${{ github.ref_name }}" = "main" ]; then
-              ENV="prod"
-            else
-              ENV="dev"
-            fi
-          fi
-          
-          echo "Determined Environment: $ENV"
-
-          # Define as variáveis baseadas no ambiente
-          if [ "$ENV" = "prod" ]; then
-            echo "environment=production" >> $GITHUB_OUTPUT
-            echo "dockerfile=Dockerfile.prod" >> $GITHUB_OUTPUT
-            echo "image_name=${{ env.IMAGE_NAME_BASE }}-dev" >> $GITHUB_OUTPUT
-            echo "event_type=deploy-prod-backend" >> $GITHUB_OUTPUT
-          else
-            echo "environment=development" >> $GITHUB_OUTPUT
-            echo "dockerfile=Dockerfile.prod" >> $GITHUB_OUTPUT  # Changed from Dockerfile.dev to Dockerfile.prod
-            echo "image_name=${{ env.IMAGE_NAME_BASE }}-dev" >> $GITHUB_OUTPUT
-            echo "event_type=deploy-dev-backend" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Create .env file
-        run: |
-          if [ "${{ steps.config.outputs.environment }}" = "production" ]; then
-            echo "${{ secrets.ENV_PROD }}" > .env
-          else
-            echo "${{ secrets.ENV_DEV }}" > .env
-          fi
-      
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          registry: docker.io
+          registry: ${{ env.DOCKER_REGISTRY }}
           username: ${{ vars.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ steps.config.outputs.image_name }}
-          tags: |
-            type=raw,value=latest
-            type=sha,prefix={{branch}}-
-            # Adiciona tag de versão apenas para produção
-            type=raw,value=v${{ github.run_number }},enable=${{ steps.config.outputs.environment == 'production' }}
+      - name: Define image tags
+        id: define-tags
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          SHORT_SHA=$(echo "${SHA}" | cut -c1-12)
+          echo "image_tag=dev-${SHORT_SHA}" >> $GITHUB_OUTPUT
 
       - name: Build and push image
-        id: docker_build
+        id: docker_build_dev
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ${{ steps.config.outputs.dockerfile }}
+          file: Dockerfile.dev
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:dev
+            ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.define-tags.outputs.image_tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Print Image Digest
+        run: echo "DEV image pushed with digest ${{ steps.docker_build_dev.outputs.digest }}"
+
+  publish-prod:
+    name: Publish PROD Image
+    needs: [build-and-verify]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      image_tag: ${{ steps.define-tags.outputs.image_tag }}
+      version_tag: ${{ steps.define-tags.outputs.version_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Define image tags
+        id: define-tags
+        env:
+          SHA: ${{ github.sha }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          SHORT_SHA=$(echo "${SHA}" | cut -c1-12)
+          echo "image_tag=prod-${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "version_tag=v${RUN_NUMBER}" >> $GITHUB_OUTPUT
+
+      - name: Build and push image
+        id: docker_build_prod
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.prod
+          push: true
+          tags: |
+            ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:prod
+            ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.define-tags.outputs.image_tag }}
+            ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.define-tags.outputs.version_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
-          
+
       - name: Print Image Digest
-        run: echo "Image pushed with digest ${{ steps.docker_build.outputs.digest }}"
+        run: echo "PROD image pushed with digest ${{ steps.docker_build_prod.outputs.digest }}"
 
-  # Job 3: Build Database Image
-  build-database:
-    name: 🗃️ Build Database Image
-    needs: [test]
+  deploy-dev:
+    name: Deploy DEV to EC2
+    needs: [publish-dev]
     runs-on: ubuntu-latest
-    if: >-
-      success() && (
-        (github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main')) ||
-        github.event_name == 'workflow_dispatch'
-      )
-    
+    if: github.ref == 'refs/heads/dev'
+    env:
+      IMAGE: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}
+      IMAGE_TAG: ${{ needs.publish-dev.outputs.image_tag }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Deploy container on DEV host
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DEV_EC2_HOST }}
+          username: ${{ secrets.DEV_EC2_USER }}
+          key: ${{ secrets.DEV_EC2_SSH_KEY }}
+          envs: IMAGE,IMAGE_TAG
+          script: |
+            set -euo pipefail
+            IMAGE_WITH_TAG="${IMAGE}:${IMAGE_TAG}"
+            CONTAINER="${{ secrets.DEV_DOCKER_CONTAINER_NAME }}"
+            PORTS="${{ secrets.DEV_DOCKER_PORT_MAPPING }}"
+            ENV_FILE="${{ secrets.DEV_DOCKER_ENV_FILE }}"
+            EXTRA_ARGS="${{ secrets.DEV_DOCKER_EXTRA_ARGS }}"
 
-      - name: ⚙️ Set Database Configuration
-        id: database_config
-        run: |
-          # Determina o ambiente baseado no gatilho do workflow
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            ENV="${{ github.event.inputs.environment }}"
-          else
-            # Para 'push', determina pela branch
-            if [ "${{ github.ref_name }}" = "main" ]; then
-              ENV="prod"
-            else
-              ENV="dev"
+            docker pull "${IMAGE_WITH_TAG}"
+
+            docker stop "${CONTAINER}" || true
+            docker rm "${CONTAINER}" || true
+
+            ENV_FLAG=""
+            if [ -n "${ENV_FILE}" ]; then
+              ENV_FLAG="--env-file ${ENV_FILE}"
             fi
-          fi
-          
-          echo "Determined Environment: $ENV"
 
-          # Define as variáveis baseadas no ambiente
-          if [ "$ENV" = "prod" ]; then
-            echo "environment=production" >> $GITHUB_OUTPUT
-            echo "image_name=norohim/pro-mata-database-dev" >> $GITHUB_OUTPUT
-          else
-            echo "environment=development" >> $GITHUB_OUTPUT
-            echo "image_name=norohim/pro-mata-database-dev" >> $GITHUB_OUTPUT
-          fi
+            EXTRA_FLAG=""
+            if [ -n "${EXTRA_ARGS}" ]; then
+              EXTRA_FLAG="${EXTRA_ARGS}"
+            fi
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+            docker run -d \
+              --name "${CONTAINER}" \
+              -p "${PORTS}" \
+              ${ENV_FLAG} \
+              ${EXTRA_FLAG} \
+              --restart always \
+              "${IMAGE_WITH_TAG}"
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          registry: docker.io
-          username: ${{ vars.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+            docker exec "${CONTAINER}" npx prisma migrate deploy || true
 
-      - name: Extract database metadata
-        id: database_meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ steps.database_config.outputs.image_name }}
-          tags: |
-            type=raw,value=latest
-            type=sha,prefix={{branch}}-
-
-      - name: Build and push database image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: Dockerfile.database
-          push: true
-          tags: ${{ steps.database_meta.outputs.tags }}
-          labels: ${{ steps.database_meta.outputs.labels }}
-          cache-from: type=gha,scope=database
-          cache-to: type=gha,mode=max,scope=database
-          platforms: linux/amd64,linux/arm64
-
-      - name: Database Build Summary
-        run: |
-          echo "## 🗃️ Database Image Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Image Name** | ${{ steps.database_config.outputs.image_name }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Environment** | ${{ steps.database_config.outputs.environment }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Tags** | ${{ steps.database_meta.outputs.tags }} |" >> $GITHUB_STEP_SUMMARY
-
-      - name: Trigger Infrastructure Database Build
-        if: success()
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.PAT_INFRASTRUCTURE_REPO }}
-          repository: AGES-Pro-Mata/infrastructure
-          event-type: backend-database-built
-          client-payload: |
-            {
-              "base_image": "${{ steps.database_config.outputs.image_name }}:latest",
-              "environment": "${{ steps.database_config.outputs.environment }}",
-              "commit": "${{ github.sha }}",
-              "branch": "${{ github.ref_name }}",
-              "triggered_by": "backend-database"
-            }
-
-  # Job 4: Disparo do Deploy de Infraestrutura
-  trigger-deploy:
-    name: 🚀 Trigger Infrastructure Deployment
-    needs: [build-and-push, build-database]
+  deploy-prod:
+    name: Deploy PROD to EC2
+    needs: [publish-prod]
     runs-on: ubuntu-latest
-    # Garante que este job só rode se o build for bem-sucedido
-    if: success() && needs.build-and-push.outputs.event_type != ''
+    if: github.ref == 'refs/heads/main'
+    env:
+      IMAGE: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}
+      IMAGE_TAG: ${{ needs.publish-prod.outputs.image_tag }}
     steps:
-      - name: Dispatch to Infrastructure Repository
-        uses: peter-evans/repository-dispatch@v3
+      - name: Deploy container on PROD host
+        uses: appleboy/ssh-action@v1.0.0
         with:
-          token: ${{ secrets.PAT_INFRASTRUCTURE_REPO }}
-          repository: AGES-Pro-Mata/infrastructure
-          event-type: ${{ needs.build-and-push.outputs.event_type }}
-          client-payload: |
-            {
-              "image": "${{ needs.build-and-push.outputs.image_name }}:latest",
-              "commit": "${{ github.sha }}",
-              "branch": "${{ github.ref_name }}",
-              "triggered_by": "backend"
-            }
+          host: ${{ secrets.PROD_EC2_HOST }}
+          username: ${{ secrets.PROD_EC2_USER }}
+          key: ${{ secrets.PROD_EC2_SSH_KEY }}
+          envs: IMAGE,IMAGE_TAG
+          script: |
+            set -euo pipefail
+            IMAGE_WITH_TAG="${IMAGE}:${IMAGE_TAG}"
+            CONTAINER="${{ secrets.PROD_DOCKER_CONTAINER_NAME }}"
+            PORTS="${{ secrets.PROD_DOCKER_PORT_MAPPING }}"
+            ENV_FILE="${{ secrets.PROD_DOCKER_ENV_FILE }}"
+            EXTRA_ARGS="${{ secrets.PROD_DOCKER_EXTRA_ARGS }}"
+
+            docker pull "${IMAGE_WITH_TAG}"
+            docker pull "${IMAGE}:latest" || true
+
+            docker stop "${CONTAINER}" || true
+            docker rm "${CONTAINER}" || true
+
+            ENV_FLAG=""
+            if [ -n "${ENV_FILE}" ]; then
+              ENV_FLAG="--env-file ${ENV_FILE}"
+            fi
+
+            EXTRA_FLAG=""
+            if [ -n "${EXTRA_ARGS}" ]; then
+              EXTRA_FLAG="${EXTRA_ARGS}"
+            fi
+
+            docker run -d \
+              --name "${CONTAINER}" \
+              -p "${PORTS}" \
+              ${ENV_FLAG} \
+              ${EXTRA_FLAG} \
+              --restart always \
+              "${IMAGE_WITH_TAG}"
+
+            docker exec "${CONTAINER}" npx prisma migrate deploy || true

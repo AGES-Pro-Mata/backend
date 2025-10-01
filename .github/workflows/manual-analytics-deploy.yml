@@ -1,0 +1,85 @@
+name: Manual Analytics Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_umami:
+        description: "Deploy Umami"
+        type: boolean
+        default: false
+      deploy_metabase:
+        description: "Deploy Metabase"
+        type: boolean
+        default: false
+
+jobs:
+  deploy-umami:
+    name: Deploy Umami (Prod)
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && inputs.deploy_umami == true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Copy and run deploy script
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_EC2_HOST }}
+          username: ${{ secrets.PROD_EC2_USER }}
+          key: ${{ secrets.PROD_EC2_SSH_KEY }}
+          source: "scripts/deploy-umami.sh"
+          target: "/tmp"
+
+      - name: Deploy Umami via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PROD_EC2_HOST }}
+          username: ${{ secrets.PROD_EC2_USER }}
+          key: ${{ secrets.PROD_EC2_SSH_KEY }}
+          envs: UMAMI_DB_NAME,UMAMI_DB_USER,UMAMI_DB_PASSWORD,UMAMI_DB_PORT,UMAMI_APP_SECRET,UMAMI_ADMIN_EMAIL,UMAMI_ADMIN_PASSWORD,UMAMI_HOST_PORT
+          script: |
+            export UMAMI_DB_NAME="${{ secrets.UMAMI_DB_NAME }}"
+            export UMAMI_DB_USER="${{ secrets.UMAMI_DB_USER }}"
+            export UMAMI_DB_PASSWORD="${{ secrets.UMAMI_DB_PASSWORD }}"
+            export UMAMI_DB_PORT="${{ secrets.UMAMI_DB_PORT }}"
+            export UMAMI_APP_SECRET="${{ secrets.UMAMI_APP_SECRET }}"
+            export UMAMI_ADMIN_EMAIL="${{ secrets.UMAMI_ADMIN_EMAIL }}"
+            export UMAMI_ADMIN_PASSWORD="${{ secrets.UMAMI_ADMIN_PASSWORD }}"
+            export UMAMI_HOST_PORT="${{ secrets.UMAMI_HOST_PORT }}"
+            
+            chmod +x /tmp/scripts/deploy-umami.sh
+            /tmp/scripts/deploy-umami.sh
+
+  deploy-metabase:
+    name: Deploy Metabase (Prod)
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && inputs.deploy_metabase == true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Copy deploy script
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_EC2_HOST }}
+          username: ${{ secrets.PROD_EC2_USER }}
+          key: ${{ secrets.PROD_EC2_SSH_KEY }}
+          source: "scripts/deploy-metabase.sh"
+          target: "/tmp"
+
+      - name: Deploy Metabase via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PROD_EC2_HOST }}
+          username: ${{ secrets.PROD_EC2_USER }}
+          key: ${{ secrets.PROD_EC2_SSH_KEY }}
+          envs: METABASE_DB_NAME,METABASE_DB_USER,METABASE_DB_PASSWORD,METABASE_DB_PORT,METABASE_HOST_PORT,METABASE_SITE_URL,METABASE_ENCRYPTION_KEY
+          script: |
+            export METABASE_DB_NAME="${{ secrets.METABASE_DB_NAME }}"
+            export METABASE_DB_USER="${{ secrets.METABASE_DB_USER }}"
+            export METABASE_DB_PASSWORD="${{ secrets.METABASE_DB_PASSWORD }}"
+            export METABASE_DB_PORT="${{ secrets.METABASE_DB_PORT }}"
+            export METABASE_HOST_PORT="${{ secrets.METABASE_HOST_PORT }}"
+            
+            chmod +x /tmp/scripts/deploy-metabase.sh
+            /tmp/scripts/deploy-metabase.sh
