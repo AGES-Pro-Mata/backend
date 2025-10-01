@@ -188,4 +188,87 @@ export class ReservationService {
       });
     });
   }
+
+  async getReservationGroupByIdAdmin(reservationGroupId: string) {
+    return await this.databaseService.reservationGroup.findUnique({
+      where: { id: reservationGroupId },
+      select: {
+        id: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        reservations: {
+          select: {
+            members: {
+              omit: {
+                createdAt: true,
+                updatedAt: true,
+                active: true,
+                reservationGroupId: true,
+              },
+            },
+            notes: true,
+            experience: {
+              omit: {
+                imageId: true,
+                active: true,
+              },
+            },
+          },
+        },
+        requests: {
+          omit: {
+            createdAt: true,
+            createdByUserId: true,
+            reservationGroupId: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getReservationGroupById(reservationGroupId: string, userId: string) {
+    const reservationGroup = await this.databaseService.reservationGroup.findUnique({
+      where: { id: reservationGroupId, userId },
+      select: {
+        id: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        reservations: {
+          select: {
+            members: {
+              omit: {
+                createdAt: true,
+                updatedAt: true,
+                active: true,
+                reservationGroupId: true,
+              },
+            },
+            notes: true,
+            experience: {
+              omit: {
+                imageId: true,
+                active: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!reservationGroup) {
+      throw new NotFoundException();
+    }
+
+    return reservationGroup;
+  }
 }

@@ -26,6 +26,13 @@ export class ReservationController {
     return await this.reservationService.createReservationGroup(user.id, payload);
   }
 
+  @Get(':reservationGroupId')
+  @Roles(UserType.ADMIN)
+  @ApiBearerAuth('access-token')
+  async getReservationAdmin(@Param('reservationGroupId') reservationGroupId: string) {
+    return await this.reservationService.getReservationGroupByIdAdmin(reservationGroupId);
+  }
+
   @Delete(':reservationGroupId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(UserType.ADMIN)
@@ -34,12 +41,25 @@ export class ReservationController {
     return await this.reservationService.deleteReservation(reservationGroupId);
   }
 
-  @Get('mine')
+  @Get('user')
   @Roles(UserType.GUEST)
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   async getReservations(@User() user: CurrentUser) {
     return await this.reservationService.getReservations(user.id);
+  }
+
+  @Get('user/:reservationGroupId')
+  @Roles(UserType.ADMIN, UserType.GUEST)
+  @ApiBearerAuth('access-token')
+  async getReservationUser(
+    @Param('reservationGroupId') reservationGroupId: string,
+    @User() currentuUser: CurrentUser,
+  ) {
+    return await this.reservationService.getReservationGroupById(
+      reservationGroupId,
+      currentuUser.id,
+    );
   }
 
   @Post(':reservationGroupId/receipt')
