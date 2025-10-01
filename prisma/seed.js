@@ -1,4 +1,5 @@
 const { PrismaClient, UserType } = require('../generated/prisma');
+const argon2 = require('argon2');
 
 const prisma = new PrismaClient();
 
@@ -64,7 +65,16 @@ async function main() {
   ]);
 
   // Simple password for demo purposes (in real apps, use proper hashing)
-  const demoPassword = 'password123';
+  // password123
+  const demoPassword = await argon2.hash(
+    'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f',
+    {
+      type: argon2.argon2id,
+      memoryCost: 65536,
+      timeCost: 3,
+      parallelism: 1,
+    },
+  );
 
   // Create ROOT user
   const rootUser = await prisma.user.create({
@@ -245,7 +255,7 @@ async function main() {
 
 👥 Sample Users:
 - root@company.com (ROOT) - password: password123
-- admin@company.com (ADMIN) - password: password123  
+- admin@company.com (ADMIN) - password: password123
 - joao.santos@university.edu.br (PROFESSOR) - password: password123
 - ana.costa@university.edu.br (PROFESSOR) - password: password123
 - carlos@email.com (GUEST) - password: password123
@@ -253,7 +263,7 @@ async function main() {
 
 🔗 User relationships:
 - ROOT created ADMIN
-- ADMIN created both PROFESSORS and foreign GUEST  
+- ADMIN created both PROFESSORS and foreign GUEST
 - PROFESSOR João created GUEST Carlos
   `);
 }

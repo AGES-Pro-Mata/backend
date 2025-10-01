@@ -1,32 +1,35 @@
 import { z } from 'zod';
+import { RequestType } from 'generated/prisma';
 import { createZodDto } from 'nestjs-zod';
 
-const ExperienceSchema = z.object({
-  experienceId: z.string(),
-});
-
-const PersonSchema = z.object({
+const MemberSchema = z.object({
   name: z.string(),
-  phone: z.string(),
-  birthDate: z.string(),
   document: z.string(),
   gender: z.string(),
 });
 
-export const FinalizeReservationSchema = z.object({
-  userId: z.string(),
-  experiences: z.array(ExperienceSchema),
-  peopleList: z.array(PersonSchema).optional(),
+const MemberDocumentSchema = z.object({
+  document: z.string(),
+});
+
+const ReservationSchema = z.object({
   notes: z.string().optional(),
-  startDate: z.string(),
-  endDate: z.string(),
+  experienceId: z.uuid(),
+  startDate: z.iso.datetime(),
+  endDate: z.iso.datetime(),
+  members: z.array(MemberDocumentSchema),
 });
 
-export class CreateFinalizeReservationDto extends createZodDto(FinalizeReservationSchema) {}
-
-const UpdateReservationSchema = z.object({
-  action: z.string(),
-  text: z.string().optional(),
+export const CreateReservationGroupSchema = z.object({
+  reservations: z.array(ReservationSchema),
+  members: z.array(MemberSchema),
 });
 
-export class UpdateReservationDto extends createZodDto(UpdateReservationSchema) {}
+export class CreateReservationGroupDto extends createZodDto(CreateReservationGroupSchema) {}
+
+const UpdateReservation = z.object({
+  type: z.enum(Object.values(RequestType)),
+  description: z.string().optional(),
+});
+
+export class UpdateReservationDto extends createZodDto(UpdateReservation) {}

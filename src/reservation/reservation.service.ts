@@ -1,106 +1,171 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
-import { UpdateReservationDto, CreateFinalizeReservationDto } from './reservation.model';
+import { UpdateReservationDto, CreateReservationGroupDto } from './reservation.model';
 
 @Injectable()
 export class ReservationService {
   constructor(private readonly databaseService: DatabaseService) {}
 
-  async updateReservation(reservationId: string, updateReservationDto: UpdateReservationDto) {
-    await this.databaseService.reservation.update({
-      where: { id: reservationId },
+  async createRequestAdmin(
+    reservationGroupId: string,
+    updateReservationDto: UpdateReservationDto,
+    userId: string,
+  ) {
+    const payload = await this.databaseService.reservation.count({
+      where: {
+        id: reservationGroupId,
+      },
+    });
+
+    if (payload === 0) {
+      throw new NotFoundException();
+    }
+
+    await this.databaseService.requests.create({
       data: {
-        status: updateReservationDto.action,
-        notes: updateReservationDto.text,
+        description: updateReservationDto.description,
+        type: updateReservationDto.type,
+        reservationGroupId,
+        createdByUserId: userId,
       },
     });
   }
 
-async finalizeReservation(payload: CreateFinalizeReservationDto) {
-        const createdReservations = [] as any[];
+  async createCancelRequest(reservationGroupId: string, userId: string) {
+    const payload = await this.databaseService.reservation.count({
+      where: {
+        id: reservationGroupId,
+        userId,
+      },
+    });
 
-        // Calcula o total de pessoas a partir da lista de pessoas enviadas
-        const totalPeople = payload.peopleList ? payload.peopleList.length : 0;
-
-        if (totalPeople === 0) {
-            throw new BadRequestException('A reserva deve ter pelo menos uma pessoas.');
-        }
-
-        const requestedStart = new Date(payload.startDate);
-        const requestedEnd = new Date(payload.endDate);
-
-        // Validação básica de conversão de datas
-        if (isNaN(requestedStart.getTime()) || isNaN(requestedEnd.getTime())) {
-            throw new BadRequestException('As datas de início e fim da reserva são inválidas.');
-        }
-
-        // Cria uma reserva por experiência informada
-        for (const exp of payload.experiences) {
-            // Busca a experiência
-            const experience = await this.databaseService.experience.findUnique({
-                where: { id: exp.experienceId },
-            });
-
-            if (!experience) {
-                throw new BadRequestException(`Experiência ${exp.experienceId} não encontrada`);
-            }
-
-            // Garante que a experiência tem datas de validade definidas
-            if (!experience.startDate || !experience.endDate) {
-                throw new BadRequestException(
-                    `A experiência ${exp.experienceId} não possui data de início ou fim definidos.`,
-                );
-            }
-
-            const expStartLimit = new Date(experience.startDate);
-            const expEndLimit = new Date(experience.endDate);
-
-            // Verifica se as datas solicitadas estão dentro do período de validade da experiência
-            if (
-                requestedStart.getTime() < expStartLimit.getTime() || 
-                requestedEnd.getTime() > expEndLimit.getTime()
-            ) {
-                throw new BadRequestException(
-                    `As datas solicitadas (${payload.startDate} - ${payload.endDate}) estão fora do período de validade da experiência (${experience.startDate} - ${experience.endDate}).`,
-                );
-            }
-            
-            // criação da reserva
-            const created = await this.databaseService.reservation.create({
-                data: {
-                    userId: payload.userId,
-                    experienceId: exp.experienceId,
-                    startDate: requestedStart, 
-                    endDate: requestedEnd,
-                    status: 'PENDING',
-                    notes: payload.notes,
-                    
-                },
-            });
-            
-            createdReservations.push({
-                ...created,
-                startDateExp: experience.startDate,
-                endDateExp: experience.endDate,
-                totalPeople: totalPeople, 
-                peopleList: payload.peopleList, 
-            });
-        }
-
-        const peopleSummary = payload.peopleList && payload.peopleList.length > 0
-          ? payload.peopleList.map((p) => `${p.name} (${p.document})`).join(', ')
-          : '';
-
-        await this.databaseService.requests.create({
-          data: {
-            type: 'CREATED',
-            createdByUserId: payload.userId,
-            reservationId: createdReservations[0]?.id || null,
-            description: `Total de pessoas: ${totalPeople}. ${peopleSummary} ${payload.notes ?? ''}`,
-          },
-        });
-
-        return createdReservations;
+    if (payload === 0) {
+      throw new NotFoundException();
     }
-}
 
+    await this.databaseService.requests.create({
+      data: {
+        type: 'CANCELED_REQUESTED',
+        reservationGroupId,
+        createdByUserId: userId,
+      },
+    });
+  }
+
+  async deleteReservation(reservationId: string) {
+    return await this.databaseService.reservation.update({
+      where: { id: reservationId },
+      data: {
+        active: false,
+      },
+    });
+  }
+
+  async getReservations(userId: string) {
+    return await this.databaseService.reservation.findMany({
+      where: {
+        userId: userId,
+      },
+      select: {
+        id: true,
+        startDate: true,
+        endDate: true,
+        notes: true,
+        user: {
+          select: {
+            name: true,
+            phone: true,
+            document: true,
+            gender: true,
+          },
+        },
+        experience: {
+          select: {
+            name: true,
+            startDate: true,
+            endDate: true,
+            price: true,
+            capacity: true,
+            trailLength: true,
+            durationMinutes: true,
+          },
+        },
+      },
+    });
+  }
+
+  async createReservationGroup(
+    userId: string,
+    createReservationGroupDto: CreateReservationGroupDto,
+  ) {
+    return await this.databaseService.$transaction(async (tx) => {
+      const experienceIds = createReservationGroupDto.reservations.map((r) => r.experienceId);
+
+      const experiences = await tx.experience.findMany({
+        where: { id: { in: experienceIds }, active: true },
+        select: { id: true },
+      });
+
+      if (experiences.length !== experienceIds.length) {
+        throw new BadRequestException('Uma ou mais experiências não estão ativas.');
+      }
+
+      const group = await tx.reservationGroup.create({
+        data: { userId },
+        select: { id: true },
+      });
+
+      await tx.member.createMany({
+        data: createReservationGroupDto.members.map((m) => ({
+          name: m.name,
+          document: m.document,
+          gender: m.gender,
+          reservationGroupId: group.id,
+        })),
+        skipDuplicates: true,
+      });
+
+      await Promise.all(
+        createReservationGroupDto.reservations.map((r) =>
+          tx.reservation.create({
+            data: {
+              userId,
+              reservationGroupId: group.id,
+              experienceId: r.experienceId,
+              startDate: r.startDate,
+              endDate: r.endDate,
+              notes: r.notes ?? null,
+              members: {
+                connect: r.members.map((m) => ({
+                  reservationGroupId_document: {
+                    reservationGroupId: group.id,
+                    document: m.document,
+                  },
+                })),
+              },
+            },
+            select: {
+              _count: true,
+            },
+          }),
+        ),
+      );
+
+      await tx.requests.create({
+        data: {
+          type: 'CREATED',
+          createdByUserId: userId,
+          reservationGroupId: group.id,
+        },
+      });
+
+      return tx.reservationGroup.findUniqueOrThrow({
+        where: { id: group.id },
+        include: {
+          reservations: { include: { members: true, experience: true } },
+          requests: true,
+        },
+      });
+    });
+  }
+}
