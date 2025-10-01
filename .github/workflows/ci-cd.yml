@@ -151,17 +151,17 @@ jobs:
     steps:
       - name: Configure SSH Key (DEV)
         run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          echo "${{ secrets.DEV_EC2_SSH_KEY }}" > ~/.ssh/dev_ec2_key.pem
-          chmod 400 ~/.ssh/dev_ec2_key.pem
+          KEY_PATH="${RUNNER_TEMP}/dev_ec2_key.pem"
+          printf '%s' "${{ secrets.DEV_EC2_SSH_KEY }}" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          echo "DEV_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
       - name: Deploy container on DEV host
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.DEV_EC2_HOST }}
           username: ${{ secrets.DEV_EC2_USER }}
-          key_path: ~/.ssh/dev_ec2_key.pem
+          key_path: ${{ env.DEV_KEY_PATH }}
           script: |
             set -euo pipefail
             IMAGE="${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}"
@@ -213,17 +213,17 @@ jobs:
     steps:
       - name: Configure SSH Key (DEV)
         run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          echo "${{ secrets.DEV_EC2_SSH_KEY }}" > ~/.ssh/dev_ec2_key.pem
-          chmod 400 ~/.ssh/dev_ec2_key.pem
+          KEY_PATH="${RUNNER_TEMP}/dev_ec2_key.pem"
+          printf '%s' "${{ secrets.DEV_EC2_SSH_KEY }}" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          echo "DEV_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
       - name: Run migrations on DEV
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.DEV_EC2_HOST }}
           username: ${{ secrets.DEV_EC2_USER }}
-          key_path: ~/.ssh/dev_ec2_key.pem
+          key_path: ${{ env.DEV_KEY_PATH }}
           script: |
             set -euo pipefail
             CONTAINER="${{ secrets.DEV_DOCKER_CONTAINER_NAME }}"
@@ -238,17 +238,17 @@ jobs:
     steps:
       - name: Configure SSH Key (PROD)
         run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          echo "${{ secrets.PROD_EC2_SSH_KEY }}" > ~/.ssh/prod_ec2_key.pem
-          chmod 400 ~/.ssh/prod_ec2_key.pem
+          KEY_PATH="${RUNNER_TEMP}/prod_ec2_key.pem"
+          printf '%s' "${{ secrets.PROD_EC2_SSH_KEY }}" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          echo "PROD_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
       - name: Run migrations on PROD
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.PROD_EC2_HOST }}
           username: ${{ secrets.PROD_EC2_USER }}
-          key_path: ~/.ssh/prod_ec2_key.pem
+          key_path: ${{ env.PROD_KEY_PATH }}
           script: |
             set -euo pipefail
             CONTAINER="${{ secrets.PROD_DOCKER_CONTAINER_NAME }}"
@@ -262,17 +262,17 @@ jobs:
     steps:
       - name: Configure SSH Key (PROD)
         run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          echo "${{ secrets.PROD_EC2_SSH_KEY }}" > ~/.ssh/prod_ec2_key.pem
-          chmod 400 ~/.ssh/prod_ec2_key.pem
+          KEY_PATH="${RUNNER_TEMP}/prod_ec2_key.pem"
+          printf '%s' "${{ secrets.PROD_EC2_SSH_KEY }}" > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          echo "PROD_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
       - name: Deploy container on PROD host
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.PROD_EC2_HOST }}
           username: ${{ secrets.PROD_EC2_USER }}
-          key_path: ~/.ssh/prod_ec2_key.pem
+          key_path: ${{ env.PROD_KEY_PATH }}
           script: |
             set -euo pipefail
             IMAGE="${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}"
