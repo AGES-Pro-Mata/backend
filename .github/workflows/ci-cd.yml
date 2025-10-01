@@ -149,12 +149,19 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/dev'
     steps:
+      - name: Configure SSH Key (DEV)
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.DEV_EC2_SSH_KEY }}" > ~/.ssh/dev_ec2_key.pem
+          chmod 400 ~/.ssh/dev_ec2_key.pem
+
       - name: Deploy container on DEV host
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.DEV_EC2_HOST }}
           username: ${{ secrets.DEV_EC2_USER }}
-          key: ${{ secrets.DEV_EC2_SSH_KEY }}
+          key_path: ~/.ssh/dev_ec2_key.pem
           script: |
             set -euo pipefail
             IMAGE="${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}"
@@ -204,12 +211,19 @@ jobs:
       github.event_name == 'workflow_dispatch' &&
       github.event.inputs.deploy_db_dev == 'true'
     steps:
+      - name: Configure SSH Key (DEV)
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.DEV_EC2_SSH_KEY }}" > ~/.ssh/dev_ec2_key.pem
+          chmod 400 ~/.ssh/dev_ec2_key.pem
+
       - name: Run migrations on DEV
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.DEV_EC2_HOST }}
           username: ${{ secrets.DEV_EC2_USER }}
-          key: ${{ secrets.DEV_EC2_SSH_KEY }}
+          key_path: ~/.ssh/dev_ec2_key.pem
           script: |
             set -euo pipefail
             CONTAINER="${{ secrets.DEV_DOCKER_CONTAINER_NAME }}"
@@ -222,12 +236,19 @@ jobs:
       github.event_name == 'workflow_dispatch' &&
       github.event.inputs.deploy_db_prod == 'true'
     steps:
+      - name: Configure SSH Key (PROD)
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.PROD_EC2_SSH_KEY }}" > ~/.ssh/prod_ec2_key.pem
+          chmod 400 ~/.ssh/prod_ec2_key.pem
+
       - name: Run migrations on PROD
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.PROD_EC2_HOST }}
           username: ${{ secrets.PROD_EC2_USER }}
-          key: ${{ secrets.PROD_EC2_SSH_KEY }}
+          key_path: ~/.ssh/prod_ec2_key.pem
           script: |
             set -euo pipefail
             CONTAINER="${{ secrets.PROD_DOCKER_CONTAINER_NAME }}"
@@ -239,12 +260,19 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
+      - name: Configure SSH Key (PROD)
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.PROD_EC2_SSH_KEY }}" > ~/.ssh/prod_ec2_key.pem
+          chmod 400 ~/.ssh/prod_ec2_key.pem
+
       - name: Deploy container on PROD host
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.PROD_EC2_HOST }}
           username: ${{ secrets.PROD_EC2_USER }}
-          key: ${{ secrets.PROD_EC2_SSH_KEY }}
+          key_path: ~/.ssh/prod_ec2_key.pem
           script: |
             set -euo pipefail
             IMAGE="${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}"
