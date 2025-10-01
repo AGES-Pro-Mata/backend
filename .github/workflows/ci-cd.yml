@@ -184,37 +184,25 @@ jobs:
             EXTRA_FLAG=""
             if [ -n "${EXTRA_ARGS}" ]; then
               EXTRA_FLAG="${EXTRA_ARGS}"
+            fi
 
             docker run -d \
               --name "${CONTAINER}" \
               -p "${PORTS}" \
               ${ENV_FLAG} \
+              -e "DATABASE_URL=${DATABASE_URL}" \
               ${EXTRA_FLAG} \
               --restart always \
               "${IMAGE_WITH_TAG}"
 
             docker exec "${CONTAINER}" npx prisma migrate deploy || true
 
-            echo "Waiting for service healthcheck..."
-            docker exec "${CONTAINER}" sh -c "
-              PORT=\${PORT:-3001};
-              for i in \$(seq 1 30); do
-                if curl -fsS \"http://127.0.0.1:\${PORT}/health\" >/dev/null; then
-                  echo \"Service healthy on attempt \${i}.\";
-                  exit 0;
-                fi;
-                echo \"Healthcheck attempt \${i} failed, retrying...\";
-                sleep 2;
-              done;
-              echo \"Service failed healthcheck after multiple attempts\" >&2;
-              exit 1;
-            "
-
   manual-db-dev:
     name: Manual DB Deploy DEV
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.deploy_db_dev == 'true'
     steps:
       - name: Run migrations on DEV
         uses: appleboy/ssh-action@v1.0.0
@@ -292,3 +280,9 @@ jobs:
             docker run -d \
               --name "${CONTAINER}" \
               -p "${PORTS}" \
+              ${ENV_FLAG} \
+              ${EXTRA_FLAG} \
+              --restart always \
+              "${IMAGE_WITH_TAG}"
+
+            docker exec "${CONTAINER}" npx prisma migrate deploy || true
