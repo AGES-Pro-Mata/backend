@@ -5,6 +5,16 @@ on:
     branches:
       - dev
       - main
+  workflow_dispatch:
+    inputs:
+      deploy_db_dev:
+        description: "Executar migrations no ambiente DEV"
+        type: boolean
+        default: false
+      deploy_db_prod:
+        description: "Executar migrations no ambiente PROD"
+        type: boolean
+        default: false
 
 env:
   NODE_VERSION: '24'
@@ -154,6 +164,12 @@ jobs:
             PORTS="${{ secrets.DEV_DOCKER_PORT_MAPPING }}"
             ENV_FILE="${{ secrets.DEV_DOCKER_ENV_FILE }}"
             EXTRA_ARGS="${{ secrets.DEV_DOCKER_EXTRA_ARGS }}"
+            DATABASE_URL="${{ secrets.DEV_DATABASE_URL }}"
+
+            if [ -z "${DATABASE_URL}" ]; then
+              echo "DEV_DATABASE_URL secret must be configured" >&2
+              exit 1
+            fi
 
             docker pull "${IMAGE_WITH_TAG}"
 
@@ -174,11 +190,48 @@ jobs:
               --name "${CONTAINER}" \
               -p "${PORTS}" \
               ${ENV_FLAG} \
+              -e "DATABASE_URL=${DATABASE_URL}" \
               ${EXTRA_FLAG} \
               --restart always \
               "${IMAGE_WITH_TAG}"
 
             docker exec "${CONTAINER}" npx prisma migrate deploy || true
+
+  manual-db-dev:
+    name: Manual DB Deploy DEV
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.deploy_db_dev == 'true'
+    steps:
+      - name: Run migrations on DEV
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DEV_EC2_HOST }}
+          username: ${{ secrets.DEV_EC2_USER }}
+          key: ${{ secrets.DEV_EC2_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            CONTAINER="${{ secrets.DEV_DOCKER_CONTAINER_NAME }}"
+            docker exec "${CONTAINER}" npx prisma migrate deploy
+
+  manual-db-prod:
+    name: Manual DB Deploy PROD
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.deploy_db_prod == 'true'
+    steps:
+      - name: Run migrations on PROD
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PROD_EC2_HOST }}
+          username: ${{ secrets.PROD_EC2_USER }}
+          key: ${{ secrets.PROD_EC2_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            CONTAINER="${{ secrets.PROD_DOCKER_CONTAINER_NAME }}"
+            docker exec "${CONTAINER}" npx prisma migrate deploy
 
   deploy-prod:
     name: Deploy PROD to EC2
@@ -201,6 +254,12 @@ jobs:
             PORTS="${{ secrets.PROD_DOCKER_PORT_MAPPING }}"
             ENV_FILE="${{ secrets.PROD_DOCKER_ENV_FILE }}"
             EXTRA_ARGS="${{ secrets.PROD_DOCKER_EXTRA_ARGS }}"
+            DATABASE_URL="${{ secrets.PROD_DATABASE_URL }}"
+
+            if [ -z "${DATABASE_URL}" ]; then
+              echo "PROD_DATABASE_URL secret must be configured" >&2
+              exit 1
+            fi
 
             docker pull "${IMAGE_WITH_TAG}"
             docker pull "${IMAGE}:latest" || true
