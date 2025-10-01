@@ -255,9 +255,15 @@ jobs:
             ENV_FILE="${{ secrets.PROD_DOCKER_ENV_FILE }}"
             EXTRA_ARGS="${{ secrets.PROD_DOCKER_EXTRA_ARGS }}"
             DATABASE_URL="${{ secrets.PROD_DATABASE_URL }}"
+            JWT_SECRET="${{ secrets.PROD_JWT_SECRET }}"
 
             if [ -z "${DATABASE_URL}" ]; then
               echo "PROD_DATABASE_URL secret must be configured" >&2
+              exit 1
+            fi
+
+            if [ -z "${JWT_SECRET}" ]; then
+              echo "PROD_JWT_SECRET secret must be configured" >&2
               exit 1
             fi
 
@@ -282,6 +288,8 @@ jobs:
               -p "${PORTS}" \
               ${ENV_FLAG} \
               ${EXTRA_FLAG} \
+              -e DATABASE_URL="${DATABASE_URL}" \
+              -e JWT_SECRET="${JWT_SECRET}" \
               --restart always \
               "${IMAGE_WITH_TAG}"
 
