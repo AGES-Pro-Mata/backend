@@ -17,9 +17,11 @@ COPY prisma ./prisma/
 # Instalar dependências (incluindo devDependencies para build)
 RUN npm ci
 
+# Copiar código fonte
+COPY . .
+
 # Gerar Prisma Client e build da aplicação
 RUN npx prisma generate
-COPY . .
 RUN npm run build
 
 # -----------------------------
@@ -40,6 +42,7 @@ WORKDIR /app
 COPY --from=build --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=build --chown=nestjs:nodejs /app/prisma ./prisma
+COPY --from=build --chown=nestjs:nodejs /app/generated ./generated
 COPY --from=build --chown=nestjs:nodejs /app/package*.json ./
 
 # Variáveis de ambiente padrão de produção
