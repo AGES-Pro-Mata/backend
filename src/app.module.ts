@@ -14,6 +14,7 @@ import { ReservationService } from './reservation/reservation.service';
 import { ReservationController } from './reservation/reservation.controller';
 import { ReservationModule } from './reservation/reservation.module';
 import { ExperienceModule } from './experience/experience.module';
+import { ObfuscateModule } from './obfuscate/obfuscate.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ExperienceModule } from './experience/experience.module';
     UserModule,
     ReservationModule,
     ExperienceModule,
+    ObfuscateModule,
   ],
   controllers: [AppController, ReservationController],
   providers: [

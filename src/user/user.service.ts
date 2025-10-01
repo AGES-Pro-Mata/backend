@@ -3,16 +3,38 @@ import { DatabaseService } from 'src/database/database.service';
 import z from 'zod';
 import { Prisma, UserType } from 'generated/prisma';
 import { UserSearchParamsDto, UpdateUserFormDto } from './user.model';
+import { ObfuscateService } from 'src/obfuscate/obfuscate.service';
 
 @Injectable()
 export class UserService {
   private readonly logger = new Logger(UserService.name);
 
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly obfuscateService: ObfuscateService,
+  ) {}
 
   async deleteUser(userId: string) {
     this.verifyUserId(userId);
-    await this.databaseService.user.update({ where: { id: userId }, data: { active: false } });
+
+    const user = await this.databaseService.user.findUnique({
+      where: { id: userId },
+      select: { email: true, document: true, rg: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.databaseService.user.update({
+      where: { id: userId },
+      data: {
+        email: this.obfuscateService.obfuscateField(user.email),
+        document: user.document ? this.obfuscateService.obfuscateField(user.document) : null,
+        rg: user.rg ? this.obfuscateService.obfuscateField(user.rg) : null,
+        active: false,
+      },
+    });
   }
 
   async updateUser(userId: string, updateUserDto: UpdateUserFormDto) {
@@ -60,16 +82,23 @@ export class UserService {
         ? { createdBy: { name: searchParams.dir } }
         : { [searchParams.sort]: searchParams.dir };
 
-    const users = await this.databaseService.user.findMany({
-      where: {
-        name: {
-          contains: searchParams.name,
-        },
-        email: {
-          contains: searchParams.email,
-        },
-        active: true,
+    const where: Prisma.UserWhereInput = {
+      name: {
+        contains: searchParams.name,
       },
+      email: {
+        contains: searchParams.email,
+      },
+      createdBy: {
+        name: {
+          contains: searchParams.createdBy,
+        },
+      },
+      active: true,
+    };
+
+    const users = await this.databaseService.user.findMany({
+      where,
       select: {
         id: true,
         name: true,
@@ -86,22 +115,24 @@ export class UserService {
       take: searchParams.limit,
     });
 
+    const total = await this.databaseService.user.count({ where });
+
     return {
       page: searchParams.page,
       limit: searchParams.limit,
-      total: users.length,
+      total,
       items: users,
     };
   }
 
   async getUser(userId: string) {
     const user = await this.databaseService.user.findUnique({
-      where: { id: userId },
+      where: { id: userId, active: true },
       select: {
         name: true,
         email: true,
         phone: true,
-        document: true, 
+        document: true,
         rg: true,
         gender: true,
         userType: true,
@@ -109,7 +140,7 @@ export class UserService {
         isForeign: true,
         address: {
           select: {
-            zip: true, 
+            zip: true,
             city: true,
             country: true,
             street: true,

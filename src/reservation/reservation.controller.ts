@@ -1,64 +1,103 @@
-import { Body, Controller, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Delete, Post } from '@nestjs/common';
 import { ReservationService } from './reservation.service';
 import { Roles } from 'src/auth/role/roles.decorator';
 import { UserType } from 'generated/prisma';
 import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { UpdateReservationDto } from './reservation.model';
-import { AttachReceiptDto } from './dtos/attach-receipt.dto'; //Chamando @Body da linha 43
+import {
+  AttachReceiptDto,
+  CreateReservationGroupDto,
+  UpdateReservationDto,
+} from './reservation.model';
+import { User } from 'src/user/user.decorator';
+import { type CurrentUser } from 'src/auth/auth.model';
 
-@Controller('reservation')
+@Controller('reservation/group')
 export class ReservationController {
   constructor(private readonly reservationService: ReservationService) {}
 
-  @Patch(':reservationId')
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @Roles(UserType.ADMIN, UserType.GUEST)
+  @ApiBearerAuth('access-token')
+  async createReservationGroup(
+    @User() user: CurrentUser,
+    @Body() payload: CreateReservationGroupDto,
+  ) {
+    return await this.reservationService.createReservationGroup(user.id, payload);
+  }
+
+  @Delete(':reservationGroupId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(UserType.ADMIN)
   @ApiBearerAuth('access-token')
-  async updateReservationAsAdmin(
-    @Param('reservationId') reservationId: string,
-    @Body() updateReservationDto: UpdateReservationDto,
-  ) {
-    await this.reservationService.updateReservation(reservationId, updateReservationDto);
+  async deleteReservation(@Param('reservationGroupId') reservationGroupId: string) {
+    return await this.reservationService.deleteReservation(reservationGroupId);
   }
 
-  @Post(':reservationId/document')
-  async attachDocument(
-  @Param('reservationId') reservationId: string,
-  @Body() body: { url: string, userId: string },)
-  {return this.reservationService.attachDocument(reservationId, body.url, body.userId);}
+  @Get('mine')
+  @Roles(UserType.GUEST)
+  @ApiBearerAuth('access-token')
+  @HttpCode(HttpStatus.OK)
+  async getReservations(@User() user: CurrentUser) {
+    return await this.reservationService.getReservations(user.id);
+  }
 
-  @Post(':reservationId/request-document')
-  async requestDocumentApproval(
-  @Param('reservationId') reservationId: string,
-  @Body() body: { userId: string },)
-  {return this.reservationService.createDocumentRequest(reservationId, body.userId);}
-
-  @Post(':reservationId/receipt')
+  @Post(':reservationGroupId/receipt')
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Anexa um comprovante à reserva e cria uma solicitação de aprovação.' })
-  @ApiResponse({ status: 201, description: 'Comprovante anexado e solicitação de aprovação criada com sucesso.' })
+  @ApiResponse({
+    status: 201,
+    description: 'Comprovante anexado e solicitação de aprovação criada com sucesso.',
+  })
+  @Roles(UserType.ADMIN)
   async attachReceiptAndRequestApproval(
-  @Param('reservationId') reservationId: string,
-  @Body() attachReceiptDto: AttachReceiptDto,) 
-    
-  {const userId = 'USER_ID_PLACEHOLDER'; 
+    @User() user: CurrentUser,
+    @Param('reservationGroupId') reservationGroupId: string,
+    @Body() attachReceiptDto: AttachReceiptDto,
+  ) {
+    await this.reservationService.attachDocument(reservationGroupId, attachReceiptDto.url, user.id);
+    await this.reservationService.createDocumentRequest(reservationGroupId, user.id);
 
-    await this.reservationService.attachDocument(
-      reservationId,
-      attachReceiptDto.url,
-      userId,
-    );
-
-    await this.reservationService.createDocumentRequest(
-      reservationId,
-      userId,
-    );
-
-    return { 
+    return {
       statusCode: HttpStatus.CREATED,
       message: 'Comprovante anexado e solicitação de aprovação enviada.',
     };
   }
-}
 
+  @Post(':reservationGroupId/request')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles(UserType.ADMIN)
+  @ApiBearerAuth('access-token')
+  async createRequestAdmin(
+    @User() user: CurrentUser,
+    @Param('reservationGroupId') reservationGroupId: string,
+    @Body() updateReservationDto: UpdateReservationDto,
+  ) {
+    await this.reservationService.createRequestAdmin(
+      reservationGroupId,
+      updateReservationDto,
+      user.id,
+    );
+  }
+
+  @Post(':reservationGroupId/request/cancel')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles(UserType.GUEST)
+  @ApiBearerAuth('access-token')
+  async createCancelReservationRequest(
+    @User() user: CurrentUser,
+    @Param('reservationGroupId') reservationGroupId: string,
+  ) {
+    await this.reservationService.createCancelRequest(reservationGroupId, user.id);
+  }
+
+  @Post(':reservationGroupId/request/document')
+  @Roles(UserType.GUEST)
+  async requestDocumentApproval(
+    @User() user: CurrentUser,
+    @Param('reservationGroupId') reservationGroupId: string,
+  ) {
+    return this.reservationService.createDocumentRequest(reservationGroupId, user.id);
+  }
+}

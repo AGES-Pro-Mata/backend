@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -25,7 +26,11 @@ export class UserController {
   @Roles(UserType.ADMIN)
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteUser(@Param('userId') userId: string) {
+  async deleteUser(@User() user: CurrentUser, @Param('userId') userId: string) {
+    if (user.id === userId) {
+      throw new ForbiddenException('You cannot delete yourself');
+    }
+
     await this.userService.deleteUser(userId);
   }
 
@@ -41,7 +46,7 @@ export class UserController {
   }
 
   @Get(':userId')
-  async getAdmin(@Param('userId') userId:string){
+  async getAdmin(@Param('userId') userId: string) {
     return await this.userService.getUser(userId);
   }
 
