@@ -39,6 +39,7 @@ model User {
   createdByUserId    String?
   User               User[]               @relation("createdBy")
   Requests           Requests[]
+  documents          Document[]
   ReservationGroup   ReservationGroup[]
 }
 
@@ -142,6 +143,16 @@ model Experience {
   reservation     Reservation[]
 }
 
+model Document {
+  id               String      @id @default(uuid())
+  reservation      Reservation @relation(fields: [reservationId], references: [id])
+  reservationId    String
+  url              String      @unique
+  uploadedByUserId String
+  uploadedByUser   User        @relation(fields: [uploadedByUserId], references: [id])
+  uploadedAt       DateTime    @default(now())
+}
+
 model Reservation {
   id                 String           @id @default(uuid())
   user               User             @relation(fields: [userId], references: [id])
@@ -156,6 +167,7 @@ model Reservation {
   members            Member[]
   ReservationGroup   ReservationGroup @relation(fields: [reservationGroupId], references: [id])
   reservationGroupId String
+  Document           Document[]
 }
 
 model Requests {
@@ -180,6 +192,9 @@ enum RequestType {
   PAYMENT_REQUESTED
   PEOPLE_SENT
   PAYMENT_SENT
+  DOCUMENT_REQUESTED
+  DOCUMENT_APPROVED
+  DOCUMENT_REJECTED
 }
 
 model Member {

@@ -33,3 +33,9 @@ const UpdateReservation = z.object({
 });
 
 export class UpdateReservationDto extends createZodDto(UpdateReservation) {}
+
+export const AttachReceiptSchema = z.object({
+  url: z.url(),
+});
+
+export class AttachReceiptDto extends createZodDto(AttachReceiptSchema) {}

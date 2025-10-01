@@ -31,6 +31,26 @@ export class ReservationService {
     });
   }
 
+  async attachDocument(reservationId: string, url: string, userId: string) {
+    return await this.databaseService.document.create({
+      data: {
+        url,
+        reservationId,
+        uploadedByUserId: userId,
+      },
+    });
+  }
+
+  async createDocumentRequest(reservationGroupId: string, userId: string) {
+    return await this.databaseService.requests.create({
+      data: {
+        type: 'DOCUMENT_REQUESTED',
+        createdByUserId: userId,
+        reservationGroupId,
+      },
+    });
+  }
+
   async createCancelRequest(reservationGroupId: string, userId: string) {
     const payload = await this.databaseService.reservation.count({
       where: {
@@ -53,7 +73,7 @@ export class ReservationService {
   }
 
   async deleteReservation(reservationId: string) {
-    return await this.databaseService.reservation.update({
+    return await this.databaseService.reservationGroup.update({
       where: { id: reservationId },
       data: {
         active: false,
