@@ -30,7 +30,7 @@ export const ReservationAdminSchema = z.object({
       date: z.coerce.date(),
       createdBy: z.string(),
       description: z.string().nullable().optional(),
-    })
+    }),
   ),
 });
 

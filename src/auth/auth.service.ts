@@ -6,7 +6,6 @@ import {
   CreateUserFormDto,
   ForgotPasswordDto,
   LoginDto,
-  GetRequestsDto,
 } from './auth.model';
 import { ReceiptType, UserType } from 'generated/prisma';
 import { timingSafeEqual, randomBytes } from 'node:crypto';
@@ -14,7 +13,6 @@ import { AnalyticsService } from 'src/analytics/analytics.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import argon2 from 'argon2';
-import { User } from 'src/user/user.decorator';
 
 @Injectable()
 export class AuthService {
@@ -44,7 +42,7 @@ export class AuthService {
         email: dto.email,
         password: await this.hashPassword(dto.password),
         phone: dto.phone,
-        cpf: dto.document,
+        document: dto.document,
         gender: dto.gender,
         rg: dto.rg,
         userType: dto.userType,
@@ -81,7 +79,7 @@ export class AuthService {
         email: dto.email,
         password: dto.password,
         phone: dto.phone,
-        cpf: dto.document,
+        document: dto.document,
         gender: dto.gender,
         userType: UserType.ADMIN,
         isForeign: false,
@@ -218,38 +216,4 @@ export class AuthService {
       },
     });
   }
-
-  async getRequests(query: GetRequestsDto) {
-    const {page = '1', limit = '10', status} = query;
-    const pageNumber = parseInt(page, 10);
-    const pageSize = parseInt(limit, 10);
-
-    const requestsTypeEnum = status ? (this.databaseService.RequestType as any)[status] : undefined;
-    const whereClause = requestsTypeEnum ? { type: requestsTypeEnum } : undefined;
-
-    const total = await this.databaseService.Requests.count({ where: whereClause });
-    const totalPages = Math.ceil(total / pageSize);
-
-    if (pageNumber > totalPages && totalPages > 0) {
-      throw new BadRequestException(`A página ${pageNumber} não existe. O total de páginas é ${totalPages}.`);
-    }
-
-    const solicitations = await this.databaseService.Requests.findMany({
-      where: whereClause,
-      skip: (pageNumber - 1) * pageSize,
-      take: pageSize,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        createdBy: true,
-        reservation: true, 
-      }
-    });
-    return {
-      total, 
-      totalPages,
-      page: pageNumber,
-      limit: pageSize,
-      data: solicitations
-    };
-  } 
 }

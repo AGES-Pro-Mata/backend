@@ -101,7 +101,7 @@ export class UserService {
         name: true,
         email: true,
         phone: true,
-        document: true, 
+        document: true,
         rg: true,
         gender: true,
         userType: true,
@@ -109,7 +109,7 @@ export class UserService {
         isForeign: true,
         address: {
           select: {
-            zip: true, 
+            zip: true,
             city: true,
             country: true,
             street: true,
