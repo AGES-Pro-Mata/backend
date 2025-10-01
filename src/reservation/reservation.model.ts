@@ -1,58 +1,41 @@
+import { z } from 'zod';
+import { RequestType } from 'generated/prisma';
 import { createZodDto } from 'nestjs-zod';
-import z from 'zod';
+
+const MemberSchema = z.object({
+  name: z.string(),
+  document: z.string(),
+  gender: z.string(),
+});
+
+const MemberDocumentSchema = z.object({
+  document: z.string(),
+});
+
+const ReservationSchema = z.object({
+  notes: z.string().optional(),
+  experienceId: z.uuid(),
+  startDate: z.iso.datetime(),
+  endDate: z.iso.datetime(),
+  members: z.array(MemberDocumentSchema),
+});
+
+export const CreateReservationGroupSchema = z.object({
+  reservations: z.array(ReservationSchema),
+  members: z.array(MemberSchema),
+});
+
+export class CreateReservationGroupDto extends createZodDto(CreateReservationGroupSchema) {}
 
 const UpdateReservation = z.object({
-  action: z.string(),
-  text: z.string().optional(),
+  type: z.enum(Object.values(RequestType)),
+  description: z.string().optional(),
 });
 
 export class UpdateReservationDto extends createZodDto(UpdateReservation) {}
 
-export const ReservationAdminSchema = z.object({
-  name: z.string().min(1),
-  phone: z.string().min(8),
-  birthDate: z.coerce.date(),
-  document: z.string().min(1),
-  gender: z.string().min(1),
-  note: z.string().nullable().optional(),
-  experience: z.object({
-    name: z.string(),
-    price: z.number().nullable().optional(),
-    startDate: z.coerce.date().nullable().optional(),
-    endDate: z.coerce.date().nullable().optional(),
-    capacity: z.number(),
-    trailLength: z.number().nullable().optional(),
-    durationMinutes: z.number().nullable().optional(),
-  }),
-  actions: z.array(
-    z.object({
-      type: z.string(),
-      date: z.coerce.date(),
-      createdBy: z.string(),
-      description: z.string().nullable().optional(),
-    }),
-  ),
+export const AttachReceiptSchema = z.object({
+  url: z.url(),
 });
 
-export class ReservationAdminDto extends createZodDto(ReservationAdminSchema) {}
-
-// For User
-export const ReservationUserSchema = z.object({
-  name: z.string().min(1),
-  phone: z.string().min(8),
-  birthDate: z.coerce.date(),
-  document: z.string().min(1),
-  gender: z.string().min(1),
-  note: z.string().nullable().optional(),
-  experience: z.object({
-    name: z.string(),
-    price: z.number().nullable().optional(),
-    startDate: z.coerce.date().nullable().optional(),
-    endDate: z.coerce.date().nullable().optional(),
-    capacity: z.number(),
-    trailLength: z.number().nullable().optional(),
-    durationMinutes: z.number().nullable().optional(),
-  }),
-});
-
-export class ReservationUserDto extends createZodDto(ReservationUserSchema) {}
+export class AttachReceiptDto extends createZodDto(AttachReceiptSchema) {}

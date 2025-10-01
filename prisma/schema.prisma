@@ -39,7 +39,8 @@ model User {
   createdByUserId    String?
   User               User[]               @relation("createdBy")
   Requests           Requests[]
-  Guest              Guest[]
+  documents          Document[]
+  ReservationGroup   ReservationGroup[]
 }
 
 enum UserType {
@@ -139,33 +140,45 @@ model Experience {
   trailLength     Float?
   imageId         String?
   active          Boolean
-  Reservation     Reservation[]
+  reservation     Reservation[]
+}
+
+model Document {
+  id               String      @id @default(uuid())
+  reservation      Reservation @relation(fields: [reservationId], references: [id])
+  reservationId    String
+  url              String      @unique
+  uploadedByUserId String
+  uploadedByUser   User        @relation(fields: [uploadedByUserId], references: [id])
+  uploadedAt       DateTime    @default(now())
 }
 
 model Reservation {
-  id           String     @id @default(uuid())
-  user         User       @relation(fields: [userId], references: [id])
-  userId       String
-  experience   Experience @relation(fields: [experienceId], references: [id])
-  experienceId String
-  startDate    DateTime?
-  endDate      DateTime?
-  status       String?
-  notes        String?
-  createdAt    DateTime   @default(now())
-  Requests     Requests[]
-  Guests       Guest[]
+  id                 String           @id @default(uuid())
+  user               User             @relation(fields: [userId], references: [id])
+  userId             String
+  experience         Experience       @relation(fields: [experienceId], references: [id])
+  experienceId       String
+  startDate          DateTime?
+  endDate            DateTime?
+  notes              String?
+  createdAt          DateTime         @default(now())
+  active             Boolean          @default(true)
+  members            Member[]
+  ReservationGroup   ReservationGroup @relation(fields: [reservationGroupId], references: [id])
+  reservationGroupId String
+  Document           Document[]
 }
 
 model Requests {
-  id              String       @id @default(uuid())
-  type            RequestType
-  createdAt       DateTime     @default(now())
-  createdBy       User         @relation(fields: [createdByUserId], references: [id])
-  createdByUserId String
-  description     String?
-  reservation     Reservation? @relation(fields: [reservationId], references: [id])
-  reservationId   String?
+  id                 String            @id @default(uuid())
+  type               RequestType
+  description        String?
+  createdAt          DateTime          @default(now())
+  createdBy          User              @relation(fields: [createdByUserId], references: [id])
+  createdByUserId    String
+  ReservationGroup   ReservationGroup? @relation(fields: [reservationGroupId], references: [id])
+  reservationGroupId String?
 }
 
 enum RequestType {
@@ -179,18 +192,34 @@ enum RequestType {
   PAYMENT_REQUESTED
   PEOPLE_SENT
   PAYMENT_SENT
+  DOCUMENT_REQUESTED
+  DOCUMENT_APPROVED
+  DOCUMENT_REJECTED
 }
 
-model Guest {
-  id              String       @id @default(uuid())
-  name            String
-  phone           String
-  document        String
-  gender          String
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  createdBy       User?        @relation(fields: [createdByUserId], references: [id])
-  createdByUserId String?
-  Reservation     Reservation? @relation(fields: [reservationId], references: [id])
-  reservationId   String?
+model Member {
+  id                 String           @id @default(uuid())
+  name               String
+  document           String?
+  gender             String
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  active             Boolean          @default(true)
+  reservations       Reservation[]
+  reservationGroup   ReservationGroup @relation(fields: [reservationGroupId], references: [id])
+  reservationGroupId String
+
+  @@unique([reservationGroupId, document])
+}
+
+model ReservationGroup {
+  id           String        @id @default(uuid())
+  reservations Reservation[]
+  user         User          @relation(fields: [userId], references: [id])
+  userId       String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  active       Boolean       @default(true)
+  requests     Requests[]
+  member       Member[]
 }
