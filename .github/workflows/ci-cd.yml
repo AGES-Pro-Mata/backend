@@ -138,9 +138,6 @@ jobs:
     needs: [publish-dev]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/dev'
-    env:
-      IMAGE: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}
-      IMAGE_TAG: ${{ needs.publish-dev.outputs.image_tag }}
     steps:
       - name: Deploy container on DEV host
         uses: appleboy/ssh-action@v1.0.0
@@ -148,9 +145,10 @@ jobs:
           host: ${{ secrets.DEV_EC2_HOST }}
           username: ${{ secrets.DEV_EC2_USER }}
           key: ${{ secrets.DEV_EC2_SSH_KEY }}
-          envs: IMAGE,IMAGE_TAG
           script: |
             set -euo pipefail
+            IMAGE="${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}"
+            IMAGE_TAG="${{ needs.publish-dev.outputs.image_tag }}"
             IMAGE_WITH_TAG="${IMAGE}:${IMAGE_TAG}"
             CONTAINER="${{ secrets.DEV_DOCKER_CONTAINER_NAME }}"
             PORTS="${{ secrets.DEV_DOCKER_PORT_MAPPING }}"
@@ -187,9 +185,6 @@ jobs:
     needs: [publish-prod]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    env:
-      IMAGE: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}
-      IMAGE_TAG: ${{ needs.publish-prod.outputs.image_tag }}
     steps:
       - name: Deploy container on PROD host
         uses: appleboy/ssh-action@v1.0.0
@@ -197,9 +192,10 @@ jobs:
           host: ${{ secrets.PROD_EC2_HOST }}
           username: ${{ secrets.PROD_EC2_USER }}
           key: ${{ secrets.PROD_EC2_SSH_KEY }}
-          envs: IMAGE,IMAGE_TAG
           script: |
             set -euo pipefail
+            IMAGE="${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}"
+            IMAGE_TAG="${{ needs.publish-prod.outputs.image_tag }}"
             IMAGE_WITH_TAG="${IMAGE}:${IMAGE_TAG}"
             CONTAINER="${{ secrets.PROD_DOCKER_CONTAINER_NAME }}"
             PORTS="${{ secrets.PROD_DOCKER_PORT_MAPPING }}"
