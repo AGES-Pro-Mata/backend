@@ -149,19 +149,12 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/dev'
     steps:
-      - name: Configure SSH Key (DEV)
-        run: |
-          KEY_PATH="${RUNNER_TEMP}/dev_ec2_key.pem"
-          printf '%s' "${{ secrets.DEV_EC2_SSH_KEY }}" > "$KEY_PATH"
-          chmod 600 "$KEY_PATH"
-          echo "DEV_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
-
       - name: Deploy container on DEV host
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.DEV_EC2_HOST }}
           username: ${{ secrets.DEV_EC2_USER }}
-          key_path: ${{ env.DEV_KEY_PATH }}
+          key: ${{ secrets.DEV_EC2_SSH_KEY }}
           script: |
             set -euo pipefail
             IMAGE="${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}"
@@ -211,19 +204,12 @@ jobs:
       github.event_name == 'workflow_dispatch' &&
       github.event.inputs.deploy_db_dev == 'true'
     steps:
-      - name: Configure SSH Key (DEV)
-        run: |
-          KEY_PATH="${RUNNER_TEMP}/dev_ec2_key.pem"
-          printf '%s' "${{ secrets.DEV_EC2_SSH_KEY }}" > "$KEY_PATH"
-          chmod 600 "$KEY_PATH"
-          echo "DEV_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
-
       - name: Run migrations on DEV
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.DEV_EC2_HOST }}
           username: ${{ secrets.DEV_EC2_USER }}
-          key_path: ${{ env.DEV_KEY_PATH }}
+          key: ${{ secrets.DEV_EC2_SSH_KEY }}
           script: |
             set -euo pipefail
             CONTAINER="${{ secrets.DEV_DOCKER_CONTAINER_NAME }}"
@@ -236,19 +222,12 @@ jobs:
       github.event_name == 'workflow_dispatch' &&
       github.event.inputs.deploy_db_prod == 'true'
     steps:
-      - name: Configure SSH Key (PROD)
-        run: |
-          KEY_PATH="${RUNNER_TEMP}/prod_ec2_key.pem"
-          printf '%s' "${{ secrets.PROD_EC2_SSH_KEY }}" > "$KEY_PATH"
-          chmod 600 "$KEY_PATH"
-          echo "PROD_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
-
       - name: Run migrations on PROD
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.PROD_EC2_HOST }}
           username: ${{ secrets.PROD_EC2_USER }}
-          key_path: ${{ env.PROD_KEY_PATH }}
+          key: ${{ secrets.PROD_EC2_SSH_KEY }}
           script: |
             set -euo pipefail
             CONTAINER="${{ secrets.PROD_DOCKER_CONTAINER_NAME }}"
@@ -260,19 +239,12 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
-      - name: Configure SSH Key (PROD)
-        run: |
-          KEY_PATH="${RUNNER_TEMP}/prod_ec2_key.pem"
-          printf '%s' "${{ secrets.PROD_EC2_SSH_KEY }}" > "$KEY_PATH"
-          chmod 600 "$KEY_PATH"
-          echo "PROD_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
-
       - name: Deploy container on PROD host
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.PROD_EC2_HOST }}
           username: ${{ secrets.PROD_EC2_USER }}
-          key_path: ${{ env.PROD_KEY_PATH }}
+          key: ${{ secrets.PROD_EC2_SSH_KEY }}
           script: |
             set -euo pipefail
             IMAGE="${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}"
