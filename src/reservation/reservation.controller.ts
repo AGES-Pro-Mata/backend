@@ -7,6 +7,7 @@ import {
   AttachReceiptDto,
   CreateReservationGroupDto,
   UpdateReservationDto,
+  UpdateReservationByAdminDto,
 } from './reservation.model';
 import { User } from 'src/user/user.decorator';
 import { type CurrentUser } from 'src/auth/auth.model';
@@ -119,5 +120,19 @@ export class ReservationController {
     @Param('reservationGroupId') reservationGroupId: string,
   ) {
     return this.reservationService.createDocumentRequest(reservationGroupId, user.id);
+  }
+
+  @Post(':reservationId/admin')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  // @Roles(UserType.ADMIN)
+  @ApiBearerAuth('access-token')
+  async updateReservationAsAdmin(
+    @Param('reservationId') reservationId: string,
+    @Body() updateReservationDto: UpdateReservationByAdminDto,
+  ) {
+    return await this.reservationService.updateReservationByAdmin(
+      reservationId,
+      updateReservationDto,
+    );
   }
 }

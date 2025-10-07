@@ -271,4 +271,34 @@ export class ReservationService {
 
     return reservationGroup;
   }
+
+  async updateReservationByAdmin(
+    reservationId: string,
+    updateReservationDto: UpdateReservationDto,
+  ) {
+    const reservation = await this.databaseService.reservation.findUnique({
+      where: { id: reservationId },
+    });
+
+    if (!reservation) {
+      throw new NotFoundException('Reservation not found');
+    }
+
+    const updatedReservation = await this.databaseService.reservation.update({
+      where: { id: reservationId },
+      data: {
+        experienceId: updateReservationDto.experienceId ?? reservation.experienceId,
+        startDate: updateReservationDto.startDate
+          ? new Date(updateReservationDto.startDate)
+          : reservation.startDate,
+        endDate: updateReservationDto.endDate
+          ? new Date(updateReservationDto.endDate)
+          : reservation.endDate,
+        status: updateReservationDto.status ?? reservation.status,
+        notes: updateReservationDto.notes ?? reservation.notes,
+      },
+    });
+
+    return updatedReservation;
+  }
 }
