@@ -124,7 +124,7 @@ export class ReservationController {
 
   @Post(':reservationId/admin')
   @HttpCode(HttpStatus.NO_CONTENT)
-  // @Roles(UserType.ADMIN)
+  @Roles(UserType.ADMIN)
   @ApiBearerAuth('access-token')
   async updateReservationAsAdmin(
     @Param('reservationId') reservationId: string,
