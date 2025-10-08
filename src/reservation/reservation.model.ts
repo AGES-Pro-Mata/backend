@@ -37,11 +37,9 @@ export class UpdateReservationDto extends createZodDto(UpdateReservation) {}
 const UpdateReservationByAdmin = z.object({
   type: z.enum(Object.values(RequestType)),
   description: z.string().optional(),
-  // Adicionar campos da reserva que podem ser editados
   experienceId: z.string().optional(),
-  startDate: z.string().datetime().optional(),
-  endDate: z.string().datetime().optional(),
-  status: z.string().optional(),
+  startDate: z.iso.datetime().optional(),
+  endDate: z.iso.datetime().optional(),
   notes: z.string().optional(),
 });
 
