@@ -1,13 +1,7 @@
 import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
-import {
-  ChangePasswordDto,
-  CreateRootUserDto,
-  CreateUserFormDto,
-  ForgotPasswordDto,
-  LoginDto,
-} from './auth.model';
-import { ReceiptType, UserType } from 'generated/prisma';
+import { ChangePasswordDto, CreateUserFormDto, ForgotPasswordDto, LoginDto } from './auth.model';
+import { ReceiptType } from 'generated/prisma';
 import { timingSafeEqual, randomBytes } from 'node:crypto';
 import { AnalyticsService } from 'src/analytics/analytics.service';
 import { JwtService } from '@nestjs/jwt';
@@ -64,27 +58,6 @@ export class AuthService {
             country: dto.country,
           },
         },
-      },
-    });
-  }
-
-  async createRootUser(userId: string, dto: CreateRootUserDto) {
-    if (!this.comparePasswords(dto.password, dto.confirmPassword)) {
-      throw new BadRequestException('As senhas não são identicas.');
-    }
-
-    await this.databaseService.user.create({
-      data: {
-        name: dto.name,
-        email: dto.email,
-        password: dto.password,
-        phone: dto.phone,
-        document: dto.document,
-        gender: dto.gender,
-        userType: UserType.ADMIN,
-        isForeign: false,
-        verified: true,
-        createdByUserId: userId,
       },
     });
   }

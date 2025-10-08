@@ -1,6 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
-import { UpdateReservationDto, CreateReservationGroupDto } from './reservation.model';
+import {
+  UpdateReservationDto,
+  CreateReservationGroupDto,
+  UpdateReservationByAdminDto,
+} from './reservation.model';
 
 @Injectable()
 export class ReservationService {
@@ -270,5 +274,30 @@ export class ReservationService {
     }
 
     return reservationGroup;
+  }
+
+  async updateReservationByAdmin(
+    reservationId: string,
+    updateReservationDto: UpdateReservationByAdminDto,
+  ) {
+    const reservation = await this.databaseService.reservation.findUnique({
+      where: { id: reservationId },
+    });
+
+    if (!reservation) {
+      throw new NotFoundException('Reservation not found');
+    }
+
+    const updatedReservation = await this.databaseService.reservation.update({
+      where: { id: reservationId },
+      data: {
+        experienceId: updateReservationDto.experienceId,
+        startDate: updateReservationDto.startDate,
+        endDate: updateReservationDto.endDate,
+        notes: updateReservationDto.notes,
+      },
+    });
+
+    return updatedReservation;
   }
 }
