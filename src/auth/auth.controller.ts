@@ -13,7 +13,6 @@ import {
 import { AuthService } from './auth.service';
 import {
   ChangePasswordDto,
-  CreateRootUserDto,
   CreateUserFormDto,
   type CurrentUser,
   ForgotPasswordDto,
@@ -34,14 +33,6 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   async createUser(@UploadedFile() arquivo: File, @Body() body: CreateUserFormDto) {
     return await this.authService.createUser(arquivo, body);
-  }
-
-  @Post('dashboard/user')
-  @ApiBearerAuth('access-token')
-  @Roles(UserType.ADMIN)
-  @HttpCode(HttpStatus.CREATED)
-  async createUserAsAdmin(@User() user: CurrentUser, @Body() body: CreateRootUserDto) {
-    return await this.authService.createRootUser(user.id, body);
   }
 
   @Post('signIn')
