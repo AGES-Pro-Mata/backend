@@ -76,7 +76,13 @@ export const ExperienceSearchParamsSchema = z.object({
   sort: z
     .enum(['name', 'description', 'date'])
     .optional()
-    .transform((val) => val ?? 'createdAt'),
+    .transform((val) => {
+      if (val === 'date') {
+        return 'startDate';
+      }
+
+      return val ?? 'createdAt';
+    }),
   name: z.string().optional(),
   description: z.email().optional(),
   date: z.iso.datetime().optional(),

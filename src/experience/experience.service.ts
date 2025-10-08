@@ -81,7 +81,7 @@ export class ExperienceService {
       orderBy: {
         [experienceSearchParamsDto.sort]: experienceSearchParamsDto.dir,
       },
-      skip: experienceSearchParamsDto.limit * (experienceSearchParamsDto.page - 1),
+      skip: experienceSearchParamsDto.limit * experienceSearchParamsDto.page,
       take: experienceSearchParamsDto.limit,
     });
 

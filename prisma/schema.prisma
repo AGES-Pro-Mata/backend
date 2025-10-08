@@ -141,6 +141,7 @@ model Experience {
   imageId         String?
   active          Boolean
   reservation     Reservation[]
+  createdAt       DateTime         @default(now())
 }
 
 model Document {
