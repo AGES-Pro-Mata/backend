@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { DatabaseService } from 'src/database/database.service';
 import z from 'zod';
 import { Prisma, UserType } from 'generated/prisma';
-import { UserSearchParamsDto, UpdateUserFormDto } from './user.model';
+import { UserSearchParamsDto, UpdateUserFormDto, CreateRootUserDto } from './user.model';
 import { ObfuscateService } from 'src/obfuscate/obfuscate.service';
 
 @Injectable()
@@ -176,5 +176,26 @@ export class UserService {
     if (!z.uuid().safeParse(userId).success) {
       throw new BadRequestException('O `id` deve vir no formato `uuid`.');
     }
+  }
+
+  async createRootUser(userId: string, dto: CreateRootUserDto) {
+    if (dto.password !== dto.confirmPassword) {
+      throw new BadRequestException('As senhas não são identicas.');
+    }
+
+    await this.databaseService.user.create({
+      data: {
+        name: dto.name,
+        email: dto.email,
+        password: dto.password,
+        phone: dto.phone,
+        document: dto.document,
+        gender: dto.gender,
+        userType: UserType.ADMIN,
+        isForeign: false,
+        verified: true,
+        createdByUserId: userId,
+      },
+    });
   }
 }
