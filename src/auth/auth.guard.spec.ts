@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { ExecutionContext, Logger } from '@nestjs/common';
 import { AuthGuard } from './auth.guard';
+import { DatabaseService } from 'src/database/database.service';
 
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 
@@ -33,6 +34,7 @@ function makeExecutionContext(req: Req): ExecutionContext {
 describe('AuthGuard', () => {
   let jwtService: jest.Mocked<JwtService>;
   let configService: jest.Mocked<ConfigService>;
+  let databaseService: jest.Mocked<DatabaseService>;
 
   let fatalSpy: jest.SpiedFunction<typeof Logger.prototype.fatal>;
   let errorSpy: jest.SpiedFunction<typeof Logger.prototype.error>;
@@ -57,13 +59,22 @@ describe('AuthGuard', () => {
     configService = {
       get: jest.fn(),
     } as unknown as jest.Mocked<ConfigService>;
+
+    databaseService = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: '1b7b4b0a-1e67-41af-9f0f-4a11f3e8a9f7',
+          userType: 'ADMIN',
+        }),
+      },
+    } as unknown as jest.Mocked<DatabaseService>;
   });
 
   it('logs fatal when JWT_SECRET is missing (constructor path)', () => {
     configService.get.mockReturnValue(undefined);
 
     // @ts-expect-no-error
-    new AuthGuard(jwtService, configService);
+    new AuthGuard(jwtService, configService, databaseService);
 
     expect(configService.get).toHaveBeenCalledWith('JWT_SECRET');
     expect(fatalSpy).toHaveBeenCalledWith('JWT_SECRET was not setted.');
@@ -71,7 +82,7 @@ describe('AuthGuard', () => {
 
   it('throws Unauthorized when Authorization header is missing', async () => {
     configService.get.mockReturnValue('super-secret');
-    const guard = new AuthGuard(jwtService, configService);
+    const guard = new AuthGuard(jwtService, configService, databaseService);
 
     const req = makeRequest({});
     const ctx = makeExecutionContext(req);
@@ -83,7 +94,7 @@ describe('AuthGuard', () => {
 
   it('throws Unauthorized when Authorization scheme is not Bearer', async () => {
     configService.get.mockReturnValue('super-secret');
-    const guard = new AuthGuard(jwtService, configService);
+    const guard = new AuthGuard(jwtService, configService, databaseService);
 
     const req = makeRequest({ authorization: 'Basic abcdef' });
     const ctx = makeExecutionContext(req);
@@ -95,7 +106,7 @@ describe('AuthGuard', () => {
 
   it('throws Unauthorized when jwtService.verifyAsync rejects (invalid token)', async () => {
     configService.get.mockReturnValue('super-secret');
-    const guard = new AuthGuard(jwtService, configService);
+    const guard = new AuthGuard(jwtService, configService, databaseService);
 
     const token = 'bad.token.here';
     const req = makeRequest({ authorization: `Bearer ${token}` });
@@ -110,7 +121,7 @@ describe('AuthGuard', () => {
 
   it('throws Unauthorized("Invalid token payload") when schema validation fails', async () => {
     configService.get.mockReturnValue('super-secret');
-    const guard = new AuthGuard(jwtService, configService);
+    const guard = new AuthGuard(jwtService, configService, databaseService);
 
     const token = 'good.token.but.bad.payload';
     const req = makeRequest({ authorization: `Bearer ${token}` });
@@ -127,7 +138,7 @@ describe('AuthGuard', () => {
 
   it('returns true and attaches request.user on valid token + payload', async () => {
     configService.get.mockReturnValue('super-secret');
-    const guard = new AuthGuard(jwtService, configService);
+    const guard = new AuthGuard(jwtService, configService, databaseService);
 
     const token = 'valid.token';
     const req = makeRequest({ authorization: `Bearer ${token}` });
