@@ -10,6 +10,7 @@ module.exports = {
   testEnvironment: 'node',
 
   moduleNameMapper: {
+    '^src/(.*)$': '<rootDir>/$1',
     '^generated/prisma$': '<rootDir>/../generated/prisma',
   },
 };
