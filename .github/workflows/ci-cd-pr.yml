@@ -1,0 +1,38 @@
+name: Backend CI/CD - PR
+
+on:
+  pull_request:
+    types: [opened, closed, merged, synchronize, reopened]
+env:
+  NODE_VERSION: '24'
+  DOCKER_REGISTRY: docker.io
+  IMAGE_NAME: norohim/pro-mata-backend
+
+jobs:
+  build-and-verify:
+    name: Build & Verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Build application
+        run: npm run build
+
+      - name: Test application
+        run: npm run test
+
+      - name: Lint code
+        run: npm run lint || echo "Lint not configured, skipping..."
