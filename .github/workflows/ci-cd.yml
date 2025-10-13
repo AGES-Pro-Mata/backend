@@ -44,6 +44,9 @@ jobs:
       - name: Build application
         run: npm run build
 
+      - name: Test application
+        run: npm run test
+
       - name: Lint code
         run: npm run lint || echo "Lint not configured, skipping..."
 
