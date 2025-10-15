@@ -372,6 +372,8 @@ describe('AuthService', () => {
 
     it('should change password and deactivate token when valid', async () => {
       const password = 'a'.repeat(64);
+      const hashedPassword = 'hashed_password';
+
       const dto: ChangePasswordDto = {
         token: validToken,
         password,
@@ -390,6 +392,8 @@ describe('AuthService', () => {
       databaseService.passwordResetToken.update.mockResolvedValueOnce({} as never);
       analyticsService.trackPasswordChange.mockResolvedValueOnce(undefined);
 
+      (argon2.hash as jest.Mock).mockResolvedValueOnce(hashedPassword);
+
       await service.changePassword(dto);
 
       expect(databaseService.passwordResetToken.findUnique).toHaveBeenCalledWith({
@@ -398,7 +402,7 @@ describe('AuthService', () => {
 
       expect(databaseService.user.update).toHaveBeenCalledWith({
         where: { id: userId },
-        data: { password: dto.password },
+        data: { password: hashedPassword },
       });
 
       expect(databaseService.passwordResetToken.update).toHaveBeenCalledWith({
