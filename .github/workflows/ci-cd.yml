@@ -44,6 +44,9 @@ jobs:
       - name: Build application
         run: npm run build
 
+      - name: Test application
+        run: npm run test
+
       - name: Lint code
         run: npm run lint || echo "Lint not configured, skipping..."
 
@@ -166,6 +169,10 @@ jobs:
             EXTRA_ARGS="${{ secrets.DEV_DOCKER_EXTRA_ARGS }}"
             DATABASE_URL="${{ secrets.DEV_DATABASE_URL }}"
             JWT_SECRET="${{ secrets.PROD_JWT_SECRET }}"
+            AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
+            AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+            AWS_S3_REGION="${{ vars.AWS_REGION }}"
+            AWS_S3_BUCKET="${{ secrets.DEV_AWS_S3_BUCKET }}"
 
             if [ -z "${DATABASE_URL}" ]; then
               echo "DEV_DATABASE_URL secret must be configured" >&2
@@ -174,6 +181,16 @@ jobs:
 
             if [ -z "${JWT_SECRET}" ]; then
               echo "DEV_JWT_SECRET secret must be configured" >&2
+              exit 1
+            fi
+
+            if [ -z "${AWS_ACCESS_KEY_ID}" ] || [ -z "${AWS_SECRET_ACCESS_KEY}" ]; then
+              echo "DEV AWS credentials must be configured" >&2
+              exit 1
+            fi
+
+            if [ -z "${AWS_S3_REGION}" ] || [ -z "${AWS_S3_BUCKET}" ]; then
+              echo "DEV AWS S3 region and bucket must be configured" >&2
               exit 1
             fi
 
@@ -198,6 +215,10 @@ jobs:
               ${ENV_FLAG} \
               -e "DATABASE_URL=${DATABASE_URL}" \
               -e "JWT_SECRET=${JWT_SECRET}" \
+              -e "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" \
+              -e "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" \
+              -e "AWS_S3_REGION=${AWS_S3_REGION}" \
+              -e "AWS_S3_BUCKET=${AWS_S3_BUCKET}" \
               ${EXTRA_FLAG} \
               --restart always \
               "${IMAGE_WITH_TAG}"
@@ -263,6 +284,10 @@ jobs:
             EXTRA_ARGS="${{ secrets.PROD_DOCKER_EXTRA_ARGS }}"
             DATABASE_URL="${{ secrets.PROD_DATABASE_URL }}"
             JWT_SECRET="${{ secrets.PROD_JWT_SECRET }}"
+            AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
+            AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+            AWS_S3_REGION="${{ vars.AWS_REGION }}"
+            AWS_S3_BUCKET="${{ secrets.PROD_AWS_S3_BUCKET }}"
 
             if [ -z "${DATABASE_URL}" ]; then
               echo "PROD_DATABASE_URL secret must be configured" >&2
@@ -271,6 +296,16 @@ jobs:
 
             if [ -z "${JWT_SECRET}" ]; then
               echo "PROD_JWT_SECRET secret must be configured" >&2
+              exit 1
+            fi
+
+            if [ -z "${AWS_ACCESS_KEY_ID}" ] || [ -z "${AWS_SECRET_ACCESS_KEY}" ]; then
+              echo "PROD AWS credentials must be configured" >&2
+              exit 1
+            fi
+
+            if [ -z "${AWS_S3_REGION}" ] || [ -z "${AWS_S3_BUCKET}" ]; then
+              echo "PROD AWS S3 region and bucket must be configured" >&2
               exit 1
             fi
 
@@ -297,6 +332,11 @@ jobs:
               ${EXTRA_FLAG} \
               -e DATABASE_URL="${DATABASE_URL}" \
               -e JWT_SECRET="${JWT_SECRET}" \
+              -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
+              -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
+              -e AWS_S3_REGION="${AWS_S3_REGION}" \
+              -e AWS_S3_BUCKET="${AWS_S3_BUCKET}" \
+              ${EXTRA_FLAG} \
               --restart always \
               "${IMAGE_WITH_TAG}"
 

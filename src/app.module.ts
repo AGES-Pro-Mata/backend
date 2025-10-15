@@ -16,6 +16,7 @@ import { ReservationModule } from './reservation/reservation.module';
 import { ExperienceModule } from './experience/experience.module';
 import { ObfuscateModule } from './obfuscate/obfuscate.module';
 import { DatabaseExceptionFilter } from './database/database.filter';
+import { HighlightModule } from './highlight/highlight.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { DatabaseExceptionFilter } from './database/database.filter';
     ReservationModule,
     ExperienceModule,
     ObfuscateModule,
+    HighlightModule,
   ],
   controllers: [AppController, ReservationController],
   providers: [
