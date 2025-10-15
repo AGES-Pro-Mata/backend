@@ -128,7 +128,7 @@ export class AuthService {
         id: passwordResetToken.userId,
       },
       data: {
-        password: changePasswordDto.password,
+        password: await this.hashPassword(changePasswordDto.password),
       },
     });
 
