@@ -5,7 +5,7 @@ import { DatabaseModule } from './database/database.module';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
-import { APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { RoleGuard } from './auth/role/role.guard';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ZodValidationPipe } from 'nestjs-zod';
@@ -15,6 +15,8 @@ import { ReservationController } from './reservation/reservation.controller';
 import { ReservationModule } from './reservation/reservation.module';
 import { ExperienceModule } from './experience/experience.module';
 import { ObfuscateModule } from './obfuscate/obfuscate.module';
+import { DatabaseExceptionFilter } from './database/database.filter';
+import { HighlightModule } from './highlight/highlight.module';
 
 @Module({
   imports: [
@@ -30,6 +32,7 @@ import { ObfuscateModule } from './obfuscate/obfuscate.module';
     ReservationModule,
     ExperienceModule,
     ObfuscateModule,
+    HighlightModule,
   ],
   controllers: [AppController, ReservationController],
   providers: [
@@ -41,6 +44,10 @@ import { ObfuscateModule } from './obfuscate/obfuscate.module';
     {
       provide: APP_PIPE,
       useClass: ZodValidationPipe,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: DatabaseExceptionFilter,
     },
     ReservationService,
   ],

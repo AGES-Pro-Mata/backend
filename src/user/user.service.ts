@@ -1,8 +1,14 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import z from 'zod';
 import { Prisma, UserType } from 'generated/prisma';
-import { UserSearchParamsDto, UpdateUserFormDto } from './user.model';
+import { UserSearchParamsDto, UpdateUserFormDto, CreateRootUserDto } from './user.model';
 import { ObfuscateService } from 'src/obfuscate/obfuscate.service';
 
 @Injectable()
@@ -14,16 +20,24 @@ export class UserService {
     private readonly obfuscateService: ObfuscateService,
   ) {}
 
-  async deleteUser(userId: string) {
+  async deleteUser(userId: string, deleterId: string) {
     this.verifyUserId(userId);
+
+    if (userId == deleterId) {
+      throw new ForbiddenException('Users cannot delete themselves.');
+    }
 
     const user = await this.databaseService.user.findUnique({
       where: { id: userId },
-      select: { email: true, document: true, rg: true },
+      select: { email: true, document: true, rg: true, userType: true },
     });
 
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    if (user.userType === UserType.ROOT) {
+      throw new ForbiddenException('Root user cannot be deleted.');
     }
 
     await this.databaseService.user.update({
@@ -41,7 +55,7 @@ export class UserService {
     this.verifyUserId(userId);
 
     const user = await this.databaseService.user.update({
-      where: { id: userId },
+      where: { id: userId, userType: { not: UserType.ROOT } },
       data: {
         name: updateUserDto.name,
         email: updateUserDto.email,
@@ -89,11 +103,13 @@ export class UserService {
       email: {
         contains: searchParams.email,
       },
-      createdBy: {
-        name: {
-          contains: searchParams.createdBy,
-        },
-      },
+      createdBy: searchParams.createdBy
+        ? {
+            name: {
+              contains: searchParams.createdBy,
+            },
+          }
+        : undefined,
       active: true,
     };
 
@@ -176,5 +192,41 @@ export class UserService {
     if (!z.uuid().safeParse(userId).success) {
       throw new BadRequestException('O `id` deve vir no formato `uuid`.');
     }
+  }
+
+  async createRootUser(userId: string, dto: CreateRootUserDto) {
+    if (dto.password !== dto.confirmPassword) {
+      throw new BadRequestException('As senhas não são identicas.');
+    }
+
+    await this.databaseService.user.create({
+      data: {
+        name: dto.name,
+        email: dto.email,
+        password: dto.password,
+        phone: dto.phone,
+        document: dto.document,
+        gender: dto.gender,
+        userType: UserType.ADMIN,
+        isForeign: false,
+        verified: true,
+        rg: dto.rg,
+        institution: dto.institution,
+        createdBy: {
+          connect: {
+            id: userId,
+          },
+        },
+        address: {
+          create: {
+            zip: dto.zipCode,
+            street: dto.addressLine,
+            city: dto.city,
+            number: dto.number?.toString(),
+            country: dto.country,
+          },
+        },
+      },
+    });
   }
 }

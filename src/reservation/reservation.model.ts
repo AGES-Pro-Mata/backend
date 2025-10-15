@@ -34,6 +34,17 @@ const UpdateReservation = z.object({
 
 export class UpdateReservationDto extends createZodDto(UpdateReservation) {}
 
+const UpdateReservationByAdmin = z.object({
+  type: z.enum(Object.values(RequestType)),
+  description: z.string().optional(),
+  experienceId: z.string().optional(),
+  startDate: z.iso.datetime().optional(),
+  endDate: z.iso.datetime().optional(),
+  notes: z.string().optional(),
+});
+
+export class UpdateReservationByAdminDto extends createZodDto(UpdateReservationByAdmin) {}
+
 export const AttachReceiptSchema = z.object({
   url: z.url(),
 });
