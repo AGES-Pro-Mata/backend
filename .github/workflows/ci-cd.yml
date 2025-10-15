@@ -225,6 +225,8 @@ jobs:
 
             docker exec "${CONTAINER}" npx prisma migrate deploy || true
 
+            docker image prune -af || true
+
   manual-db-dev:
     name: Manual DB Deploy DEV
     runs-on: ubuntu-latest
@@ -341,3 +343,5 @@ jobs:
               "${IMAGE_WITH_TAG}"
 
             docker exec "${CONTAINER}" npx prisma migrate deploy || true
+
+            docker image prune -af || true
