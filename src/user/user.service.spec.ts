@@ -642,7 +642,20 @@ describe('UserService', () => {
           userType: UserType.ADMIN,
           isForeign: false,
           verified: true,
-          createdByUserId: creatorUserId,
+          createdBy: {
+            connect: {
+              id: creatorUserId,
+            },
+          },
+          address: {
+            create: {
+              zip: dto.zipCode,
+              street: dto.addressLine,
+              city: dto.city,
+              number: dto.number?.toString(),
+              country: dto.country,
+            },
+          },
         },
       });
     });
@@ -676,7 +689,20 @@ describe('UserService', () => {
           userType: UserType.ADMIN,
           isForeign: false,
           verified: true,
-          createdByUserId: creatorUserId,
+          createdBy: {
+            connect: {
+              id: creatorUserId,
+            },
+          },
+          address: {
+            create: {
+              zip: dto.zipCode,
+              street: dto.addressLine,
+              city: dto.city,
+              number: dto.number?.toString(),
+              country: dto.country,
+            },
+          },
         },
       });
     });
