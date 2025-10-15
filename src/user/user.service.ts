@@ -194,7 +194,20 @@ export class UserService {
         userType: UserType.ADMIN,
         isForeign: false,
         verified: true,
-        createdByUserId: userId,
+        createdBy: {
+          connect: {
+            id: userId,
+          },
+        },
+        address: {
+          create: {
+            zip: dto.zipCode,
+            street: dto.addressLine,
+            city: dto.city,
+            number: dto.number?.toString(),
+            country: dto.country,
+          },
+        },
       },
     });
   }
