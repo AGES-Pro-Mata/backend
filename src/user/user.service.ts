@@ -194,6 +194,8 @@ export class UserService {
         userType: UserType.ADMIN,
         isForeign: false,
         verified: true,
+        rg: dto.rg,
+        institution: dto.institution,
         createdBy: {
           connect: {
             id: userId,

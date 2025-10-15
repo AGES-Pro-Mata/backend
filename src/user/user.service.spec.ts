@@ -642,6 +642,8 @@ describe('UserService', () => {
           userType: UserType.ADMIN,
           isForeign: false,
           verified: true,
+          rg: dto.rg,
+          institution: dto.institution,
           createdBy: {
             connect: {
               id: creatorUserId,
@@ -689,6 +691,8 @@ describe('UserService', () => {
           userType: UserType.ADMIN,
           isForeign: false,
           verified: true,
+          rg: dto.rg,
+          institution: dto.institution,
           createdBy: {
             connect: {
               id: creatorUserId,
