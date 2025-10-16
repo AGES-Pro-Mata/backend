@@ -16,11 +16,7 @@ import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { UserType } from 'generated/prisma';
 import { Roles } from 'src/auth/role/roles.decorator';
 import { HighlightService } from './highlight.service';
-import {
-  CreateHighlightDto,
-  HighlightQueryParamsDto,
-  UpdateHighlightDto,
-} from './highlight.model';
+import { CreateHighlightDto, HighlightQueryParamsDto, UpdateHighlightDto } from './highlight.model';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('highlights')
