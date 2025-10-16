@@ -8,7 +8,11 @@ async function bootstrap() {
 
   // Configuração CORS
   app.enableCors({
-    origin: ['http://localhost:3002', 'http://localhost:3001', 'http://promata-frontend.s3-website.us-east-2.amazonaws.com'],
+    origin: [
+      'http://localhost:3002',
+      'http://localhost:3001',
+      'http://promata-frontend.s3-website.us-east-2.amazonaws.com',
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,

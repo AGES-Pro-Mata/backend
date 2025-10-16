@@ -29,9 +29,7 @@ export const HighlightQueryParamsSchema = z.object({
     .transform((val) => parseInt(val, 10)),
 });
 
-export class HighlightQueryParamsDto extends createZodDto(
-  HighlightQueryParamsSchema,
-) {}
+export class HighlightQueryParamsDto extends createZodDto(HighlightQueryParamsSchema) {}
 
 export const CreateHighlightSchema = z.object({
   category: z.enum(highlightCategoryValues),

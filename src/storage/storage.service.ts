@@ -6,8 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-
-const crypto = require('crypto');
+import crypto from 'crypto';
 
 const randomFileName = () => crypto.randomBytes(16).toString('hex');
 
