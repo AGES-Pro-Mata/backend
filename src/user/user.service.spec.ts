@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
-import { BadRequestException, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Logger, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserType } from 'generated/prisma';
 import { UserService } from './user.service';
@@ -58,10 +58,20 @@ describe('UserService', () => {
 
   describe('deleteUser', () => {
     const userId = '1b7b4b0a-1e67-41af-9f0f-4a11f3e8a9f7';
+    const deleterId = 'fcf9ca43-aa64-4376-9ea6-3d5eec3945de';
+
+    it('should throw ForbidenException when userId is equal to deletedId', async () => {
+      await expect(service.deleteUser(userId, userId)).rejects.toThrow(ForbiddenException);
+      await expect(service.deleteUser(userId, userId)).rejects.toThrow(
+        'Users cannot delete themselves.',
+      );
+    });
 
     it('should throw BadRequestException when userId is not a valid UUID', async () => {
-      await expect(service.deleteUser('invalid-id')).rejects.toThrow(BadRequestException);
-      await expect(service.deleteUser('invalid-id')).rejects.toThrow(
+      await expect(service.deleteUser('invalid-id', deleterId)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.deleteUser('invalid-id', deleterId)).rejects.toThrow(
         'O `id` deve vir no formato `uuid`.',
       );
     });
@@ -69,8 +79,8 @@ describe('UserService', () => {
     it('should throw NotFoundException when user does not exist', async () => {
       databaseService.user.findUnique.mockResolvedValueOnce(null);
 
-      await expect(service.deleteUser(userId)).rejects.toThrow(NotFoundException);
-      await expect(service.deleteUser(userId)).rejects.toThrow('User not found');
+      await expect(service.deleteUser(userId, deleterId)).rejects.toThrow(NotFoundException);
+      await expect(service.deleteUser(userId, deleterId)).rejects.toThrow('User not found');
     });
 
     it('should soft delete user by obfuscating fields and setting active to false', async () => {
@@ -83,11 +93,11 @@ describe('UserService', () => {
       databaseService.user.findUnique.mockResolvedValueOnce(mockUser as never);
       databaseService.user.update.mockResolvedValueOnce({} as never);
 
-      await service.deleteUser(userId);
+      await service.deleteUser(userId, deleterId);
 
       expect(databaseService.user.findUnique).toHaveBeenCalledWith({
         where: { id: userId },
-        select: { email: true, document: true, rg: true },
+        select: { email: true, document: true, rg: true, userType: true },
       });
 
       expect(obfuscateService.obfuscateField).toHaveBeenCalledWith(mockUser.email);
@@ -157,7 +167,7 @@ describe('UserService', () => {
       await service.updateUser(userId, dto);
 
       expect(databaseService.user.update).toHaveBeenCalledWith({
-        where: { id: userId },
+        where: { id: userId, userType: { not: UserType.ROOT } },
         data: {
           name: dto.name,
           email: dto.email,
@@ -315,7 +325,7 @@ describe('UserService', () => {
         where: {
           name: { contains: undefined },
           email: { contains: undefined },
-          createdBy: { name: { contains: undefined } },
+          createdBy: undefined,
           active: true,
         },
         select: {
@@ -352,7 +362,7 @@ describe('UserService', () => {
         where: {
           name: { contains: 'John' },
           email: { contains: undefined },
-          createdBy: { name: { contains: undefined } },
+          createdBy: undefined,
           active: true,
         },
         select: {
@@ -642,7 +652,22 @@ describe('UserService', () => {
           userType: UserType.ADMIN,
           isForeign: false,
           verified: true,
-          createdByUserId: creatorUserId,
+          rg: dto.rg,
+          institution: dto.institution,
+          createdBy: {
+            connect: {
+              id: creatorUserId,
+            },
+          },
+          address: {
+            create: {
+              zip: dto.zipCode,
+              street: dto.addressLine,
+              city: dto.city,
+              number: dto.number?.toString(),
+              country: dto.country,
+            },
+          },
         },
       });
     });
@@ -676,7 +701,22 @@ describe('UserService', () => {
           userType: UserType.ADMIN,
           isForeign: false,
           verified: true,
-          createdByUserId: creatorUserId,
+          rg: dto.rg,
+          institution: dto.institution,
+          createdBy: {
+            connect: {
+              id: creatorUserId,
+            },
+          },
+          address: {
+            create: {
+              zip: dto.zipCode,
+              street: dto.addressLine,
+              city: dto.city,
+              number: dto.number?.toString(),
+              country: dto.country,
+            },
+          },
         },
       });
     });
