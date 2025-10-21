@@ -1,5 +1,4 @@
-# Exemplo de CI/CD usando Docker Compose
-# Para usar: renomeie para deploy-compose.yml e configure os secrets
+# CI/CD usando Docker Compose Traefik com TLS + SSL Let's Encrypt + DNS
 
 name: Deploy com Docker Compose
 
@@ -60,9 +59,6 @@ jobs:
 
             # Database
             DATABASE_URL=${{ secrets.PROD_DATABASE_URL }}
-            POSTGRES_DB=promata
-            POSTGRES_USER=admin
-            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
 
             # JWT
             JWT_SECRET=${{ secrets.PROD_JWT_SECRET }}
@@ -73,10 +69,6 @@ jobs:
             AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
             AWS_S3_REGION=${{ vars.AWS_REGION }}
             AWS_S3_BUCKET=${{ secrets.PROD_AWS_S3_BUCKET }}
-
-            # Traefik
-            ACME_EMAIL=${{ vars.ACME_EMAIL }}
-            TRAEFIK_LOG_LEVEL=INFO
 
             # App
             NODE_ENV=production

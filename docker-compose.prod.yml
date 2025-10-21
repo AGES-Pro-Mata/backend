@@ -1,4 +1,4 @@
-# Docker Compose para Produção (EC2)
+# Docker Compose para Produção DNS + TLS (EC2)
 # Uso: docker-compose -f docker-compose.prod.yml up -d
 
 version: '3.8'
@@ -12,7 +12,7 @@ services:
     command:
       # API e Dashboard
       - --api.dashboard=true
-      - --api.insecure=false
+      - --api.insecure=true
 
       # Entrypoints
       - --entrypoints.web.address=:80
@@ -117,6 +117,12 @@ services:
       - promata_public
       - promata_internal
 
+    depends_on:
+      database:
+        condition: service_healthy
+      umami:
+        condition: service_healthy
+
     labels:
       - traefik.enable=true
       - traefik.docker.network=promata_public
@@ -148,21 +154,183 @@ services:
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
+      - ./prisma/migrations:/docker-entrypoint-initdb.d
     networks:
       - promata_internal
-
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  # Umami Analytics
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    container_name: promata-umami
+    restart: always
+
+    environment:
+      - DATABASE_URL=postgresql://${UMAMI_DB_USER:-umami}:${UMAMI_DB_PASSWORD:-umami}@umami-db:5432/${UMAMI_DB_NAME:-umami}
+      - DATABASE_TYPE=postgresql
+      - APP_SECRET=${UMAMI_APP_SECRET:-}
+
+    depends_on:
+      umami-db:
+        condition: service_healthy
+
+    networks:
+      - promata_public
+      - promata_internal
+
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=promata_public
+
+      # Router HTTPS
+      - traefik.http.routers.umami.rule=Host(`analytics.promata.com.br`)
+      - traefik.http.routers.umami.entrypoints=websecure
+      - traefik.http.routers.umami.tls.certresolver=letsencrypt
+      - traefik.http.routers.umami.middlewares=security-headers
+      - traefik.http.services.umami.loadbalancer.server.port=3000
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/api/heartbeat || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Umami Database
+  umami-db:
+    image: postgres:15-alpine
+    container_name: promata-umami-db
+    restart: always
+
+    environment:
+      - POSTGRES_DB=${UMAMI_DB_NAME:-umami}
+      - POSTGRES_USER=${UMAMI_DB_USER:-umami}
+      - POSTGRES_PASSWORD=${UMAMI_DB_PASSWORD:-umami}
+
+    volumes:
+      - umami_db_data:/var/lib/postgresql/data
+
+    networks:
+      - promata_internal
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${UMAMI_DB_USER:-umami} -d ${UMAMI_DB_NAME:-umami}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Metabase
+  metabase:
+    image: metabase/metabase:latest
+    container_name: promata-metabase
+    restart: always
+
+    environment:
+      - MB_DB_TYPE=postgres
+      - MB_DB_DBNAME=${METABASE_DB_NAME:-metabase}
+      - MB_DB_PORT=5432
+      - MB_DB_USER=${METABASE_DB_USER:-metabase}
+      - MB_DB_PASS=${METABASE_DB_PASSWORD:-metabase123}
+      - MB_DB_HOST=metabase-db
+
+    depends_on:
+      metabase-db:
+        condition: service_healthy
+
+    networks:
+      - promata_public
+      - promata_internal
+
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=promata_public
+
+      # Router HTTPS
+      - traefik.http.routers.metabase.rule=Host(`metabase.promata.com.br`)
+      - traefik.http.routers.metabase.entrypoints=websecure
+      - traefik.http.routers.metabase.tls.certresolver=letsencrypt
+      - traefik.http.routers.metabase.middlewares=security-headers
+      - traefik.http.services.metabase.loadbalancer.server.port=3000
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Metabase Database
+  metabase-db:
+    image: postgres:15-alpine
+    container_name: promata-metabase-db
+    restart: always
+
+    environment:
+      - POSTGRES_DB=${METABASE_DB_NAME:-metabase}
+      - POSTGRES_USER=${METABASE_DB_USER:-metabase}
+      - POSTGRES_PASSWORD=${METABASE_DB_PASSWORD:-metabase123}
+
+    volumes:
+      - metabase_db_data:/var/lib/postgresql/data
+
+    networks:
+      - promata_internal
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${METABASE_DB_USER:-metabase} -d ${METABASE_DB_NAME:-metabase}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Prisma Studio
+  prisma-studio:
+    image: node:18-alpine
+    container_name: promata-prisma-studio
+    restart: unless-stopped
+
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+
+    volumes:
+      - .:/app
+      - backend_node_modules:/app/node_modules
+
+    working_dir: /app
+
+    command: sh -c "npx prisma migrate deploy && npx prisma studio --hostname 0.0.0.0 --port 5555"
+
+    depends_on:
+      database:
+        condition: service_healthy
+
+    networks:
+      - promata_public
+      - promata_internal
+
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=promata_public
+
+      # Router HTTPS
+      - traefik.http.routers.prisma-studio.rule=Host(`prisma.promata.com.br`)
+      - traefik.http.routers.prisma-studio.entrypoints=websecure
+      - traefik.http.routers.prisma-studio.tls.certresolver=letsencrypt
+      - traefik.http.routers.prisma-studio.middlewares=security-headers
+      - traefik.http.services.prisma-studio.loadbalancer.server.port=5555
+
 volumes:
   traefik_letsencrypt:
     name: promata-traefik-letsencrypt
   postgres_data:
     name: promata-postgres-data
+  umami_db_data:
+    name: promata-umami-db-data
+  metabase_db_data:
+    name: promata-metabase-db-data
+  backend_node_modules:
+    name: promata-backend-node-modules
 
 networks:
   promata_public:
