@@ -12,6 +12,7 @@ const {
 const argon2 = require('argon2');
 
 const prisma = new PrismaClient();
+const crypto = require('crypto');
 
 async function main() {
   console.log('🌱 Iniciando seed do banco de dados...');
@@ -128,12 +129,17 @@ async function main() {
 
   // Criar Usuários ROOT e ADMIN primeiro
   console.log('👤 Criando usuários...');
-  const hashedPassword = await argon2.hash('senha123', {
-    type: argon2.argon2id,
-    memoryCost: 65536,
-    timeCost: 3,
-    parallelism: 1,
-  });
+
+  // Senha senha123
+  const hashedPassword = await argon2.hash(
+    '55a5e9e78207b4df8699d60886fa070079463547b095d1a05bc719bb4e6cd251',
+    {
+      type: argon2.argon2id,
+      memoryCost: 65536,
+      timeCost: 3,
+      parallelism: 1,
+    },
+  );
 
   const rootUser = await prisma.user.create({
     data: {
