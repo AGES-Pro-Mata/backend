@@ -1,50 +1,34 @@
-# Dockerfile.prod - Build otimizado para produção
-
-# -----------------------------
-# Dependencies stage
-# -----------------------------
-FROM node:24-alpine AS deps
-
-RUN apk add --no-cache openssl libc6-compat
-
-WORKDIR /app
-
-# Copiar apenas arquivos de dependências
-COPY package*.json ./
-COPY prisma ./prisma/
-
-# Instalar APENAS dependências de produção
-RUN npm ci --only=production && npm cache clean --force
-
-# -----------------------------
-# Build stage
-# -----------------------------
+# ---------------------------------
+# Build + Dependencies stage
+# ---------------------------------
 FROM node:24-alpine AS build
 
+# Instalar pacotes nativos necessários
 RUN apk add --no-cache openssl libc6-compat python3 make g++
 
 WORKDIR /app
 
-# Copiar arquivos de dependências
+# Copiar apenas arquivos de dependências (para maximizar cache)
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Instalar TODAS as dependências (incluindo dev)
+# Instalar todas as dependências (dev + prod)
+# O cache do Docker só será invalidado se package.json ou package-lock.json mudarem
 RUN npm ci && npm cache clean --force
 
-# Copiar código fonte
+# Copiar o restante do código (não invalida cache de dependências)
 COPY . .
 
-# Gerar Prisma Client e build
+# Gerar Prisma Client e buildar aplicação
 RUN npx prisma generate
 RUN npm run build
 
-# Remover devDependencies após build
-RUN npm prune --production
+# Remover devDependencies para reduzir tamanho final
+RUN npm prune --production && npm cache clean --force
 
-# -----------------------------
-# Runtime stage (imagem final menor)
-# -----------------------------
+# ---------------------------------
+# Runtime stage (imagem final)
+# ---------------------------------
 FROM node:24-alpine AS runtime
 
 RUN apk add --no-cache openssl libc6-compat curl
@@ -55,23 +39,16 @@ RUN addgroup -g 1001 -S nodejs \
 
 WORKDIR /app
 
-# Copiar apenas node_modules de produção do stage deps
-COPY --from=deps --chown=nestjs:nodejs /app/node_modules ./node_modules
-
-# Copiar artefatos de build
+# Copiar apenas artefatos necessários do estágio anterior
 COPY --from=build --chown=nestjs:nodejs /app/dist ./dist
+COPY --from=build --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=nestjs:nodejs /app/prisma ./prisma
-
-# Copiar Prisma Client gerado (pode estar em node_modules/.prisma ou generated/)
-COPY --from=build --chown=nestjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-
-COPY --chown=nestjs:nodejs package*.json ./
+COPY --from=build --chown=nestjs:nodejs package*.json ./
 
 ENV NODE_ENV=production
 ENV PORT=3001
 
 EXPOSE 3001
-
 USER nestjs
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
