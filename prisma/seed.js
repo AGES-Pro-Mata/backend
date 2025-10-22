@@ -7,7 +7,7 @@ const {
   ReceiptType,
   ReceiptStatus,
   RequestType,
-  HighlightCategory
+  HighlightCategory,
 } = require('../generated/prisma');
 const argon2 = require('argon2');
 
@@ -128,7 +128,12 @@ async function main() {
 
   // Criar Usuários ROOT e ADMIN primeiro
   console.log('👤 Criando usuários...');
-  const hashedPassword = await argon2.hash('senha123', 10);
+  const hashedPassword = await argon2.hash('senha123', {
+    type: argon2.argon2id,
+    memoryCost: 65536,
+    timeCost: 3,
+    parallelism: 1,
+  });
 
   const rootUser = await prisma.user.create({
     data: {
