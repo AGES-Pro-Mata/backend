@@ -4,9 +4,10 @@ import { AnalyticsService } from 'src/analytics/analytics.service';
 import { ExperienceController } from './experience.controller';
 import { ExperienceService } from './experience.service';
 import { StorageService } from 'src/storage/storage.service';
+import { DatabaseModule } from 'src/database/database.module';
 
 @Module({
-  imports: [AnalyticsModule],
+  imports: [AnalyticsModule, DatabaseModule],
   providers: [ExperienceService, AnalyticsService, StorageService],
   controllers: [ExperienceController],
 })

@@ -57,9 +57,9 @@ export class ExperienceController {
   @Post()
   @Roles(UserType.ADMIN)
   @ApiBearerAuth('access-token')
- @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(FileInterceptor('image'))
   @HttpCode(HttpStatus.CREATED)
   async createExperienceAsAdmin(@Body() createExperienceDto: CreateExperienceFormDto, @UploadedFile() file: Express.Multer.File | null) {
-    return await this.experienceService.createExperience(createExperienceDto);
+    return await this.experienceService.createExperience(createExperienceDto, file);
   }
 }
