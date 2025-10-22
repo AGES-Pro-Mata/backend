@@ -41,8 +41,8 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate
 
-      - name: Build application
-        run: npm run build
+      - name: Type check
+        run: npx tsc --noEmit
 
       - name: Test application
         run: npm run test
@@ -89,8 +89,16 @@ jobs:
           tags: |
             ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:dev
             ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.define-tags.outputs.image_tag }}
-          cache-from: type=gha
+          # Cache otimizado: registry + gha
+          cache-from: |
+            type=registry,ref=${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:dev
+            type=gha
           cache-to: type=gha,mode=max
+          # DEV: apenas AMD64 (mais rápido)
+          platforms: linux/amd64
+          # BuildKit inline cache
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
 
       - name: Print Image Digest
         run: echo "DEV image pushed with digest ${{ steps.docker_build_dev.outputs.digest }}"
@@ -139,9 +147,16 @@ jobs:
             ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:prod
             ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.define-tags.outputs.image_tag }}
             ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.define-tags.outputs.version_tag }}
-          cache-from: type=gha
+          # Cache otimizado: registry + gha
+          cache-from: |
+            type=registry,ref=${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            type=gha
           cache-to: type=gha,mode=max
+          # PROD: multi-arch (mantém compatibilidade)
           platforms: linux/amd64,linux/arm64
+          # BuildKit inline cache
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
 
       - name: Print Image Digest
         run: echo "PROD image pushed with digest ${{ steps.docker_build_prod.outputs.digest }}"
