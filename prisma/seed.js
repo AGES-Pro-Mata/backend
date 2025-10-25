@@ -1,7 +1,18 @@
-const { PrismaClient, UserType } = require('../generated/prisma');
+const {
+  PrismaClient,
+  UserType,
+  Category,
+  WeekDay,
+  TrailDifficulty,
+  ReceiptType,
+  ReceiptStatus,
+  RequestType,
+  HighlightCategory,
+} = require('../generated/prisma');
 const argon2 = require('argon2');
 
 const prisma = new PrismaClient();
+const crypto = require('crypto');
 
 // Helper function to generate random date in 2025
 function randomDate2025(startMonth = 1, endMonth = 12) {
@@ -21,60 +32,112 @@ function addDays(date, days) {
 async function main() {
   console.log('🌱 Starting database seeding with 2025 full-year data...');
 
-  // Create addresses first
+  // Limpar dados existentes
+  console.log('🧹 Limpando dados existentes...');
+  await prisma.document.deleteMany();
+  await prisma.member.deleteMany();
+  await prisma.reservation.deleteMany();
+  await prisma.requests.deleteMany();
+  await prisma.reservationGroup.deleteMany();
+  await prisma.receipt.deleteMany();
+  await prisma.passwordResetToken.deleteMany();
+  await prisma.experience.deleteMany();
+  await prisma.image.deleteMany();
+  await prisma.highlight.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.address.deleteMany();
+
+  // Criar Endereços
+  console.log('📍 Criando endereços...');
   const addresses = await Promise.all([
     prisma.address.create({
       data: {
-        street: 'Rua das Flores, 123',
+        street: 'Rua das Flores',
         number: '123',
         city: 'São Paulo',
         zip: '01234-567',
-        country: 'Brazil',
+        country: 'Brasil',
       },
     }),
     prisma.address.create({
       data: {
-        street: 'Av. Paulista, 456',
-        number: '456',
+        street: 'Av. Paulista',
+        number: '1000',
         city: 'São Paulo',
-        zip: '04567-890',
-        country: 'Brazil',
+        zip: '01310-100',
+        country: 'Brasil',
       },
     }),
     prisma.address.create({
       data: {
-        street: 'Rua do Comércio, 789',
-        number: '789',
+        street: 'Rua Oscar Freire',
+        number: '500',
+        city: 'São Paulo',
+        zip: '01426-001',
+        country: 'Brasil',
+      },
+    }),
+    prisma.address.create({
+      data: {
+        street: 'Rua Augusta',
+        number: '2000',
+        city: 'São Paulo',
+        zip: '01304-001',
+        country: 'Brasil',
+      },
+    }),
+    prisma.address.create({
+      data: {
+        street: 'Av. Ipiranga',
+        number: '344',
+        city: 'Porto Alegre',
+        zip: '90160-090',
+        country: 'Brasil',
+      },
+    }),
+    prisma.address.create({
+      data: {
+        street: 'Rua da Praia',
+        number: '700',
+        city: 'Porto Alegre',
+        zip: '90010-270',
+        country: 'Brasil',
+      },
+    }),
+    prisma.address.create({
+      data: {
+        street: 'Av. Atlântica',
+        number: '1500',
         city: 'Rio de Janeiro',
-        zip: '12345-678',
-        country: 'Brazil',
+        zip: '22021-001',
+        country: 'Brasil',
       },
     }),
     prisma.address.create({
       data: {
-        street: '123 Main St',
-        number: '123',
+        street: 'Rua das Laranjeiras',
+        number: '320',
+        city: 'Rio de Janeiro',
+        zip: '22240-005',
+        country: 'Brasil',
+      },
+    }),
+    prisma.address.create({
+      data: {
+        street: '123 Main Street',
+        number: '456',
         city: 'New York',
         zip: '10001',
-        country: 'USA',
+        country: 'United States',
       },
     }),
     prisma.address.create({
       data: {
-        street: 'Rua das Acácias, 321',
-        number: '321',
-        city: 'Belo Horizonte',
-        zip: '30000-000',
-        country: 'Brazil',
-      },
-    }),
-    prisma.address.create({
-      data: {
-        street: 'Av. Brasil, 987',
-        number: '987',
-        city: 'Salvador',
-        zip: '40000-000',
-        country: 'Brazil',
+        street: 'Calle Mayor',
+        number: '78',
+        city: 'Madrid',
+        zip: '28013',
+        country: 'Spain',
       },
     }),
     prisma.address.create({
@@ -109,17 +172,16 @@ async function main() {
     },
   );
 
-  // Create ROOT user
   const rootUser = await prisma.user.create({
     data: {
       userType: UserType.ROOT,
-      name: 'Sistema Root',
-      email: 'root@company.com',
-      password: demoPassword,
-      phone: '+55 11 99999-9999',
-      document: '000.000.000-00',
-      gender: 'Other',
-      rg: '00.000.000-0',
+      name: 'Admin Root',
+      email: 'root@sistema.com',
+      password: hashedPassword,
+      phone: '11999999999',
+      document: '11111111111',
+      gender: 'Masculino',
+      rg: '111111111',
       institution: 'Sistema',
       isForeign: false,
       verified: true,
@@ -127,7 +189,6 @@ async function main() {
     },
   });
 
-  // Create ADMIN user
   const adminUser = await prisma.user.create({
     data: {
       userType: UserType.ADMIN,
@@ -643,7 +704,7 @@ async function main() {
     }),
   ]);
 
-  console.log('✅ Database seeding completed!');
+  console.log('✅ Seed concluído com sucesso!');
   console.log(`
 📊 Created (2025 Full Year Data):
 - ${allUsers.length} Users (1 ROOT, 1 ADMIN, ${professors.length} PROFESSORS, ${guests.length} GUESTS)
@@ -700,7 +761,7 @@ EVENTS:
 
 main()
   .catch((e) => {
-    console.error('❌ Error during seeding:', e);
+    console.error('❌ Erro durante o seed:', e);
     process.exit(1);
   })
   .finally(async () => {

@@ -1,49 +1,66 @@
 # Dockerfile.prod - Build otimizado para produção
 
 # -----------------------------
+# Dependencies stage
+# -----------------------------
+FROM node:24-alpine AS deps
+
+RUN apk add --no-cache openssl libc6-compat
+
+WORKDIR /app
+
+# Copiar apenas arquivos de dependências
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Instalar APENAS dependências de produção
+RUN npm ci --only=production && npm cache clean --force
+
+# -----------------------------
 # Build stage
 # -----------------------------
 FROM node:24-alpine AS build
 
-# Instalar dependências do sistema necessárias durante o build
 RUN apk add --no-cache openssl libc6-compat python3 make g++
 
 WORKDIR /app
 
-# Copiar arquivos de dependências primeiro para aproveitar cache
+# Copiar arquivos de dependências
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Instalar dependências (incluindo devDependencies para build)
-RUN npm ci
+# Instalar TODAS as dependências (incluindo dev)
+RUN npm ci && npm cache clean --force
 
 # Copiar código fonte
 COPY . .
 
-# Gerar Prisma Client e build da aplicação
+# Gerar Prisma Client e build
 RUN npx prisma generate
 RUN npm run build
 
+# Remover devDependencies após build
+RUN npm prune --production
+
 # -----------------------------
-# Runtime stage
+# Runtime stage (imagem final menor)
 # -----------------------------
 FROM node:24-alpine AS runtime
 
-# Instalar dependências do sistema necessárias em runtime
 RUN apk add --no-cache openssl libc6-compat curl
 
-# Criar usuário não-root por segurança
+# Criar usuário não-root
 RUN addgroup -g 1001 -S nodejs \
   && adduser -S nestjs -u 1001
 
 WORKDIR /app
 
-# Copiar apenas artefatos necessários da etapa de build
-COPY --from=build --chown=nestjs:nodejs /app/node_modules ./node_modules
+# Copiar apenas node_modules de produção do stage deps
+COPY --from=deps --chown=nestjs:nodejs /app/node_modules ./node_modules
+
+# Copiar artefatos de build
 COPY --from=build --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=build --chown=nestjs:nodejs /app/prisma ./prisma
-COPY --from=build --chown=nestjs:nodejs /app/generated ./generated
-COPY --from=build --chown=nestjs:nodejs /app/package*.json ./
 
 # Copiar entrypoint que roda migrations automaticamente
 COPY --chown=nestjs:nodejs docker-entrypoint.sh /usr/local/bin/
@@ -55,7 +72,6 @@ ENV PORT=3001
 
 EXPOSE 3001
 
-# Mudar para usuário não-root
 USER nestjs
 
 # Entrypoint roda migrations e inicia app

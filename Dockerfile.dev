@@ -1,32 +1,24 @@
-# Dockerfile.dev - Ambiente de desenvolvimento
+# Dockerfile.dev - Ambiente de desenvolvimento otimizado
 FROM node:24-alpine
 
-# Instalar dependências do sistema
 RUN apk add --no-cache openssl libc6-compat
 
-# Definir diretório de trabalho
 WORKDIR /app
 
-# Definir variáveis de ambiente para desenvolvimento
 ENV NODE_ENV=development
 ENV CHOKIDAR_USEPOLLING=true
 
-# Copiar package.json e package-lock.json
+# Copiar arquivos de dependências primeiro (melhor cache)
 COPY package*.json ./
-
-# Copiar schema do Prisma
 COPY prisma ./prisma/
 
 # Instalar dependências
-RUN npm ci
+RUN npm ci && npm cache clean --force
 
 # Gerar cliente Prisma
 RUN npx prisma generate
 
-# Verificar se foi gerado
-RUN ls -la generated/ || echo "Generated folder not found"
-
-# Copiar código fonte
+# Copiar código fonte por último (muda mais frequentemente)
 COPY . .
 
 # Copiar entrypoint DEV que roda migrations + seed automaticamente
@@ -36,12 +28,11 @@ RUN chmod +x /usr/local/bin/docker-entrypoint-dev.sh
 # Expor porta
 EXPOSE 3000
 
-# Criar usuário não-root por segurança e ajustar permissões
+# Criar usuário não-root
 RUN addgroup -g 1001 -S nodejs \
   && adduser -S nestjs -u 1001 \
   && chown -R nestjs:nodejs /app
 
-# Mudar para usuário não-root
 USER nestjs
 
 # Entrypoint roda migrations, seed (se necessário) e inicia app
