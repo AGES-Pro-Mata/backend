@@ -161,11 +161,14 @@ jobs:
       - name: Print Image Digest
         run: echo "PROD image pushed with digest ${{ steps.docker_build_prod.outputs.digest }}"
 
+  # DESABILITADO: DEV deve rodar localmente via docker-compose.yml
+  # Motivo: EC2 t2.medium não tem recursos suficientes para DEV + PROD simultaneamente
+  # Imagem DEV continua sendo publicada no Docker Hub para uso opcional
   deploy-dev:
     name: Deploy DEV to EC2
     needs: [publish-dev]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/dev'
+    if: false  # DESABILITADO - usar ambiente local
     steps:
       - name: Deploy container on DEV host
         uses: appleboy/ssh-action@v1.0.0
