@@ -43,6 +43,7 @@ WORKDIR /app
 COPY --from=build --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=build --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=nestjs:nodejs /app/prisma ./prisma
+COPY --from=build --chown=nestjs:nodejs /app/generated ./generated
 
 # Copiar entrypoint que roda migrations automaticamente
 COPY --chown=nestjs:nodejs docker-entrypoint.sh /usr/local/bin/
