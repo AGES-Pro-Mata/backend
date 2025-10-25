@@ -159,6 +159,50 @@ O projeto possui os seguintes ambientes:
 
 A instância EC2 de produção é uma **t2.medium** (2 vCPUs, 4 GB RAM). Por limitações de recursos, apenas o ambiente de **PRODUÇÃO** roda na EC2. O ambiente de **DESENVOLVIMENTO** deve ser executado localmente.
 
+### Secrets e Variáveis de Ambiente
+
+Para produção, configure os seguintes secrets no GitHub Actions:
+
+#### Obrigatórios
+
+- `PROD_DATABASE_URL` - URL de conexão PostgreSQL
+- `PROD_JWT_SECRET` - Secret para JWT tokens
+- `AWS_ACCESS_KEY_ID` - Credenciais AWS S3
+- `AWS_SECRET_ACCESS_KEY` - Credenciais AWS S3
+- `PROD_AWS_S3_BUCKET` - Nome do bucket S3
+- `CF_API_EMAIL` - Email Cloudflare (para SSL)
+- `CF_DNS_API_TOKEN` - Token API Cloudflare (para SSL)
+
+#### Opcionais (com valores padrão)
+
+- `POSTGRES_DB` (padrão: `promata`)
+- `POSTGRES_USER` (padrão: `admin`)
+- `POSTGRES_PASSWORD` (obrigatório em PROD)
+- `UMAMI_APP_SECRET` (padrão fornecido - **MUDE EM PRODUÇÃO**)
+- `UMAMI_DB_USER` (padrão: `umami`)
+- `UMAMI_DB_PASSWORD` (padrão: `umami`)
+- `UMAMI_DB_NAME` (padrão: `umami`)
+- `METABASE_DB_USER` (padrão: `metabase`)
+- `METABASE_DB_PASSWORD` (padrão: `metabase123`)
+- `METABASE_DB_NAME` (padrão: `metabase`)
+- `ACME_EMAIL` (padrão: `admin@promata.com.br`)
+
+#### Como gerar UMAMI_APP_SECRET
+
+O Umami requer um secret base64-encoded. Gere um novo secret com:
+
+```bash
+openssl rand -base64 32
+```
+
+Exemplo de output:
+
+```text
+1ROqCXlzGzCkeRfWvcUUqycuwEeCA+TN4YkI1XrXjUg=
+```
+
+Use esse valor no GitHub Secret `UMAMI_APP_SECRET`.
+
 ### Limpeza de Containers DEV na EC2
 
 Se você tinha containers DEV rodando na EC2 antes desta mudança, use o script de limpeza para removê-los com segurança:

@@ -1,7 +1,5 @@
 # Docker Compose para Produção DNS + TLS (EC2)
-# Uso: docker-compose -f docker-compose.prod.yml up -d
-
-version: '3.8'
+# Uso: docker compose -f docker-compose.prod.yml up -d
 
 services:
   # Traefik - Reverse Proxy & SSL
@@ -180,7 +178,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://${UMAMI_DB_USER:-umami}:${UMAMI_DB_PASSWORD:-umami}@umami-db:5432/${UMAMI_DB_NAME:-umami}
       - DATABASE_TYPE=postgresql
-      - APP_SECRET=${UMAMI_APP_SECRET:-}
+      - APP_SECRET=${UMAMI_APP_SECRET:-dGhpcy1pcy1hLWRlZmF1bHQtc2VjcmV0LWNoYW5nZS1pbi1wcm9kdWN0aW9u}
 
     depends_on:
       umami-db:
@@ -206,6 +204,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+      start_period: 60s  # Dar mais tempo para Umami inicializar
 
   # Umami Database
   umami-db:
@@ -333,6 +332,7 @@ volumes:
     name: promata-traefik-letsencrypt
   postgres_data:
     name: promata-postgres-data
+    external: true  # Volume criado pela migração automática
   # Reutilizar volumes existentes do setup antigo
   umami_db_data:
     name: umami-db-data
