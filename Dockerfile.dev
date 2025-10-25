@@ -21,6 +21,11 @@ RUN npx prisma generate
 # Copiar código fonte por último (muda mais frequentemente)
 COPY . .
 
+# Copiar entrypoint DEV que roda migrations + seed automaticamente
+COPY docker-entrypoint-dev.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint-dev.sh
+
+# Expor porta
 EXPOSE 3000
 
 # Criar usuário não-root
@@ -30,5 +35,5 @@ RUN addgroup -g 1001 -S nodejs \
 
 USER nestjs
 
-# Comando simplificado (prisma generate já foi feito acima)
-CMD ["npm", "run", "start:dev"]
+# Entrypoint roda migrations, seed (se necessário) e inicia app
+ENTRYPOINT ["docker-entrypoint-dev.sh"]

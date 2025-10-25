@@ -12,6 +12,8 @@ async function bootstrap() {
       'http://localhost:3002',
       'http://localhost:3001',
       'http://promata-frontend.s3-website.us-east-2.amazonaws.com',
+      'https://promata.com.br',
+      'https://www.promata.com.br',
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
