@@ -10,19 +10,20 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { UserType } from 'generated/prisma';
+import { User } from 'src/user/user.decorator';
 import {
   ChangePasswordDto,
+  CreateRootUserDto,
   CreateUserFormDto,
   type CurrentUser,
   ForgotPasswordDto,
   LoginDto,
 } from './auth.model';
-import { UserType } from 'generated/prisma';
+import { AuthService } from './auth.service';
 import { Roles } from './role/roles.decorator';
-import { ApiBearerAuth } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { User } from 'src/user/user.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -50,6 +51,7 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     await this.authService.forgotPassword(forgotPasswordDto);
+    return { message: 'Email de recuperação enviado com sucesso.' };
   }
 
   @Patch('forgot')
@@ -64,5 +66,13 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async findProfile(@User() user: CurrentUser) {
     return await this.authService.findProfile(user.id);
+  }
+
+  @Post('create-root-user')
+  @ApiBearerAuth('access-token')
+  @Roles(UserType.ADMIN)
+  @HttpCode(HttpStatus.CREATED)
+  async createUserAsAdmin(@User() user: CurrentUser, @Body() body: CreateRootUserDto) {
+    return await this.authService.createRootUser(user.id, body);
   }
 }

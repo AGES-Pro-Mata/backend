@@ -41,6 +41,7 @@ model User {
   Requests           Requests[]
   documents          Document[]
   ReservationGroup   ReservationGroup[]
+  isFirstAccess      Boolean              @default(false)
 }
 
 enum UserType {
