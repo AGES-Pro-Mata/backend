@@ -29,6 +29,10 @@ RUN ls -la generated/ || echo "Generated folder not found"
 # Copiar código fonte
 COPY . .
 
+# Copiar entrypoint DEV que roda migrations + seed automaticamente
+COPY docker-entrypoint-dev.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint-dev.sh
+
 # Expor porta
 EXPOSE 3000
 
@@ -40,5 +44,5 @@ RUN addgroup -g 1001 -S nodejs \
 # Mudar para usuário não-root
 USER nestjs
 
-# Comando de desenvolvimento com hot reload
-CMD ["sh", "-c", "npx prisma generate && npm run start:dev"]
+# Entrypoint roda migrations, seed (se necessário) e inicia app
+ENTRYPOINT ["docker-entrypoint-dev.sh"]

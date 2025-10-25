@@ -45,6 +45,10 @@ COPY --from=build --chown=nestjs:nodejs /app/prisma ./prisma
 COPY --from=build --chown=nestjs:nodejs /app/generated ./generated
 COPY --from=build --chown=nestjs:nodejs /app/package*.json ./
 
+# Copiar entrypoint que roda migrations automaticamente
+COPY --chown=nestjs:nodejs docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Variáveis de ambiente padrão de produção
 ENV NODE_ENV=production
 ENV PORT=3001
@@ -54,5 +58,5 @@ EXPOSE 3001
 # Mudar para usuário não-root
 USER nestjs
 
-# Comando de inicialização direto (Prisma Client gerado no build stage)
-CMD ["node", "dist/main.js"]
+# Entrypoint roda migrations e inicia app
+ENTRYPOINT ["docker-entrypoint.sh"]

@@ -333,10 +333,13 @@ volumes:
     name: promata-traefik-letsencrypt
   postgres_data:
     name: promata-postgres-data
+  # Reutilizar volumes existentes do setup antigo
   umami_db_data:
-    name: promata-umami-db-data
+    name: umami-db-data
+    external: true
   metabase_db_data:
-    name: promata-metabase-db-data
+    name: metabase-db-data
+    external: true
   backend_node_modules:
     name: promata-backend-node-modules
 

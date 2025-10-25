@@ -40,12 +40,10 @@ jobs:
           script: |
             set -euo pipefail
 
-            # Navegar para diretório do projeto
-            cd ~/promata-backend || {
-              echo "Criando diretório do projeto..."
-              mkdir -p ~/promata-backend
-              cd ~/promata-backend
-            }
+            # Navegar para diretório do projeto em /opt (centralizado)
+            sudo mkdir -p /opt/promata-backend
+            sudo chown $USER:$USER /opt/promata-backend
+            cd /opt/promata-backend
 
             # Fazer pull do repositório ou atualizar
             if [ -d ".git" ]; then
