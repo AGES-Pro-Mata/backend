@@ -108,7 +108,7 @@ export class AuthService {
       throw new BadRequestException('Usuário não encontrado.');
     }
     const token = await this.createResetToken(user.id);
-    const resetUrl = `${process.env.FRONTEND_URL}/auth/redefine/${token}`;
+    const resetUrl = `${this.configService.get('FRONTEND_URL')}/auth/redefine/${token}`;
 
     await this.mailService.sendTemplateMail(user.email, 'Recuperação de senha', 'forgot-password', {
       name: user.name,
