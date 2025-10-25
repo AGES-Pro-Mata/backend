@@ -153,7 +153,7 @@ jobs:
             type=gha
           cache-to: type=gha,mode=max
           # PROD: multi-arch (mantém compatibilidade)
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           # BuildKit inline cache
           build-args: |
             BUILDKIT_INLINE_CACHE=1
