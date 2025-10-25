@@ -145,26 +145,26 @@ jobs:
 
             # Pull das imagens mais recentes
             echo "Atualizando imagens Docker..."
-            docker-compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml pull
 
             # Parar serviços
             echo "Parando serviços..."
-            docker-compose -f docker-compose.prod.yml down || true
+            docker compose -f docker-compose.prod.yml down || true
 
             # Iniciar serviços
             echo "Iniciando serviços..."
-            docker-compose -f docker-compose.prod.yml up -d
+            docker compose -f docker-compose.prod.yml up -d
 
             # Aguardar serviços subirem
             sleep 15
 
             # Executar migrations
             echo "Executando migrations..."
-            docker-compose -f docker-compose.prod.yml exec -T backend npx prisma migrate deploy || echo "Migrations já aplicadas"
+            docker compose -f docker-compose.prod.yml exec -T backend npx prisma migrate deploy || echo "Migrations já aplicadas"
 
             # Verificar status
             echo "Status dos serviços:"
-            docker-compose -f docker-compose.prod.yml ps
+            docker compose -f docker-compose.prod.yml ps
 
             # Limpar imagens antigas
             echo "Limpando imagens antigas..."
