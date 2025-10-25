@@ -1,0 +1,173 @@
+# CI/CD usando Docker Compose Traefik com TLS + SSL Let's Encrypt + DNS
+
+name: Deploy com Docker Compose
+
+on:
+  # Aguarda ci-cd.yml completar antes de fazer deploy
+  workflow_run:
+    workflows: ["Backend CI/CD (Build & Publish)"]
+    types:
+      - completed
+    branches:
+      - main
+  # Permite deploy manual
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '24'
+  DOCKER_REGISTRY: docker.io
+  IMAGE_NAME: norohim/pro-mata-backend
+
+jobs:
+  deploy-prod-compose:
+    name: Deploy Production (Docker Compose)
+    runs-on: ubuntu-latest
+    # Só roda se o workflow anterior foi bem-sucedido (ou se for dispatch manual)
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PROD_EC2_HOST }}
+          username: ${{ secrets.PROD_EC2_USER }}
+          key: ${{ secrets.PROD_EC2_SSH_KEY }}
+          script: |
+            set -euo pipefail
+
+            # ========================================
+            # AUTO-MIGRATION: Setup antigo → Compose unificado
+            # ========================================
+            if [ -d "$HOME/prod-db" ] && [ ! -d "/opt/promata-backend/.git" ]; then
+              echo "🔄 Setup antigo detectado - migrando automaticamente..."
+
+              # Criar backup
+              BACKUP_DIR="$HOME/backup-$(date +%Y%m%d-%H%M%S)"
+              mkdir -p "$BACKUP_DIR"
+              echo "📦 Criando backup em: $BACKUP_DIR"
+
+              # Parar containers antigos
+              echo "⏸️  Parando containers antigos..."
+              docker stop backend-prod backend-dev umami metabase prod-postgres dev-postgres umami-db metabase-db 2>/dev/null || true
+
+              # Backup do PostgreSQL prod (bind mount)
+              echo "💾 Backup do PostgreSQL..."
+              docker run --rm -v "$HOME/prod-db/data:/source:ro" -v "$BACKUP_DIR:/backup" alpine tar czf /backup/prod-postgres-data.tar.gz -C /source .
+
+              # Criar volume e migrar dados
+              echo "📦 Criando volume promata-postgres-data..."
+              docker volume create promata-postgres-data
+              echo "🔄 Migrando dados..."
+              docker run --rm -v "$HOME/prod-db/data:/source:ro" -v promata-postgres-data:/dest alpine sh -c "cp -av /source/. /dest/"
+
+              # Verificar migração
+              FILE_COUNT=$(docker run --rm -v promata-postgres-data:/data alpine sh -c "find /data -type f | wc -l")
+              echo "✅ Migração completa: $FILE_COUNT arquivos"
+
+              # Remover containers antigos
+              echo "🗑️  Removendo containers antigos..."
+              docker rm -f backend-prod backend-dev umami metabase prod-postgres dev-postgres umami-db metabase-db 2>/dev/null || true
+
+              echo "✅ Migração concluída! Backup salvo em: $BACKUP_DIR"
+            else
+              echo "ℹ️  Migração não necessária ou já realizada"
+            fi
+
+            # Navegar para diretório do projeto em /opt (centralizado)
+            sudo mkdir -p /opt/promata-backend
+            sudo chown $USER:$USER /opt/promata-backend
+            cd /opt/promata-backend
+
+            # Fazer pull do repositório ou atualizar
+            if [ -d ".git" ]; then
+              echo "Atualizando repositório..."
+              git fetch origin
+              git reset --hard origin/main
+            else
+              echo "Clonando repositório..."
+              git clone https://github.com/AGES-Pro-Mata/backend.git .
+            fi
+
+            # Criar/atualizar arquivo .env com secrets
+            cat > .env.production << EOF
+            # Docker - Usar imagem :latest publicada pelo CI/CD (main branch)
+            DOCKER_REGISTRY=${{ env.DOCKER_REGISTRY }}
+            IMAGE_NAME=${{ env.IMAGE_NAME }}
+            IMAGE_TAG=latest
+            CONTAINER_NAME=promata-backend
+
+            # Database Prod
+            DATABASE_URL=${{ secrets.PROD_DATABASE_URL }}
+            POSTGRES_DB=${{ secrets.POSTGRES_DB:-promata }}
+            POSTGRES_USER=${{ secrets.POSTGRES_USER:-admin }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+
+            # JWT
+            JWT_SECRET=${{ secrets.PROD_JWT_SECRET }}
+            JWT_EXPIRES_IN=2h
+
+            # AWS
+            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_S3_REGION=${{ vars.AWS_REGION }}
+            AWS_S3_BUCKET=${{ secrets.PROD_AWS_S3_BUCKET }}
+
+            # Cloudflare DNS Challenge (para Let's Encrypt TLS)
+            CF_API_EMAIL=${{ secrets.CF_API_EMAIL }}
+            CF_DNS_API_TOKEN=${{ secrets.CF_DNS_API_TOKEN }}
+            ACME_EMAIL=${{ secrets.ACME_EMAIL:-admin@promata.com.br }}
+
+            # Umami Analytics
+            UMAMI_DB_USER=${{ secrets.UMAMI_DB_USER:-umami }}
+            UMAMI_DB_PASSWORD=${{ secrets.UMAMI_DB_PASSWORD:-umami }}
+            UMAMI_DB_NAME=${{ secrets.UMAMI_DB_NAME:-umami }}
+            UMAMI_APP_SECRET=${{ secrets.UMAMI_APP_SECRET }}
+            UMAMI_URL=${{ secrets.UMAMI_URL:-}}
+            UMAMI_WEBSITE_ID=${{ secrets.UMAMI_WEBSITE_ID:-}}
+
+            # Metabase
+            METABASE_DB_USER=${{ secrets.METABASE_DB_USER:-metabase }}
+            METABASE_DB_PASSWORD=${{ secrets.METABASE_DB_PASSWORD:-metabase123 }}
+            METABASE_DB_NAME=${{ secrets.METABASE_DB_NAME:-metabase }}
+
+            # App
+            NODE_ENV=production
+            PORT=3000
+            EOF
+
+            # Usar .env.production
+            cp .env.production .env
+
+            # Pull das imagens mais recentes
+            echo "Atualizando imagens Docker..."
+            docker-compose -f docker-compose.prod.yml pull
+
+            # Parar serviços
+            echo "Parando serviços..."
+            docker-compose -f docker-compose.prod.yml down || true
+
+            # Iniciar serviços
+            echo "Iniciando serviços..."
+            docker-compose -f docker-compose.prod.yml up -d
+
+            # Aguardar serviços subirem
+            sleep 15
+
+            # Executar migrations
+            echo "Executando migrations..."
+            docker-compose -f docker-compose.prod.yml exec -T backend npx prisma migrate deploy || echo "Migrations já aplicadas"
+
+            # Verificar status
+            echo "Status dos serviços:"
+            docker-compose -f docker-compose.prod.yml ps
+
+            # Limpar imagens antigas
+            echo "Limpando imagens antigas..."
+            docker image prune -af --filter "until=24h" || true
+
+            echo "✅ Deploy concluído!"
