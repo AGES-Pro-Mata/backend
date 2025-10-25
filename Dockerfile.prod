@@ -43,15 +43,17 @@ WORKDIR /app
 COPY --from=build --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=build --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=nestjs:nodejs /app/prisma ./prisma
-COPY --from=build --chown=nestjs:nodejs package*.json ./
 
+# Copiar entrypoint que roda migrations automaticamente
+COPY --chown=nestjs:nodejs docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Variáveis de ambiente padrão de produção
 ENV NODE_ENV=production
 ENV PORT=3001
 
 EXPOSE 3001
 USER nestjs
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:3001/health || exit 1
-
-CMD ["node", "dist/main.js"]
+# Entrypoint roda migrations e inicia app
+ENTRYPOINT ["docker-entrypoint.sh"]
