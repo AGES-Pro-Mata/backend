@@ -103,8 +103,8 @@ jobs:
 
             # Database Prod
             DATABASE_URL=${{ secrets.PROD_DATABASE_URL }}
-            POSTGRES_DB=${{ secrets.POSTGRES_DB:-promata }}
-            POSTGRES_USER=${{ secrets.POSTGRES_USER:-admin }}
+            POSTGRES_DB=${{ secrets.POSTGRES_DB || 'promata' }}
+            POSTGRES_USER=${{ secrets.POSTGRES_USER || 'admin' }}
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
 
             # JWT
@@ -120,20 +120,20 @@ jobs:
             # Cloudflare DNS Challenge (para Let's Encrypt TLS)
             CF_API_EMAIL=${{ secrets.CF_API_EMAIL }}
             CF_DNS_API_TOKEN=${{ secrets.CF_DNS_API_TOKEN }}
-            ACME_EMAIL=${{ secrets.ACME_EMAIL:-admin@promata.com.br }}
+            ACME_EMAIL=${{ secrets.ACME_EMAIL || 'admin@promata.com.br' }}
 
             # Umami Analytics
-            UMAMI_DB_USER=${{ secrets.UMAMI_DB_USER:-umami }}
-            UMAMI_DB_PASSWORD=${{ secrets.UMAMI_DB_PASSWORD:-umami }}
-            UMAMI_DB_NAME=${{ secrets.UMAMI_DB_NAME:-umami }}
+            UMAMI_DB_USER=${{ secrets.UMAMI_DB_USER || 'umami' }}
+            UMAMI_DB_PASSWORD=${{ secrets.UMAMI_DB_PASSWORD || 'umami' }}
+            UMAMI_DB_NAME=${{ secrets.UMAMI_DB_NAME || 'umami' }}
             UMAMI_APP_SECRET=${{ secrets.UMAMI_APP_SECRET }}
-            UMAMI_URL=${{ secrets.UMAMI_URL:-}}
-            UMAMI_WEBSITE_ID=${{ secrets.UMAMI_WEBSITE_ID:-}}
+            UMAMI_URL=${{ secrets.UMAMI_URL || '' }}
+            UMAMI_WEBSITE_ID=${{ secrets.UMAMI_WEBSITE_ID || '' }}
 
             # Metabase
-            METABASE_DB_USER=${{ secrets.METABASE_DB_USER:-metabase }}
-            METABASE_DB_PASSWORD=${{ secrets.METABASE_DB_PASSWORD:-metabase123 }}
-            METABASE_DB_NAME=${{ secrets.METABASE_DB_NAME:-metabase }}
+            METABASE_DB_USER=${{ secrets.METABASE_DB_USER || 'metabase' }}
+            METABASE_DB_PASSWORD=${{ secrets.METABASE_DB_PASSWORD || 'metabase123' }}
+            METABASE_DB_NAME=${{ secrets.METABASE_DB_NAME || 'metabase' }}
 
             # App
             NODE_ENV=production
