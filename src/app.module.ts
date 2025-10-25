@@ -17,6 +17,7 @@ import { ExperienceModule } from './experience/experience.module';
 import { ObfuscateModule } from './obfuscate/obfuscate.module';
 import { DatabaseExceptionFilter } from './database/database.filter';
 import { HighlightModule } from './highlight/highlight.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { HighlightModule } from './highlight/highlight.module';
     AuthModule,
     AnalyticsModule,
     UserModule,
+    MailModule,
     ReservationModule,
     ExperienceModule,
     ObfuscateModule,

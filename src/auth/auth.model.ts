@@ -57,3 +57,24 @@ export const ChangePasswordSchema = z.object({
 });
 
 export class ChangePasswordDto extends createZodDto(ChangePasswordSchema) {}
+
+export const CreateRootUserSchema = z.object({
+  name: z.string(),
+  email: z.email(),
+  password: z.hash('sha256'),
+  confirmPassword: z.hash('sha256'),
+  phone: z.string(),
+  gender: z.string(),
+  document: z.string().optional(),
+  rg: z.string().optional(),
+  country: z.string(),
+  userType: z.enum(Object.values(UserType)),
+  institution: z.string().optional(),
+  isForeign: z.boolean(),
+  addressLine: z.string().optional(),
+  city: z.string().optional(),
+  zipCode: z.string(),
+  number: z.number().optional(),
+});
+
+export class CreateRootUserDto extends createZodDto(CreateRootUserSchema) {}

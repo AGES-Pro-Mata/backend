@@ -1,12 +1,19 @@
 import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-import { DatabaseService } from 'src/database/database.service';
-import { ChangePasswordDto, CreateUserFormDto, ForgotPasswordDto, LoginDto } from './auth.model';
-import { ReceiptType } from 'generated/prisma';
-import { timingSafeEqual, randomBytes } from 'node:crypto';
-import { AnalyticsService } from 'src/analytics/analytics.service';
-import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import argon2 from 'argon2';
+import { ReceiptType } from 'generated/prisma';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { AnalyticsService } from 'src/analytics/analytics.service';
+import { DatabaseService } from 'src/database/database.service';
+import { MailService } from 'src/mail/mail.service';
+import {
+  ChangePasswordDto,
+  CreateRootUserDto,
+  CreateUserFormDto,
+  ForgotPasswordDto,
+  LoginDto,
+} from './auth.model';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +24,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly analyticsService: AnalyticsService,
     private readonly configService: ConfigService,
+    private readonly mailService: MailService,
   ) {}
 
   private comparePasswords(password: string, confirmPassword: string) {
@@ -65,7 +73,7 @@ export class AuthService {
   async signIn(dto: LoginDto) {
     const user = await this.databaseService.user.findUnique({
       where: { email: dto.email },
-      select: { id: true, password: true },
+      select: { id: true, password: true, isFirstAccess: true },
     });
 
     if (!user) {
@@ -73,6 +81,11 @@ export class AuthService {
     }
 
     if (await this.verifyPassword(user.password, dto.password)) {
+      if (user.isFirstAccess) {
+        const token = await this.createResetToken(user.id);
+        return { token: token, isFirstAccess: true };
+      }
+
       const payload = {
         sub: user.id,
       };
@@ -81,7 +94,7 @@ export class AuthService {
         secret: this.configService.get('JWT_SECRET'),
       });
 
-      return { token };
+      return { token, isFirstAccess: user.isFirstAccess };
     } else {
       throw new BadRequestException('Senha incorreta.');
     }
@@ -91,29 +104,16 @@ export class AuthService {
     const user = await this.databaseService.user.findUnique({
       where: { email: forgotPasswordDto.email },
     });
-
     if (!user) {
-      this.logger.log('POST /auth/forgot: Email não encontrado!');
-      return;
+      throw new BadRequestException('Usuário não encontrado.');
     }
+    const token = await this.createResetToken(user.id);
+    const resetUrl = `${this.configService.get('FRONTEND_URL')}/auth/redefine/${token}`;
 
-    const token = randomBytes(20).toString('hex');
-
-    const createdAt = new Date();
-
-    const expiredAt = new Date(createdAt);
-    expiredAt.setHours(createdAt.getHours() + 1);
-
-    await this.databaseService.passwordResetToken.create({
-      data: {
-        userId: user.id,
-        token: token,
-        createdAt,
-        expiredAt,
-      },
+    await this.mailService.sendTemplateMail(user.email, 'Recuperação de senha', 'forgot-password', {
+      name: user.name,
+      resetUrl,
     });
-
-    // TODO: Send a link to the user's email where they can change the password
   }
 
   async changePassword(changePasswordDto: ChangePasswordDto) {
@@ -129,6 +129,7 @@ export class AuthService {
       },
       data: {
         password: await this.hashPassword(changePasswordDto.password),
+        isFirstAccess: false,
       },
     });
 
@@ -185,6 +186,70 @@ export class AuthService {
       include: {
         address: {
           omit: { id: true, createdAt: true },
+        },
+      },
+    });
+  }
+
+  async createResetToken(userId: string) {
+    const activeToken = await this.databaseService.passwordResetToken.findFirst({
+      where: { userId: userId, isActive: true, expiredAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (activeToken) {
+      return activeToken.token;
+    }
+    const token = randomBytes(20).toString('hex');
+
+    const createdAt = new Date();
+
+    const expiredAt = new Date(createdAt);
+    expiredAt.setHours(createdAt.getHours() + 1);
+
+    await this.databaseService.passwordResetToken.create({
+      data: {
+        userId: userId,
+        token: token,
+        createdAt,
+        expiredAt,
+      },
+    });
+
+    return token;
+  }
+
+  async createRootUser(userId: string, dto: CreateRootUserDto) {
+    if (dto.password !== dto.confirmPassword) {
+      throw new BadRequestException('As senhas não são identicas.');
+    }
+
+    await this.databaseService.user.create({
+      data: {
+        name: dto.name,
+        email: dto.email,
+        password: await this.hashPassword(dto.password),
+        phone: dto.phone,
+        document: dto.document,
+        gender: dto.gender,
+        userType: dto.userType,
+        isForeign: false,
+        verified: true,
+        rg: dto.rg,
+        institution: dto.institution,
+        createdBy: {
+          connect: {
+            id: userId,
+          },
+        },
+        isFirstAccess: true,
+        address: {
+          create: {
+            zip: dto.zipCode,
+            street: dto.addressLine,
+            city: dto.city,
+            number: dto.number?.toString(),
+            country: dto.country,
+          },
         },
       },
     });

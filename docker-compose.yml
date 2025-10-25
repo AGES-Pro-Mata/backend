@@ -13,6 +13,12 @@ services:
       - CHOKIDAR_USEPOLLING=true
       - UMAMI_URL=${UMAMI_URL}
       - UMAMI_WEBSITE_ID=${UMAMI_WEBSITE_ID}
+      - MAIL_HOST=${MAIL_HOST}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USER=${MAIL_USER}
+      - MAIL_PASS=${MAIL_PASS}
+      - MAIL_FROM=${MAIL_FROM}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME}
     ports:
       - ${BACKEND_PORT:-3000}:${BACKEND_PORT:-3000}
     volumes:
