@@ -8,8 +8,6 @@ on:
     workflows: ["Backend CI/CD (Build & Publish)"]
     types:
       - completed
-    branches:
-      - main
   # Permite deploy manual
   workflow_dispatch:
 
@@ -93,6 +91,10 @@ jobs:
               git clone https://github.com/AGES-Pro-Mata/backend.git .
             fi
 
+            # Definir defaults para secrets opcionais
+            ACME_EMAIL="${{ secrets.ACME_EMAIL }}"
+            ACME_EMAIL="${ACME_EMAIL:-admin@promata.com.br}"
+
             # Criar/atualizar arquivo .env com secrets
             cat > .env.production << EOF
             # Docker - Usar imagem :latest publicada pelo CI/CD (main branch)
@@ -120,7 +122,7 @@ jobs:
             # Cloudflare DNS Challenge (para Let's Encrypt TLS)
             CF_API_EMAIL=${{ secrets.CF_API_EMAIL }}
             CF_DNS_API_TOKEN=${{ secrets.CF_DNS_API_TOKEN }}
-            ACME_EMAIL=${{ secrets.ACME_EMAIL || 'admin@promata.com.br' }}
+            ACME_EMAIL=${ACME_EMAIL}
 
             # Umami Analytics
             UMAMI_DB_USER=${{ secrets.UMAMI_DB_USER || 'umami' }}
