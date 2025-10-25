@@ -3,9 +3,14 @@
 name: Deploy com Docker Compose
 
 on:
-  push:
+  # Aguarda ci-cd.yml completar antes de fazer deploy
+  workflow_run:
+    workflows: ["Backend CI/CD (Build & Publish)"]
+    types:
+      - completed
     branches:
       - main
+  # Permite deploy manual
   workflow_dispatch:
 
 env:
@@ -17,7 +22,10 @@ jobs:
   deploy-prod-compose:
     name: Deploy Production (Docker Compose)
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    # Só roda se o workflow anterior foi bem-sucedido (ou se for dispatch manual)
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
 
     steps:
       - name: Checkout
@@ -51,14 +59,17 @@ jobs:
 
             # Criar/atualizar arquivo .env com secrets
             cat > .env.production << EOF
-            # Docker
+            # Docker - Usar imagem :latest publicada pelo CI/CD (main branch)
             DOCKER_REGISTRY=${{ env.DOCKER_REGISTRY }}
             IMAGE_NAME=${{ env.IMAGE_NAME }}
             IMAGE_TAG=latest
             CONTAINER_NAME=promata-backend
 
-            # Database
+            # Database Prod
             DATABASE_URL=${{ secrets.PROD_DATABASE_URL }}
+            POSTGRES_DB=${{ secrets.POSTGRES_DB:-promata }}
+            POSTGRES_USER=${{ secrets.POSTGRES_USER:-admin }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
 
             # JWT
             JWT_SECRET=${{ secrets.PROD_JWT_SECRET }}
@@ -69,6 +80,24 @@ jobs:
             AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
             AWS_S3_REGION=${{ vars.AWS_REGION }}
             AWS_S3_BUCKET=${{ secrets.PROD_AWS_S3_BUCKET }}
+
+            # Cloudflare DNS Challenge (para Let's Encrypt TLS)
+            CF_API_EMAIL=${{ secrets.CF_API_EMAIL }}
+            CF_DNS_API_TOKEN=${{ secrets.CF_DNS_API_TOKEN }}
+            ACME_EMAIL=${{ secrets.ACME_EMAIL:-admin@promata.com.br }}
+
+            # Umami Analytics
+            UMAMI_DB_USER=${{ secrets.UMAMI_DB_USER:-umami }}
+            UMAMI_DB_PASSWORD=${{ secrets.UMAMI_DB_PASSWORD:-umami }}
+            UMAMI_DB_NAME=${{ secrets.UMAMI_DB_NAME:-umami }}
+            UMAMI_APP_SECRET=${{ secrets.UMAMI_APP_SECRET }}
+            UMAMI_URL=${{ secrets.UMAMI_URL:-}}
+            UMAMI_WEBSITE_ID=${{ secrets.UMAMI_WEBSITE_ID:-}}
+
+            # Metabase
+            METABASE_DB_USER=${{ secrets.METABASE_DB_USER:-metabase }}
+            METABASE_DB_PASSWORD=${{ secrets.METABASE_DB_PASSWORD:-metabase123 }}
+            METABASE_DB_NAME=${{ secrets.METABASE_DB_NAME:-metabase }}
 
             # App
             NODE_ENV=production

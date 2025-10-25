@@ -23,9 +23,11 @@ services:
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=promata_public
 
-      # Let's Encrypt
-      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
-      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      # Let's Encrypt com DNS Challenge (Cloudflare)
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge=true
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.resolvers=1.1.1.1:53,1.0.0.1:53
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.delaybeforecheck=30
       - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-admin@promata.com.br}
       - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
       - --certificatesresolvers.letsencrypt.acme.caserver=https://acme-v02.api.letsencrypt.org/directory
@@ -33,6 +35,11 @@ services:
       # Logs
       - --log.level=${TRAEFIK_LOG_LEVEL:-INFO}
       - --accesslog=true
+
+    environment:
+      # Cloudflare API credentials para DNS Challenge
+      - CF_API_EMAIL=${CF_API_EMAIL}
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
 
     ports:
       - "80:80"
@@ -95,6 +102,7 @@ services:
       retries: 3
 
   # Backend NestJS
+  # Usa imagem publicada pelo CI/CD (ci-cd.yml main branch → tag :latest)
   backend:
     image: ${DOCKER_REGISTRY:-docker.io}/${IMAGE_NAME:-norohim/pro-mata-backend}:${IMAGE_TAG:-latest}
     container_name: ${CONTAINER_NAME:-promata-backend}

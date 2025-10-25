@@ -1,4 +1,4 @@
-name: Backend CI/CD
+name: Backend CI/CD (Build & Publish)
 
 on:
   push:
@@ -267,7 +267,9 @@ jobs:
     name: Deploy PROD to EC2
     needs: [publish-prod]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    # DESABILITADO: Usar deploy-compose.yml para evitar conflito de containers
+    # O deploy-compose.yml gerencia volumes nomeados e rede corretamente
+    if: false
     steps:
       - name: Deploy container on PROD host
         uses: appleboy/ssh-action@v1.0.0
