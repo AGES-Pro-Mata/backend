@@ -127,7 +127,7 @@ services:
       database:
         condition: service_healthy
       umami:
-        condition: service_healthy
+        condition: service_started  # Apenas aguarda iniciar, não precisa estar healthy
 
     labels:
       - traefik.enable=true
