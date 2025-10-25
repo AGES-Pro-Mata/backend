@@ -40,6 +40,44 @@ jobs:
           script: |
             set -euo pipefail
 
+            # ========================================
+            # AUTO-MIGRATION: Setup antigo → Compose unificado
+            # ========================================
+            if [ -d "$HOME/prod-db" ] && [ ! -d "/opt/promata-backend/.git" ]; then
+              echo "🔄 Setup antigo detectado - migrando automaticamente..."
+
+              # Criar backup
+              BACKUP_DIR="$HOME/backup-$(date +%Y%m%d-%H%M%S)"
+              mkdir -p "$BACKUP_DIR"
+              echo "📦 Criando backup em: $BACKUP_DIR"
+
+              # Parar containers antigos
+              echo "⏸️  Parando containers antigos..."
+              docker stop backend-prod backend-dev umami metabase prod-postgres dev-postgres umami-db metabase-db 2>/dev/null || true
+
+              # Backup do PostgreSQL prod (bind mount)
+              echo "💾 Backup do PostgreSQL..."
+              docker run --rm -v "$HOME/prod-db/data:/source:ro" -v "$BACKUP_DIR:/backup" alpine tar czf /backup/prod-postgres-data.tar.gz -C /source .
+
+              # Criar volume e migrar dados
+              echo "📦 Criando volume promata-postgres-data..."
+              docker volume create promata-postgres-data
+              echo "🔄 Migrando dados..."
+              docker run --rm -v "$HOME/prod-db/data:/source:ro" -v promata-postgres-data:/dest alpine sh -c "cp -av /source/. /dest/"
+
+              # Verificar migração
+              FILE_COUNT=$(docker run --rm -v promata-postgres-data:/data alpine sh -c "find /data -type f | wc -l")
+              echo "✅ Migração completa: $FILE_COUNT arquivos"
+
+              # Remover containers antigos
+              echo "🗑️  Removendo containers antigos..."
+              docker rm -f backend-prod backend-dev umami metabase prod-postgres dev-postgres umami-db metabase-db 2>/dev/null || true
+
+              echo "✅ Migração concluída! Backup salvo em: $BACKUP_DIR"
+            else
+              echo "ℹ️  Migração não necessária ou já realizada"
+            fi
+
             # Navegar para diretório do projeto em /opt (centralizado)
             sudo mkdir -p /opt/promata-backend
             sudo chown $USER:$USER /opt/promata-backend
