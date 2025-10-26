@@ -12,6 +12,8 @@ async function bootstrap() {
       'http://localhost:3002',
       'http://localhost:3001',
       'http://promata-frontend.s3-website.us-east-2.amazonaws.com',
+      'https://promata.com.br',
+      'https://www.promata.com.br',
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -33,7 +35,7 @@ async function bootstrap() {
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
 
 bootstrap().catch(console.error);

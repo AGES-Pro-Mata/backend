@@ -9,4 +9,9 @@ export class AppController {
   async getHello() {
     return await this.appService.getHello();
   }
+
+  @Get('health')
+  getHealth() {
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  }
 }

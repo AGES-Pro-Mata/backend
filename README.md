@@ -44,9 +44,11 @@ Backend + banco PostgreSQL locais.
 ```bash
 docker compose up database
 ```
+
 Para rodar backend localmente: `npm run start:dev` e mudar o host da URL do database no `.env` de `database` para `localhost`
 
 #### 🔹 Rodar local
+
 ```bash
 npx run start:dev
 # ou
@@ -100,3 +102,126 @@ npx prisma migrate reset
 - Host: `localhost:5432`
 
 ⚠️ **Importante:** Para ambientes TST (Teste) e HLG (Homologação), entre em contato com os AGES III e IV.
+
+## 🏗️ Infraestrutura e Ambientes
+
+### Ambientes
+
+O projeto possui os seguintes ambientes:
+
+#### 🔵 Desenvolvimento (DEV)
+
+- **Onde roda:** Localmente via `docker-compose.yml`
+- **Como rodar:** `docker compose up`
+- **Serviços inclusos:**
+  - Backend NestJS (porta 3000)
+  - PostgreSQL (porta 5432)
+  - Umami Analytics (porta 5050)
+  - Metabase (porta 3001)
+  - Prisma Studio (porta 5555)
+
+**Importante:** O ambiente DEV **NÃO** é mais deployado na EC2 automaticamente. Sempre rode localmente para economizar recursos da infraestrutura.
+
+#### 🟢 Produção (PROD)
+
+- **Onde roda:** EC2 AWS via Docker Compose
+- **Arquivo:** `docker-compose.prod.yml`
+- **Deploy:** Automático via GitHub Actions quando há merge na branch `main`
+- **Stack completa:**
+  - Traefik (reverse proxy + SSL/TLS Let's Encrypt)
+  - Backend NestJS
+  - PostgreSQL
+  - Umami Analytics
+  - Metabase
+  - Prisma Studio
+  - Frontend Proxy (Nginx → S3)
+
+### CI/CD
+
+#### Build e Publish
+
+- Arquivo: `.github/workflows/ci-cd.yml`
+- Triggers:
+  - Push na branch `dev`: builda imagem Docker DEV
+  - Push na branch `main`: builda imagem Docker PROD
+
+#### Deploy Produção
+
+- Arquivo: `.github/workflows/deploy-compose.yml`
+- Trigger: Após sucesso do workflow `ci-cd.yml` na branch `main`
+- Ações:
+  - Faz pull das imagens mais recentes
+  - Atualiza serviços via `docker-compose.prod.yml`
+  - Executa migrations do Prisma
+  - Inclui migração automática de setup legado
+
+### Recursos da EC2
+
+A instância EC2 de produção é uma **t2.medium** (2 vCPUs, 4 GB RAM). Por limitações de recursos, apenas o ambiente de **PRODUÇÃO** roda na EC2. O ambiente de **DESENVOLVIMENTO** deve ser executado localmente.
+
+### Secrets e Variáveis de Ambiente
+
+Para produção, configure os seguintes secrets no GitHub Actions:
+
+#### Obrigatórios
+
+- `PROD_DATABASE_URL` - URL de conexão PostgreSQL
+- `PROD_JWT_SECRET` - Secret para JWT tokens
+- `AWS_ACCESS_KEY_ID` - Credenciais AWS S3
+- `AWS_SECRET_ACCESS_KEY` - Credenciais AWS S3
+- `PROD_AWS_S3_BUCKET` - Nome do bucket S3
+- `CF_API_EMAIL` - Email Cloudflare (para SSL)
+- `CF_DNS_API_TOKEN` - Token API Cloudflare (para SSL)
+
+#### Opcionais (com valores padrão)
+
+- `POSTGRES_DB` (padrão: `promata`)
+- `POSTGRES_USER` (padrão: `admin`)
+- `POSTGRES_PASSWORD` (obrigatório em PROD)
+- `UMAMI_APP_SECRET` (padrão fornecido - **MUDE EM PRODUÇÃO**)
+- `UMAMI_DB_USER` (padrão: `umami`)
+- `UMAMI_DB_PASSWORD` (padrão: `umami`)
+- `UMAMI_DB_NAME` (padrão: `umami`)
+- `METABASE_DB_USER` (padrão: `metabase`)
+- `METABASE_DB_PASSWORD` (padrão: `metabase123`)
+- `METABASE_DB_NAME` (padrão: `metabase`)
+- `ACME_EMAIL` (padrão: `admin@promata.com.br`)
+
+#### Como gerar UMAMI_APP_SECRET
+
+O Umami requer um secret base64-encoded. Gere um novo secret com:
+
+```bash
+openssl rand -base64 32
+```
+
+Exemplo de output:
+
+```text
+1ROqCXlzGzCkeRfWvcUUqycuwEeCA+TN4YkI1XrXjUg=
+```
+
+Use esse valor no GitHub Secret `UMAMI_APP_SECRET`.
+
+### Limpeza de Containers DEV na EC2
+
+Se você tinha containers DEV rodando na EC2 antes desta mudança, use o script de limpeza para removê-los com segurança:
+
+```bash
+# Na EC2 (via SSH)
+bash scripts/cleanup-dev-ec2.sh
+```
+
+Este script:
+
+- Remove containers DEV antigos
+- **Preserva todos os volumes de dados**
+- Limpa imagens Docker não utilizadas (>24h)
+- Mantém containers PROD intactos
+- Mostra relatório de recursos após limpeza
+
+**Importante:** O script NÃO remove volumes. Para remover volumes não utilizados manualmente (use com cuidado):
+
+```bash
+docker volume prune -f
+```
