@@ -4,6 +4,7 @@ import { Prisma } from 'generated/prisma';
 import {
   CreateExperienceFormDto,
   ExperienceSearchParamsDto,
+  GetExperienceFilterDto,
   UpdateExperienceFormDto,
 } from './experience.model';
 
@@ -125,6 +126,43 @@ export class ExperienceService {
         trailLength: createExperienceDto.trailLength,
         active: true,
         imageId,
+      },
+    });
+  }
+
+  async getExperienceFilter(getExperienceFilterDto: GetExperienceFilterDto) {
+    return this.databaseService.experience.findMany({
+      where: {
+        category: getExperienceFilterDto.category,
+        ...(getExperienceFilterDto.startDate && {
+          startDate: {
+            gte: getExperienceFilterDto.startDate,
+          },
+        }),
+        ...(getExperienceFilterDto.endDate && {
+          endDate: {
+            lte: getExperienceFilterDto.endDate,
+          },
+        }),
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        category: true,
+        capacity: true,
+        startDate: true,
+        endDate: true,
+        price: true,
+        weekDays: true,
+        durationMinutes: true,
+        trailDifficulty: true,
+        trailLength: true,
+        image: {
+          select: {
+            url: true,
+          },
+        },
       },
     });
   }
