@@ -218,17 +218,13 @@ jobs:
             IMAGE_TAG=latest
             CONTAINER_NAME=promata-dev-backend
 
-            # Docker - Database (imagem customizada -dev)
-            DATABASE_IMAGE=norohim/pro-mata-database-dev
-            DATABASE_TAG=latest
-
             # Backend Configuration
             NODE_ENV=development
             BACKEND_PORT=3010
             PORT=3010
 
-            # Database Dev
-            DATABASE_URL=${{ secrets.DEV_DATABASE_URL }}
+            # Database Dev (conexão interna do Docker)
+            DATABASE_URL=postgresql://${{ secrets.DEV_POSTGRES_USER || 'promata' }}:${{ secrets.DEV_POSTGRES_PASSWORD }}@database:5432/${{ secrets.DEV_POSTGRES_DB || 'promata' }}
             POSTGRES_DB=${{ secrets.DEV_POSTGRES_DB || 'promata' }}
             POSTGRES_USER=${{ secrets.DEV_POSTGRES_USER || 'promata' }}
             POSTGRES_PASSWORD=${{ secrets.DEV_POSTGRES_PASSWORD }}

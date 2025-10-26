@@ -153,9 +153,10 @@ O projeto possui os seguintes ambientes:
 #### Build e Publish
 
 - Arquivo: `.github/workflows/ci-cd.yml`
-- Triggers:
-  - Push na branch `dev`: builda e publica no repositório `norohim/pro-mata-backend-dev:latest`
-  - Push na branch `main`: builda e publica no repositório `norohim/pro-mata-backend:latest` e `:prod`
+- Imagens Docker publicadas:
+  - **DEV**: `norohim/pro-mata-backend-dev:latest` (branch `dev`)
+  - **PROD**: `norohim/pro-mata-backend:latest` (branch `main`)
+- Nota: Database usa imagem oficial `postgres:15-alpine`, Frontend está no S3
 
 #### Deploy Automático
 
