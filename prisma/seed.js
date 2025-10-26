@@ -177,7 +177,7 @@ async function main() {
       userType: UserType.ROOT,
       name: 'Admin Root',
       email: 'root@sistema.com',
-      password: hashedPassword,
+      password: demoPassword,
       phone: '11999999999',
       document: '11111111111',
       gender: 'Masculino',
