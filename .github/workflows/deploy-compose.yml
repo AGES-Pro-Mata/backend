@@ -87,8 +87,12 @@ jobs:
               git fetch origin
               git reset --hard origin/main
             else
-              echo "Clonando repositório..."
-              git clone https://github.com/AGES-Pro-Mata/backend.git .
+              echo "Repositório não encontrado. Recriando..."
+              cd /opt
+              sudo rm -rf promata-backend
+              git clone https://github.com/AGES-Pro-Mata/backend.git promata-backend
+              sudo chown -R $USER:$USER promata-backend
+              cd promata-backend
             fi
 
             # Definir defaults para secrets opcionais
@@ -206,8 +210,12 @@ jobs:
               git fetch origin
               git reset --hard origin/dev
             else
-              echo "Clonando repositório DEV..."
-              git clone -b dev https://github.com/AGES-Pro-Mata/backend.git .
+              echo "Repositório não encontrado. Recriando..."
+              cd /opt
+              sudo rm -rf promata-backend-dev
+              git clone -b dev https://github.com/AGES-Pro-Mata/backend.git promata-backend-dev
+              sudo chown -R $USER:$USER promata-backend-dev
+              cd promata-backend-dev
             fi
 
             # Criar/atualizar arquivo .env.dev com secrets
