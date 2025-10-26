@@ -1,15 +1,22 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
-import { BadRequestException, Logger, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { DatabaseService } from 'src/database/database.service';
 import { AnalyticsService } from 'src/analytics/analytics.service';
-import { CreateUserFormDto, LoginDto, ForgotPasswordDto, ChangePasswordDto } from './auth.model';
+import {
+  CreateUserFormDto,
+  LoginDto,
+  ForgotPasswordDto,
+  ChangePasswordDto,
+  CreateRootUserDto,
+} from './auth.model';
 import { ReceiptType, UserType } from 'generated/prisma';
 import * as argon2 from 'argon2';
+import { MailService } from 'src/mail/mail.service';
 
 // Mock do argon2
 jest.mock('argon2');
@@ -20,6 +27,7 @@ describe('AuthService', () => {
   let jwtService: jest.Mocked<JwtService>;
   let analyticsService: jest.Mocked<AnalyticsService>;
   let configService: jest.Mocked<ConfigService>;
+  let mailService: jest.Mocked<MailService>;
 
   let logSpy: jest.SpiedFunction<typeof Logger.prototype.log>;
 
@@ -42,6 +50,7 @@ describe('AuthService', () => {
         create: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),
+        findFirst: jest.fn(),
       },
     };
 
@@ -57,6 +66,11 @@ describe('AuthService', () => {
       get: jest.fn(),
     };
 
+    const mockMailService = {
+      sendMail: jest.fn(),
+      sendTemplateMail: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -64,6 +78,7 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: mockJwtService },
         { provide: AnalyticsService, useValue: mockAnalyticsService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: MailService, useValue: mockMailService },
       ],
     }).compile();
 
@@ -72,6 +87,7 @@ describe('AuthService', () => {
     jwtService = module.get(JwtService);
     analyticsService = module.get(AnalyticsService);
     configService = module.get(ConfigService);
+    mailService = module.get(MailService);
 
     jest.clearAllMocks();
   });
@@ -259,7 +275,7 @@ describe('AuthService', () => {
 
       expect(databaseService.user.findUnique).toHaveBeenCalledWith({
         where: { email: dto.email },
-        select: { id: true, password: true },
+        select: { id: true, password: true, isFirstAccess: true },
       });
     });
 
@@ -297,13 +313,13 @@ describe('AuthService', () => {
 
       databaseService.user.findUnique.mockResolvedValueOnce(null);
 
-      await service.forgotPassword(dto);
+      await expect(service.forgotPassword(dto)).rejects.toThrow(BadRequestException);
 
       expect(databaseService.user.findUnique).toHaveBeenCalledWith({
         where: { email: dto.email },
       });
-      expect(logSpy).toHaveBeenCalledWith('POST /auth/forgot: Email não encontrado!');
       expect(databaseService.passwordResetToken.create).not.toHaveBeenCalled();
+      expect(mailService.sendMail).not.toHaveBeenCalled();
     });
 
     it('should create password reset token when user exists', async () => {
@@ -330,12 +346,13 @@ describe('AuthService', () => {
 
       // Verificar que o token tem 40 caracteres (20 bytes em hex)
       const createCall = databaseService.passwordResetToken.create.mock.calls[0][0];
+      console.log(createCall.data);
       expect(createCall.data.token).toHaveLength(40);
 
       // Verificar que expiredAt é 1 hora após createdAt
       const createdAt = createCall.data.createdAt as Date;
       const expiredAt = createCall.data.expiredAt as Date;
-      const diffInHours = (expiredAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+      const diffInHours = (expiredAt.getTime() - createdAt.getTime()) / 1000 / 60 / 60;
       expect(diffInHours).toBe(1);
     });
   });
@@ -402,7 +419,7 @@ describe('AuthService', () => {
 
       expect(databaseService.user.update).toHaveBeenCalledWith({
         where: { id: userId },
-        data: { password: hashedPassword },
+        data: { password: hashedPassword, isFirstAccess: false },
       });
 
       expect(databaseService.passwordResetToken.update).toHaveBeenCalledWith({
@@ -537,6 +554,144 @@ describe('AuthService', () => {
       const result = await service.findProfile(userId);
 
       expect(result).toBeNull();
+    });
+  });
+  describe('createRootUser', () => {
+    const creatorUserId = '1b7b4b0a-1e67-41af-9f0f-4a11f3e8a9f7';
+
+    it('should throw BadRequestException when passwords do not match', async () => {
+      const dto: CreateRootUserDto = {
+        name: 'Root User',
+        email: 'root@example.com',
+        password: 'password123',
+        confirmPassword: 'different_password',
+        phone: '123456789',
+        gender: 'M',
+        document: '12345678900',
+        rg: '1234567',
+        country: 'Country',
+        userType: UserType.ADMIN,
+        institution: null,
+        isForeign: false,
+        addressLine: null,
+        city: null,
+        zipCode: '00000-000',
+        number: null,
+      } as never;
+
+      await expect(service.createRootUser(creatorUserId, dto)).rejects.toThrow(BadRequestException);
+      await expect(service.createRootUser(creatorUserId, dto)).rejects.toThrow(
+        'As senhas não são identicas.',
+      );
+
+      expect(databaseService.user.create).not.toHaveBeenCalled();
+    });
+
+    it('should create root user with matching passwords', async () => {
+      const dto: CreateRootUserDto = {
+        name: 'Root User',
+        email: 'root@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
+        phone: '123456789',
+        gender: 'M',
+        document: '12345678900',
+        rg: '1234567',
+        country: 'Brazil',
+        userType: UserType.ADMIN,
+        institution: 'Institution',
+        isForeign: false,
+        addressLine: 'Street',
+        city: 'City',
+        zipCode: '12345-678',
+        number: 123,
+        isFirstAccess: true,
+      } as never;
+
+      databaseService.user.create.mockResolvedValueOnce({} as never);
+
+      await service.createRootUser(creatorUserId, dto);
+
+      expect(databaseService.user.create).toHaveBeenCalledWith({
+        data: {
+          name: dto.name,
+          email: dto.email,
+          isFirstAccess: true,
+          phone: dto.phone,
+          document: dto.document,
+          gender: dto.gender,
+          userType: UserType.ADMIN,
+          isForeign: false,
+          verified: true,
+          rg: dto.rg,
+          institution: dto.institution,
+          createdBy: {
+            connect: {
+              id: creatorUserId,
+            },
+          },
+          address: {
+            create: {
+              zip: dto.zipCode,
+              street: dto.addressLine,
+              city: dto.city,
+              number: dto.number?.toString(),
+              country: dto.country,
+            },
+          },
+        },
+      });
+    });
+
+    it('should create root user without optional fields', async () => {
+      const dto: CreateRootUserDto = {
+        name: 'Root User',
+        email: 'root@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
+        phone: '123456789',
+        isFirstAccess: true,
+        gender: 'F',
+        country: 'Brazil',
+        userType: UserType.ADMIN,
+        isForeign: false,
+        zipCode: '00000-000',
+      } as never;
+
+      databaseService.user.create.mockResolvedValueOnce({} as never);
+
+      await service.createRootUser(creatorUserId, dto);
+
+      expect(databaseService.user.create).toHaveBeenCalledWith({
+        data: {
+          name: dto.name,
+          email: dto.email,
+          phone: dto.phone,
+          isFirstAccess: true,
+          document: undefined,
+          gender: dto.gender,
+          userType: dto.userType,
+          isForeign: false,
+          verified: true,
+          rg: dto.rg,
+          institution: dto.institution,
+
+          createdBy: {
+            connect: {
+              id: creatorUserId,
+            },
+          },
+          address: {
+            create: {
+              zip: dto.zipCode,
+              street: dto.addressLine,
+              city: dto.city,
+              number: dto.number?.toString(),
+              country: dto.country,
+            },
+          },
+        },
+      });
     });
   });
 });
