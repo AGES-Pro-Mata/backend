@@ -131,7 +131,7 @@ export class ExperienceService {
   }
 
   async getExperienceFilter(getExperienceFilterDto: GetExperienceFilterDto) {
-    const where = {
+    const where: Prisma.ExperienceWhereInput = {
       category: getExperienceFilterDto.category,
       startDate: {
         gte: getExperienceFilterDto.startDate,
@@ -141,6 +141,7 @@ export class ExperienceService {
       },
       name: {
         contains: getExperienceFilterDto.search,
+        mode: 'insensitive',
       },
     };
 
