@@ -134,16 +134,15 @@ export class ExperienceService {
     return this.databaseService.experience.findMany({
       where: {
         category: getExperienceFilterDto.category,
-        ...(getExperienceFilterDto.startDate && {
-          startDate: {
-            gte: getExperienceFilterDto.startDate,
-          },
-        }),
-        ...(getExperienceFilterDto.endDate && {
-          endDate: {
-            lte: getExperienceFilterDto.endDate,
-          },
-        }),
+        startDate: {
+          gte: getExperienceFilterDto.startDate,
+        },
+        endDate: {
+          lte: getExperienceFilterDto.endDate,
+        },
+        name: {
+          contains: getExperienceFilterDto.name,
+        },
       },
       select: {
         id: true,
