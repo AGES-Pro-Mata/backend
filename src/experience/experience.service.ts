@@ -131,19 +131,21 @@ export class ExperienceService {
   }
 
   async getExperienceFilter(getExperienceFilterDto: GetExperienceFilterDto) {
-    return this.databaseService.experience.findMany({
-      where: {
-        category: getExperienceFilterDto.category,
-        startDate: {
-          gte: getExperienceFilterDto.startDate,
-        },
-        endDate: {
-          lte: getExperienceFilterDto.endDate,
-        },
-        name: {
-          contains: getExperienceFilterDto.name,
-        },
+    const where = {
+      category: getExperienceFilterDto.category,
+      startDate: {
+        gte: getExperienceFilterDto.startDate,
       },
+      endDate: {
+        lte: getExperienceFilterDto.endDate,
+      },
+      name: {
+        contains: getExperienceFilterDto.name,
+      },
+    };
+
+    const experiences = this.databaseService.experience.findMany({
+      where,
       select: {
         id: true,
         name: true,
@@ -163,6 +165,18 @@ export class ExperienceService {
           },
         },
       },
+
+      skip: getExperienceFilterDto.limit * getExperienceFilterDto.page,
+      take: getExperienceFilterDto.limit,
     });
+
+    const total = await this.databaseService.experience.count({ where });
+
+    return {
+      page: getExperienceFilterDto.page,
+      limit: getExperienceFilterDto.limit,
+      total,
+      items: experiences,
+    };
   }
 }

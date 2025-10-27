@@ -300,6 +300,11 @@ describe('ReservationService', () => {
               capacity: true,
               trailLength: true,
               durationMinutes: true,
+              image: {
+                select: {
+                  url: true,
+                },
+              },
             },
           },
         },
