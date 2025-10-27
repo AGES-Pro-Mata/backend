@@ -8,16 +8,12 @@ const MemberSchema = z.object({
   gender: z.string(),
 });
 
-const MemberDocumentSchema = z.object({
-  document: z.string(),
-});
-
 const ReservationSchema = z.object({
   notes: z.string().optional(),
   experienceId: z.uuid(),
   startDate: z.iso.datetime(),
   endDate: z.iso.datetime(),
-  members: z.array(MemberDocumentSchema),
+  membersCount: z.number(),
 });
 
 export const CreateReservationGroupSchema = z.object({

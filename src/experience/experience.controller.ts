@@ -60,7 +60,6 @@ export class ExperienceController {
   }
 
   @Get('search')
-  @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   async getExperienceFilter(@Query() getExperienceFilterDto: GetExperienceFilterDto) {
     return await this.experienceService.getExperienceFilter(getExperienceFilterDto);

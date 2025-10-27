@@ -164,14 +164,7 @@ export class ReservationService {
               startDate: r.startDate,
               endDate: r.endDate,
               notes: r.notes ?? null,
-              members: {
-                connect: r.members.map((m) => ({
-                  reservationGroupId_document: {
-                    reservationGroupId: group.id,
-                    document: m.document,
-                  },
-                })),
-              },
+              membersCount: r.membersCount,
             },
             select: {
               _count: true,
@@ -191,7 +184,7 @@ export class ReservationService {
       return tx.reservationGroup.findUniqueOrThrow({
         where: { id: group.id },
         include: {
-          reservations: { include: { members: true, experience: true } },
+          reservations: { include: { experience: true } },
           requests: true,
         },
       });
@@ -212,14 +205,7 @@ export class ReservationService {
         },
         reservations: {
           select: {
-            members: {
-              omit: {
-                createdAt: true,
-                updatedAt: true,
-                active: true,
-                reservationGroupId: true,
-              },
-            },
+            membersCount: true,
             notes: true,
             experience: {
               omit: {
@@ -254,14 +240,7 @@ export class ReservationService {
         },
         reservations: {
           select: {
-            members: {
-              omit: {
-                createdAt: true,
-                updatedAt: true,
-                active: true,
-                reservationGroupId: true,
-              },
-            },
+            membersCount: true,
             notes: true,
             experience: {
               omit: {

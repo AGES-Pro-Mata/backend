@@ -134,23 +134,24 @@ model Image {
 }
 
 model Experience {
-  id              String           @id @default(uuid())
-  name            String
-  description     String
-  category        Category
-  capacity        Int
-  image           Image?           @relation(fields: [imageId], references: [id])
-  startDate       DateTime?
-  endDate         DateTime?
-  price           Decimal?
-  weekDays        WeekDay[]
-  durationMinutes Int?
-  trailDifficulty TrailDifficulty?
-  trailLength     Float?
-  imageId         String?
-  active          Boolean
-  reservation     Reservation[]
-  createdAt       DateTime         @default(now())
+  id                 String           @id @default(uuid())
+  name               String
+  description        String
+  category           Category
+  capacity           Int
+  image              Image?           @relation(fields: [imageId], references: [id])
+  startDate          DateTime?
+  endDate            DateTime?
+  price              Decimal?
+  professorShouldPay Boolean          @default(true)
+  weekDays           WeekDay[]
+  durationMinutes    Int?
+  trailDifficulty    TrailDifficulty?
+  trailLength        Float?
+  imageId            String?
+  active             Boolean
+  reservation        Reservation[]
+  createdAt          DateTime         @default(now())
 }
 
 model Document {
@@ -174,7 +175,7 @@ model Reservation {
   notes              String?
   createdAt          DateTime         @default(now())
   active             Boolean          @default(true)
-  members            Member[]
+  membersCount       Int
   ReservationGroup   ReservationGroup @relation(fields: [reservationGroupId], references: [id])
   reservationGroupId String
   Document           Document[]
@@ -215,7 +216,6 @@ model Member {
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   active             Boolean          @default(true)
-  reservations       Reservation[]
   reservationGroup   ReservationGroup @relation(fields: [reservationGroupId], references: [id])
   reservationGroupId String
 
@@ -231,7 +231,7 @@ model ReservationGroup {
   updatedAt    DateTime      @updatedAt
   active       Boolean       @default(true)
   requests     Requests[]
-  member       Member[]
+  members      Member[]
 }
 
 model Highlight {
