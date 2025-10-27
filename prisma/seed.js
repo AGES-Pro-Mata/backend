@@ -394,15 +394,7 @@ async function main() {
         category: 'HOSTING',
         capacity: 4,
         price: 200.0,
-        weekDays: [
-          'MONDAY',
-          'TUESDAY',
-          'WEDNESDAY',
-          'THURSDAY',
-          'FRIDAY',
-          'SATURDAY',
-          'SUNDAY',
-        ],
+        weekDays: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'],
         durationMinutes: 1440, // 24h
         active: true,
         imageId: images[2].id,
@@ -413,20 +405,11 @@ async function main() {
     prisma.experience.create({
       data: {
         name: 'Camping Sustentável',
-        description:
-          'Área de camping com estrutura básica, banheiros e chuveiros quentes.',
+        description: 'Área de camping com estrutura básica, banheiros e chuveiros quentes.',
         category: 'HOSTING',
         capacity: 30,
         price: 50.0,
-        weekDays: [
-          'MONDAY',
-          'TUESDAY',
-          'WEDNESDAY',
-          'THURSDAY',
-          'FRIDAY',
-          'SATURDAY',
-          'SUNDAY',
-        ],
+        weekDays: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'],
         durationMinutes: 1440,
         active: true,
         imageId: images[3].id,
@@ -455,8 +438,7 @@ async function main() {
     prisma.experience.create({
       data: {
         name: 'Laboratório de Botânica',
-        description:
-          'Espaço para estudos botânicos com herbário, estufas e materiais de coleta.',
+        description: 'Espaço para estudos botânicos com herbário, estufas e materiais de coleta.',
         category: 'LABORATORY',
         capacity: 8,
         price: 120.0,
@@ -473,8 +455,7 @@ async function main() {
     prisma.experience.create({
       data: {
         name: 'Workshop de Educação Ambiental',
-        description:
-          'Workshop sobre conservação da Mata Atlântica e desenvolvimento sustentável.',
+        description: 'Workshop sobre conservação da Mata Atlântica e desenvolvimento sustentável.',
         category: 'EVENT',
         capacity: 50,
         price: 80.0,
@@ -577,12 +558,14 @@ async function main() {
 
     for (let i = 0; i < reservationsThisMonth; i++) {
       const randomUser = allUsers[Math.floor(Math.random() * allUsers.length)];
-      const randomExperience =
-        experiences[Math.floor(Math.random() * experiences.length)];
+      const randomExperience = experiences[Math.floor(Math.random() * experiences.length)];
 
       const createdDate = new Date(2025, month - 1, Math.floor(Math.random() * 28) + 1, 10, 0, 0);
       const startDate = new Date(2025, month - 1, Math.floor(Math.random() * 28) + 1, 8, 0, 0);
-      const endDate = addDays(startDate, randomExperience.category === 'HOSTING' ? Math.floor(Math.random() * 3) + 1 : 0);
+      const endDate = addDays(
+        startDate,
+        randomExperience.category === 'HOSTING' ? Math.floor(Math.random() * 3) + 1 : 0,
+      );
 
       if (randomExperience.category !== 'HOSTING') {
         endDate.setHours(startDate.getHours() + Math.floor(randomExperience.durationMinutes / 60));
@@ -617,7 +600,10 @@ async function main() {
         await prisma.member.create({
           data: {
             name: `Participante ${totalMembers + m + 1}`,
-            document: Math.random() > 0.2 ? `${Math.floor(Math.random() * 900 + 100)}.${Math.floor(Math.random() * 900 + 100)}.${Math.floor(Math.random() * 900 + 100)}-${Math.floor(Math.random() * 90 + 10)}` : null,
+            document:
+              Math.random() > 0.2
+                ? `${Math.floor(Math.random() * 900 + 100)}.${Math.floor(Math.random() * 900 + 100)}.${Math.floor(Math.random() * 900 + 100)}-${Math.floor(Math.random() * 90 + 10)}`
+                : null,
             gender: ['Male', 'Female', 'Other'][Math.floor(Math.random() * 3)],
             reservationGroupId: reservationGroup.id,
           },
@@ -665,7 +651,10 @@ async function main() {
     for (let i = 0; i < receiptsThisMonth; i++) {
       const randomUser = allUsers[Math.floor(Math.random() * allUsers.length)];
       const receiptType = Math.random() > 0.5 ? 'PAYMENT' : 'DOCENCY';
-      const value = receiptType === 'PAYMENT' ? Math.floor(Math.random() * 200) + 50 : Math.floor(Math.random() * 300) + 100;
+      const value =
+        receiptType === 'PAYMENT'
+          ? Math.floor(Math.random() * 200) + 50
+          : Math.floor(Math.random() * 300) + 100;
       const status = ['PENDING', 'ACTIVE', 'EXPIRED'][Math.floor(Math.random() * 3)];
 
       const receipt = await prisma.receipt.create({
@@ -747,7 +736,7 @@ EVENTS:
 📈 Data Distribution:
 - Reservations: ~${Math.floor(reservations.length / 12)} per month average
 - Receipts: ~${Math.floor(receipts.length / 12)} per month average
-- Status: ~${Math.floor((reservations.filter(r => r.active).length / reservations.length) * 100)}% active reservations
+- Status: ~${Math.floor((reservations.filter((r) => r.active).length / reservations.length) * 100)}% active reservations
 
 💡 Ready for Metabase Dashboards:
 - Monthly reservation trends
