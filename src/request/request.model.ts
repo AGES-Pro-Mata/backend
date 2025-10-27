@@ -12,6 +12,7 @@ const TypeSchema = z.object({
 });
 
 export const RequestAdminDtoSchema = z.object({
+  id: z.string(),
   member: MemberSchema,
   request: TypeSchema,
 });
@@ -19,7 +20,7 @@ export const RequestAdminDtoSchema = z.object({
 export class RequestAdminDto extends createZodDto(RequestAdminDtoSchema) {}
 
 // Query params para filtro e paginação
-export const GetRequestsQueryDto = z.object({
+export const GetRequestsQueryDtoSchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(10),
   status: z
@@ -30,7 +31,7 @@ export const GetRequestsQueryDto = z.object({
   dir: z.enum(['asc', 'desc']).optional(),
 });
 
-export type GetRequestsQueryDto = z.infer<typeof GetRequestsQueryDto>;
+export class GetRequestsQueryDto extends createZodDto(GetRequestsQueryDtoSchema) {}
 
 // Response com paginação
 export const PaginatedRequestResponseSchema = z.object({

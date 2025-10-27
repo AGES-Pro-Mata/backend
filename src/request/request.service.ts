@@ -8,7 +8,7 @@ export class RequestService {
   constructor(private readonly databaseService: DatabaseService) {}
 
   async getRequest(query: GetRequestsQueryDto) {
-    const { page, limit, status, sort, dir } = query;
+    const { page = 1, limit = 10, status, sort, dir } = query;
     const skip = (page - 1) * limit;
 
     const where =
@@ -53,6 +53,7 @@ export class RequestService {
     ]);
 
     const data = groups.map((g) => ({
+      id: g.id,
       member: {
         name: g.user?.name ?? 'N/A',
         email: g.user?.email ?? 'N/A',
