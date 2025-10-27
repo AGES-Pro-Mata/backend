@@ -144,7 +144,7 @@ export class ExperienceService {
       },
     };
 
-    const experiences = this.databaseService.experience.findMany({
+    const experiences = await this.databaseService.experience.findMany({
       where,
       select: {
         id: true,
