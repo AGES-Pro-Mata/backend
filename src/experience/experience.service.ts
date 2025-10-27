@@ -140,7 +140,7 @@ export class ExperienceService {
         lte: getExperienceFilterDto.endDate,
       },
       name: {
-        contains: getExperienceFilterDto.name,
+        contains: getExperienceFilterDto.search,
       },
     };
 
