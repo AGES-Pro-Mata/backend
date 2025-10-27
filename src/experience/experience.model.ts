@@ -91,7 +91,7 @@ export const ExperienceSearchParamsSchema = z.object({
 export class ExperienceSearchParamsDto extends createZodDto(ExperienceSearchParamsSchema) {}
 
 export const GetExperienceFilterSchema = z.object({
-  category: z.enum(['HOSTING', 'EVENT', 'LABORATORY', 'TRAIL']),
+  category: z.enum(Object.values(Category)),
   name: z.string().optional(),
   startDate: z.iso.datetime().optional(),
   endDate: z.iso.datetime().optional(),
