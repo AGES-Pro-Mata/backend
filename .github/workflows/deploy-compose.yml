@@ -11,6 +11,11 @@ on:
   # Permite deploy manual
   workflow_dispatch:
 
+# Prevenir múltiplos deploys simultâneos
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   NODE_VERSION: '24'
   DOCKER_REGISTRY: docker.io
@@ -151,26 +156,26 @@ jobs:
 
             # Pull das imagens mais recentes
             echo "Atualizando imagens Docker..."
-            docker compose -f docker-compose.prod.yml pull
+            docker compose -p promata-prod -f docker-compose.prod.yml pull
 
             # Parar serviços
             echo "Parando serviços..."
-            docker compose -f docker-compose.prod.yml down || true
+            docker compose -p promata-prod -f docker-compose.prod.yml down || true
 
             # Iniciar serviços
             echo "Iniciando serviços..."
-            docker compose -f docker-compose.prod.yml up -d
+            docker compose -p promata-prod -f docker-compose.prod.yml up -d
 
             # Aguardar serviços subirem
             sleep 15
 
             # Executar migrations
             echo "Executando migrations..."
-            docker compose -f docker-compose.prod.yml exec -T backend npx prisma migrate deploy || echo "Migrations já aplicadas"
+            docker compose -p promata-prod -f docker-compose.prod.yml exec -T backend npx prisma migrate deploy || echo "Migrations já aplicadas"
 
             # Verificar status
             echo "Status dos serviços:"
-            docker compose -f docker-compose.prod.yml ps
+            docker compose -p promata-prod -f docker-compose.prod.yml ps
 
             # Limpar imagens antigas
             echo "Limpando imagens antigas..."
@@ -211,6 +216,8 @@ jobs:
               git reset --hard origin/dev
             else
               echo "Clonando repositório DEV..."
+              # Limpar diretório antes de clonar (exceto se já tiver .git)
+              rm -rf * .[^.]* ..?* 2>/dev/null || true
               git clone -b dev https://github.com/AGES-Pro-Mata/backend.git .
             fi
 
@@ -249,28 +256,32 @@ jobs:
             UMAMI_WEBSITE_ID=${{ secrets.DEV_UMAMI_WEBSITE_ID || '' }}
             EOF
 
+            # Limpar containers antigos de outros diretórios (se existirem)
+            echo "Limpando containers antigos..."
+            docker ps -a --filter "name=promata-dev" --format "{{.Names}}" | grep -v "^promata-dev-" | xargs -r docker rm -f 2>/dev/null || true
+
             # Pull das imagens mais recentes
             echo "Atualizando imagens Docker DEV..."
-            docker compose -f docker-compose.dev.yml --env-file .env.dev pull
+            docker compose -p promata-dev -f docker-compose.dev.yml --env-file .env.dev pull
 
             # Parar serviços DEV
             echo "Parando serviços DEV..."
-            docker compose -f docker-compose.dev.yml --env-file .env.dev down || true
+            docker compose -p promata-dev -f docker-compose.dev.yml --env-file .env.dev down || true
 
             # Iniciar serviços DEV
             echo "Iniciando serviços DEV..."
-            docker compose -f docker-compose.dev.yml --env-file .env.dev up -d
+            docker compose -p promata-dev -f docker-compose.dev.yml --env-file .env.dev up -d
 
             # Aguardar serviços subirem
             sleep 15
 
             # Executar migrations
             echo "Executando migrations..."
-            docker compose -f docker-compose.dev.yml --env-file .env.dev exec -T backend npx prisma migrate deploy || echo "Migrations já aplicadas"
+            docker compose -p promata-dev -f docker-compose.dev.yml --env-file .env.dev exec -T backend npx prisma migrate deploy || echo "Migrations já aplicadas"
 
             # Verificar status
             echo "Status dos serviços DEV:"
-            docker compose -f docker-compose.dev.yml --env-file .env.dev ps
+            docker compose -p promata-dev -f docker-compose.dev.yml --env-file .env.dev ps
 
             # Limpar imagens antigas
             echo "Limpando imagens antigas..."
