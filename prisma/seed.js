@@ -177,7 +177,7 @@ async function main() {
       userType: UserType.ROOT,
       name: 'Admin Root',
       email: 'root@sistema.com',
-      password: hashedPassword,
+      password: demoPassword,
       phone: '11999999999',
       document: '11111111111',
       gender: 'Masculino',
@@ -320,28 +320,49 @@ async function main() {
   // Create Images for Experiences
   const images = await Promise.all([
     prisma.image.create({
-      data: { url: 'https://example.com/images/trail-cascata.jpg' },
+      data: { url: 'https://images.unsplash.com/photo-1551632811-561732d1e306' },
     }),
     prisma.image.create({
-      data: { url: 'https://example.com/images/trail-mata-atlantica.jpg' },
+      data: { url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b' },
     }),
     prisma.image.create({
-      data: { url: 'https://example.com/images/hosting-cabana.jpg' },
+      data: { url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4' },
     }),
     prisma.image.create({
-      data: { url: 'https://example.com/images/hosting-camping.jpg' },
+      data: { url: 'https://images.unsplash.com/photo-1470770903676-69b98201ea1c' },
     }),
     prisma.image.create({
-      data: { url: 'https://example.com/images/lab-biodiversidade.jpg' },
+      data: { url: 'https://images.unsplash.com/photo-1445019980597-93fa8acb246c' },
     }),
     prisma.image.create({
-      data: { url: 'https://example.com/images/lab-botanica.jpg' },
+      data: { url: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb' },
     }),
     prisma.image.create({
-      data: { url: 'https://example.com/images/event-workshop.jpg' },
+      data: { url: 'https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5' },
     }),
     prisma.image.create({
-      data: { url: 'https://example.com/images/event-observacao.jpg' },
+      data: { url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d' },
+    }),
+    prisma.image.create({
+      data: { url: 'https://images.unsplash.com/photo-1516426122078-c23e76319801' },
+    }),
+    prisma.image.create({
+      data: { url: 'https://images.unsplash.com/photo-1523438885200-e635ba2c371e' },
+    }),
+    prisma.image.create({
+      data: { url: 'https://images.unsplash.com/photo-1571863533956-01c88e79957e' },
+    }),
+    prisma.image.create({
+      data: { url: 'https://images.unsplash.com/photo-1581092795360-fd1ca04f0952' },
+    }),
+    prisma.image.create({
+      data: { url: 'https://images.unsplash.com/photo-1587691592099-24045742c181' },
+    }),
+    prisma.image.create({
+      data: { url: 'https://images.unsplash.com/photo-1532619675605-1ede6c2ed2b0' },
+    }),
+    prisma.image.create({
+      data: { url: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf' },
     }),
   ]);
 
@@ -394,15 +415,7 @@ async function main() {
         category: 'HOSTING',
         capacity: 4,
         price: 200.0,
-        weekDays: [
-          'MONDAY',
-          'TUESDAY',
-          'WEDNESDAY',
-          'THURSDAY',
-          'FRIDAY',
-          'SATURDAY',
-          'SUNDAY',
-        ],
+        weekDays: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'],
         durationMinutes: 1440, // 24h
         active: true,
         imageId: images[2].id,
@@ -413,20 +426,11 @@ async function main() {
     prisma.experience.create({
       data: {
         name: 'Camping Sustentável',
-        description:
-          'Área de camping com estrutura básica, banheiros e chuveiros quentes.',
+        description: 'Área de camping com estrutura básica, banheiros e chuveiros quentes.',
         category: 'HOSTING',
         capacity: 30,
         price: 50.0,
-        weekDays: [
-          'MONDAY',
-          'TUESDAY',
-          'WEDNESDAY',
-          'THURSDAY',
-          'FRIDAY',
-          'SATURDAY',
-          'SUNDAY',
-        ],
+        weekDays: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'],
         durationMinutes: 1440,
         active: true,
         imageId: images[3].id,
@@ -455,8 +459,7 @@ async function main() {
     prisma.experience.create({
       data: {
         name: 'Laboratório de Botânica',
-        description:
-          'Espaço para estudos botânicos com herbário, estufas e materiais de coleta.',
+        description: 'Espaço para estudos botânicos com herbário, estufas e materiais de coleta.',
         category: 'LABORATORY',
         capacity: 8,
         price: 120.0,
@@ -473,8 +476,7 @@ async function main() {
     prisma.experience.create({
       data: {
         name: 'Workshop de Educação Ambiental',
-        description:
-          'Workshop sobre conservação da Mata Atlântica e desenvolvimento sustentável.',
+        description: 'Workshop sobre conservação da Mata Atlântica e desenvolvimento sustentável.',
         category: 'EVENT',
         capacity: 50,
         price: 80.0,
@@ -507,7 +509,7 @@ async function main() {
     prisma.highlight.create({
       data: {
         category: 'CAROUSEL',
-        imageUrl: 'https://example.com/highlights/hero-promata.jpg',
+        imageUrl: images[4].url,
         title: 'Bem-vindo ao Pro-Mata',
         description: 'Centro de Pesquisa e Conservação da Mata Atlântica',
         order: 1,
@@ -516,7 +518,7 @@ async function main() {
     prisma.highlight.create({
       data: {
         category: 'CAROUSEL',
-        imageUrl: 'https://example.com/highlights/hero-biodiversity.jpg',
+        imageUrl: images[5].url,
         title: 'Biodiversidade Única',
         description: 'Mais de 400 espécies de fauna e flora catalogadas',
         order: 2,
@@ -525,7 +527,7 @@ async function main() {
     prisma.highlight.create({
       data: {
         category: 'TRAIL',
-        imageUrl: 'https://example.com/highlights/trail-highlight.jpg',
+        imageUrl: images[6].url,
         title: 'Trilhas Ecológicas',
         description: 'Explore a natureza em trilhas guiadas',
         order: 1,
@@ -534,7 +536,7 @@ async function main() {
     prisma.highlight.create({
       data: {
         category: 'LABORATORY',
-        imageUrl: 'https://example.com/highlights/lab-highlight.jpg',
+        imageUrl: images[2].url,
         title: 'Pesquisa Científica',
         description: 'Infraestrutura completa para pesquisa',
         order: 1,
@@ -543,7 +545,7 @@ async function main() {
     prisma.highlight.create({
       data: {
         category: 'HOSTING',
-        imageUrl: 'https://example.com/highlights/hosting-highlight.jpg',
+        imageUrl: images[1].url,
         title: 'Hospedagem Sustentável',
         description: 'Fique imerso na natureza',
         order: 1,
@@ -552,7 +554,7 @@ async function main() {
     prisma.highlight.create({
       data: {
         category: 'EVENT',
-        imageUrl: 'https://example.com/highlights/event-highlight.jpg',
+        imageUrl: images[2].url,
         title: 'Eventos Educativos',
         description: 'Workshops e palestras sobre conservação',
         order: 1,
@@ -577,12 +579,14 @@ async function main() {
 
     for (let i = 0; i < reservationsThisMonth; i++) {
       const randomUser = allUsers[Math.floor(Math.random() * allUsers.length)];
-      const randomExperience =
-        experiences[Math.floor(Math.random() * experiences.length)];
+      const randomExperience = experiences[Math.floor(Math.random() * experiences.length)];
 
       const createdDate = new Date(2025, month - 1, Math.floor(Math.random() * 28) + 1, 10, 0, 0);
       const startDate = new Date(2025, month - 1, Math.floor(Math.random() * 28) + 1, 8, 0, 0);
-      const endDate = addDays(startDate, randomExperience.category === 'HOSTING' ? Math.floor(Math.random() * 3) + 1 : 0);
+      const endDate = addDays(
+        startDate,
+        randomExperience.category === 'HOSTING' ? Math.floor(Math.random() * 3) + 1 : 0,
+      );
 
       if (randomExperience.category !== 'HOSTING') {
         endDate.setHours(startDate.getHours() + Math.floor(randomExperience.durationMinutes / 60));
@@ -617,7 +621,10 @@ async function main() {
         await prisma.member.create({
           data: {
             name: `Participante ${totalMembers + m + 1}`,
-            document: Math.random() > 0.2 ? `${Math.floor(Math.random() * 900 + 100)}.${Math.floor(Math.random() * 900 + 100)}.${Math.floor(Math.random() * 900 + 100)}-${Math.floor(Math.random() * 90 + 10)}` : null,
+            document:
+              Math.random() > 0.2
+                ? `${Math.floor(Math.random() * 900 + 100)}.${Math.floor(Math.random() * 900 + 100)}.${Math.floor(Math.random() * 900 + 100)}-${Math.floor(Math.random() * 90 + 10)}`
+                : null,
             gender: ['Male', 'Female', 'Other'][Math.floor(Math.random() * 3)],
             reservationGroupId: reservationGroup.id,
           },
@@ -665,7 +672,10 @@ async function main() {
     for (let i = 0; i < receiptsThisMonth; i++) {
       const randomUser = allUsers[Math.floor(Math.random() * allUsers.length)];
       const receiptType = Math.random() > 0.5 ? 'PAYMENT' : 'DOCENCY';
-      const value = receiptType === 'PAYMENT' ? Math.floor(Math.random() * 200) + 50 : Math.floor(Math.random() * 300) + 100;
+      const value =
+        receiptType === 'PAYMENT'
+          ? Math.floor(Math.random() * 200) + 50
+          : Math.floor(Math.random() * 300) + 100;
       const status = ['PENDING', 'ACTIVE', 'EXPIRED'][Math.floor(Math.random() * 3)];
 
       const receipt = await prisma.receipt.create({
@@ -747,7 +757,7 @@ EVENTS:
 📈 Data Distribution:
 - Reservations: ~${Math.floor(reservations.length / 12)} per month average
 - Receipts: ~${Math.floor(receipts.length / 12)} per month average
-- Status: ~${Math.floor((reservations.filter(r => r.active).length / reservations.length) * 100)}% active reservations
+- Status: ~${Math.floor((reservations.filter((r) => r.active).length / reservations.length) * 100)}% active reservations
 
 💡 Ready for Metabase Dashboards:
 - Monthly reservation trends
