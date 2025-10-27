@@ -19,19 +19,18 @@ export const RequestAdminDtoSchema = z.object({
 export class RequestAdminDto extends createZodDto(RequestAdminDtoSchema) {}
 
 // Query params para filtro e paginação
-export const GetRequestsQuerySchema = z.object({
+export const GetRequestsQueryDto = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(10),
   status: z
-    .preprocess((val) => {
-      // Normaliza: string → [string], array → array, undefined → undefined
-      if (typeof val === "string") return [val];
-      if (Array.isArray(val)) return val;
-      return undefined;
-    }, z.array(z.nativeEnum(RequestType)).optional()),
+    .array(z.nativeEnum(RequestType)) 
+    .or(z.nativeEnum(RequestType).transform(v => [v]))
+    .optional(),
+  sort: z.string().optional(),
+  dir: z.enum(['asc', 'desc']).optional(),
 });
 
-export class GetRequestsQueryDto extends createZodDto(GetRequestsQuerySchema) {}
+export type GetRequestsQueryDto = z.infer<typeof GetRequestsQueryDto>;
 
 // Response com paginação
 export const PaginatedRequestResponseSchema = z.object({

@@ -8,7 +8,7 @@ export class RequestService {
   constructor(private readonly databaseService: DatabaseService) {}
 
   async getRequest(query: GetRequestsQueryDto) {
-    const { page, limit, status } = query;
+    const { page, limit, status, sort, dir } = query;
     const skip = (page - 1) * limit;
 
     const where =
@@ -22,6 +22,16 @@ export class RequestService {
           }
         : {};
 
+    let orderBy: any = { createdAt: 'desc' }; 
+
+    if (sort && dir) {
+      if (sort === 'member.name') {
+        orderBy = { user: { name: dir } };
+      } else if (sort === 'member.email') {
+        orderBy = { user: { email: dir } };
+      }
+    }
+
     const [groups, total] = await Promise.all([
       this.databaseService.reservationGroup.findMany({
         where,
@@ -29,7 +39,7 @@ export class RequestService {
           id: true,
           user: { select: { email: true, name: true } },
           requests: {
-            where: status && status.length > 0 ? { type: { in: status } } : {}, // ✅ FILTRO AQUI
+            where: status && status.length > 0 ? { type: { in: status } } : {},
             orderBy: { createdAt: 'desc' },
             take: 1,
             select: { type: true },
@@ -37,7 +47,7 @@ export class RequestService {
         },
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
       }),
       this.databaseService.reservationGroup.count({ where }),
     ]);
