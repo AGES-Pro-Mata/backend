@@ -207,6 +207,15 @@ export class ReservationService {
             email: true,
           },
         },
+        // enviando os membros do grupo de reserva
+        members: {
+          select: {
+            id: true,
+            name: true,
+            document: true,
+            gender: true,
+          },
+        },
         reservations: {
           select: {
             membersCount: true,
