@@ -31,7 +31,7 @@ EOF
 
 if echo "$DB_CHECK" | grep -q "│ 0" || [ -z "$DB_CHECK" ]; then
   echo "📊 Database is empty, running seed..."
-  npm run seed || echo "⚠️  Seed failed, continuing..."
+  npm run prisma:seed || echo "⚠️  Seed failed, continuing..."
 else
   echo "✅ Database already has data, skipping seed"
 fi
