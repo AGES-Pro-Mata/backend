@@ -199,9 +199,9 @@ jobs:
           script: |
             set -euo pipefail
 
-            # Navegar para diretório do projeto DEV em /opt
+            # Garantir que o diretório existe e tem as permissões corretas
             sudo mkdir -p /opt/promata-backend-dev
-            sudo chown $USER:$USER /opt/promata-backend-dev
+            sudo chown -R $USER:$USER /opt/promata-backend-dev
             cd /opt/promata-backend-dev
 
             # Fazer pull do repositório ou atualizar
@@ -210,12 +210,8 @@ jobs:
               git fetch origin
               git reset --hard origin/dev
             else
-              echo "Repositório não encontrado. Recriando..."
-              cd /opt
-              sudo rm -rf promata-backend-dev
-              git clone -b dev https://github.com/AGES-Pro-Mata/backend.git promata-backend-dev
-              sudo chown -R $USER:$USER promata-backend-dev
-              cd promata-backend-dev
+              echo "Clonando repositório DEV..."
+              git clone -b dev https://github.com/AGES-Pro-Mata/backend.git .
             fi
 
             # Criar/atualizar arquivo .env.dev com secrets
