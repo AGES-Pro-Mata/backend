@@ -7,14 +7,45 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Configuração CORS
+  const allowedOrigins: (string | RegExp)[] = [
+    'http://localhost:3002',
+    'http://localhost:3001',
+    'http://localhost:5173',
+    'http://promata-frontend.s3-website.us-east-2.amazonaws.com',
+    'https://promata.com.br',
+    'https://www.promata.com.br',
+  ];
+
+  // Em desenvolvimento, permite origens adicionais
+  if (process.env.NODE_ENV === 'development') {
+    allowedOrigins.push(
+      'http://localhost:3000',
+      /^http:\/\/localhost:\d+$/, // Qualquer porta local
+      /^http:\/\/192\.168\.\d+\.\d+:\d+$/, // IPs locais
+    );
+  }
+
   app.enableCors({
-    origin: [
-      'http://localhost:3002',
-      'http://localhost:3001',
-      'http://promata-frontend.s3-website.us-east-2.amazonaws.com',
-      'https://promata.com.br',
-      'https://www.promata.com.br',
-    ],
+    origin: (origin, callback) => {
+      // Permite requisições sem origin (como mobile apps, Postman, etc)
+      if (!origin) return callback(null, true);
+
+      // Verifica se origin está na lista permitida
+      const isAllowed = allowedOrigins.some((allowed) => {
+        if (typeof allowed === 'string') {
+          return allowed === origin;
+        }
+        // Se for RegExp
+        return allowed.test(origin);
+      });
+
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        console.warn(`CORS blocked origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
