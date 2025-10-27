@@ -29,6 +29,7 @@ export class RequestService {
           id: true,
           user: { select: { email: true, name: true } },
           requests: {
+            where: status && status.length > 0 ? { type: { in: status } } : {}, // ✅ FILTRO AQUI
             orderBy: { createdAt: 'desc' },
             take: 1,
             select: { type: true },
