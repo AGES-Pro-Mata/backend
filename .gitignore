@@ -47,7 +47,6 @@ lerna-debug.log*
 
 # Backups
 backups/
-*.sql
 
 # temp directory
 .temp

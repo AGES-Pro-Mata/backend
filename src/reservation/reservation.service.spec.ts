@@ -28,6 +28,7 @@ describe('ReservationService', () => {
         update: jest.fn(),
         findUnique: jest.fn(),
         findUniqueOrThrow: jest.fn(),
+        findMany: jest.fn(),
       },
       requests: {
         create: jest.fn(),
@@ -249,57 +250,68 @@ describe('ReservationService', () => {
     it('should return list of user reservations', async () => {
       const mockReservations = [
         {
-          id: 'res-1',
-          startDate: new Date(),
-          endDate: new Date(),
-          notes: 'Notes',
-          user: {
-            name: 'John Doe',
-            phone: '123456789',
-            document: '12345678900',
-            gender: 'M',
-          },
-          experience: {
-            name: 'Trail Experience',
+          reservations: {
+            id: 'res-1',
             startDate: new Date(),
             endDate: new Date(),
-            price: 100,
-            capacity: 10,
-            trailLength: 5,
-            durationMinutes: 120,
+            notes: 'Notes',
+            user: {
+              name: 'John Doe',
+              phone: '123456789',
+              document: '12345678900',
+              gender: 'M',
+            },
+            experience: {
+              name: 'Trail Experience',
+              startDate: new Date(),
+              endDate: new Date(),
+              price: 100,
+              capacity: 10,
+              trailLength: 5,
+              durationMinutes: 120,
+            },
           },
         },
       ];
 
-      databaseService.reservation.findMany.mockResolvedValueOnce(mockReservations as never);
+      databaseService.reservationGroup.findMany.mockResolvedValueOnce(mockReservations as never);
 
       const result = await service.getReservations(userId);
 
       expect(result).toEqual(mockReservations);
-      expect(databaseService.reservation.findMany).toHaveBeenCalledWith({
+      expect(databaseService.reservationGroup.findMany).toHaveBeenCalledWith({
         where: { userId },
         select: {
-          id: true,
-          startDate: true,
-          endDate: true,
-          notes: true,
-          user: {
+          reservations: {
             select: {
-              name: true,
-              phone: true,
-              document: true,
-              gender: true,
-            },
-          },
-          experience: {
-            select: {
-              name: true,
+              id: true,
               startDate: true,
               endDate: true,
-              price: true,
-              capacity: true,
-              trailLength: true,
-              durationMinutes: true,
+              notes: true,
+              user: {
+                select: {
+                  name: true,
+                  phone: true,
+                  document: true,
+                  gender: true,
+                },
+              },
+              experience: {
+                select: {
+                  name: true,
+                  startDate: true,
+                  endDate: true,
+                  price: true,
+                  capacity: true,
+                  trailLength: true,
+                  durationMinutes: true,
+                  image: {
+                    select: {
+                      url: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -307,7 +319,7 @@ describe('ReservationService', () => {
     });
 
     it('should return empty array when user has no reservations', async () => {
-      databaseService.reservation.findMany.mockResolvedValueOnce([]);
+      databaseService.reservationGroup.findMany.mockResolvedValueOnce([]);
 
       const result = await service.getReservations(userId);
 
@@ -327,7 +339,7 @@ describe('ReservationService', () => {
             experienceId,
             startDate: '2025-01-01T10:00:00Z',
             endDate: '2025-01-01T12:00:00Z',
-            members: [{ document: '12345678900' }],
+            members: 1,
           },
         ],
         members: [
@@ -378,7 +390,7 @@ describe('ReservationService', () => {
             startDate: '2025-01-01T10:00:00Z',
             endDate: '2025-01-01T12:00:00Z',
             notes: 'Test notes',
-            members: [{ document: '12345678900' }],
+            membersCount: 1,
           },
         ],
         members: [
@@ -400,13 +412,7 @@ describe('ReservationService', () => {
             startDate: new Date('2025-01-01T10:00:00Z'),
             endDate: new Date('2025-01-01T12:00:00Z'),
             notes: 'Test notes',
-            members: [
-              {
-                name: 'John Doe',
-                document: '12345678900',
-                gender: 'M',
-              },
-            ],
+            membersCount: 1,
             experience: {},
           },
         ],
@@ -450,13 +456,13 @@ describe('ReservationService', () => {
             experienceId: 'exp-1',
             startDate: '2025-01-01T10:00:00Z',
             endDate: '2025-01-01T12:00:00Z',
-            members: [{ document: '11111111111' }],
+            membersCount: 1,
           },
           {
             experienceId: 'exp-2',
             startDate: '2025-01-02T10:00:00Z',
             endDate: '2025-01-02T12:00:00Z',
-            members: [{ document: '22222222222' }],
+            membersCount: 1,
           },
         ],
         members: [
@@ -516,14 +522,7 @@ describe('ReservationService', () => {
         },
         reservations: [
           {
-            members: [
-              {
-                id: 'member-1',
-                name: 'Member 1',
-                document: '12345678900',
-                gender: 'M',
-              },
-            ],
+            membersCount: 1,
             notes: 'Notes',
             experience: {
               id: 'exp-1',
@@ -557,14 +556,7 @@ describe('ReservationService', () => {
           },
           reservations: {
             select: {
-              members: {
-                omit: {
-                  createdAt: true,
-                  updatedAt: true,
-                  active: true,
-                  reservationGroupId: true,
-                },
-              },
+              membersCount: true,
               notes: true,
               experience: {
                 omit: {
@@ -618,14 +610,7 @@ describe('ReservationService', () => {
           },
           reservations: {
             select: {
-              members: {
-                omit: {
-                  createdAt: true,
-                  updatedAt: true,
-                  active: true,
-                  reservationGroupId: true,
-                },
-              },
+              membersCount: true,
               notes: true,
               experience: {
                 omit: {

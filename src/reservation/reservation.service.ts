@@ -86,32 +86,41 @@ export class ReservationService {
   }
 
   async getReservations(userId: string) {
-    return await this.databaseService.reservation.findMany({
+    return await this.databaseService.reservationGroup.findMany({
       where: {
         userId: userId,
       },
       select: {
-        id: true,
-        startDate: true,
-        endDate: true,
-        notes: true,
-        user: {
+        reservations: {
           select: {
-            name: true,
-            phone: true,
-            document: true,
-            gender: true,
-          },
-        },
-        experience: {
-          select: {
-            name: true,
+            id: true,
             startDate: true,
             endDate: true,
-            price: true,
-            capacity: true,
-            trailLength: true,
-            durationMinutes: true,
+            notes: true,
+            user: {
+              select: {
+                name: true,
+                phone: true,
+                document: true,
+                gender: true,
+              },
+            },
+            experience: {
+              select: {
+                name: true,
+                startDate: true,
+                endDate: true,
+                price: true,
+                capacity: true,
+                trailLength: true,
+                durationMinutes: true,
+                image: {
+                  select: {
+                    url: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -159,14 +168,7 @@ export class ReservationService {
               startDate: r.startDate,
               endDate: r.endDate,
               notes: r.notes ?? null,
-              members: {
-                connect: r.members.map((m) => ({
-                  reservationGroupId_document: {
-                    reservationGroupId: group.id,
-                    document: m.document,
-                  },
-                })),
-              },
+              membersCount: r.membersCount,
             },
             select: {
               _count: true,
@@ -186,7 +188,7 @@ export class ReservationService {
       return tx.reservationGroup.findUniqueOrThrow({
         where: { id: group.id },
         include: {
-          reservations: { include: { members: true, experience: true } },
+          reservations: { include: { experience: true } },
           requests: true,
         },
       });
@@ -207,14 +209,7 @@ export class ReservationService {
         },
         reservations: {
           select: {
-            members: {
-              omit: {
-                createdAt: true,
-                updatedAt: true,
-                active: true,
-                reservationGroupId: true,
-              },
-            },
+            membersCount: true,
             notes: true,
             experience: {
               omit: {
@@ -249,14 +244,7 @@ export class ReservationService {
         },
         reservations: {
           select: {
-            members: {
-              omit: {
-                createdAt: true,
-                updatedAt: true,
-                active: true,
-                reservationGroupId: true,
-              },
-            },
+            membersCount: true,
             notes: true,
             experience: {
               omit: {

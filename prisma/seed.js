@@ -1,26 +1,7 @@
-const {
-  PrismaClient,
-  UserType,
-  Category,
-  WeekDay,
-  TrailDifficulty,
-  ReceiptType,
-  ReceiptStatus,
-  RequestType,
-  HighlightCategory,
-} = require('../generated/prisma');
+const { PrismaClient, UserType } = require('../generated/prisma');
 const argon2 = require('argon2');
 
 const prisma = new PrismaClient();
-const crypto = require('crypto');
-
-// Helper function to generate random date in 2025
-function randomDate2025(startMonth = 1, endMonth = 12) {
-  const month = Math.floor(Math.random() * (endMonth - startMonth + 1)) + startMonth;
-  const day = Math.floor(Math.random() * 28) + 1; // Safe for all months
-  const hour = Math.floor(Math.random() * 12) + 8; // 8am - 8pm
-  return new Date(2025, month - 1, day, hour, 0, 0);
-}
 
 // Helper to add days to a date
 function addDays(date, days) {
@@ -601,20 +582,6 @@ async function main() {
       });
       reservationGroups.push(reservationGroup);
 
-      const reservation = await prisma.reservation.create({
-        data: {
-          userId: randomUser.id,
-          experienceId: randomExperience.id,
-          reservationGroupId: reservationGroup.id,
-          startDate: startDate,
-          endDate: endDate,
-          notes: `Reserva para ${randomExperience.name} - ${month}/${2025}`,
-          active: reservationGroup.active,
-          createdAt: createdDate,
-        },
-      });
-      reservations.push(reservation);
-
       // Create members for this reservation
       const numMembers = Math.floor(Math.random() * 5) + 1;
       for (let m = 0; m < numMembers; m++) {
@@ -631,6 +598,21 @@ async function main() {
         });
       }
       totalMembers += numMembers;
+
+      const reservation = await prisma.reservation.create({
+        data: {
+          userId: randomUser.id,
+          experienceId: randomExperience.id,
+          reservationGroupId: reservationGroup.id,
+          startDate: startDate,
+          endDate: endDate,
+          notes: `Reserva para ${randomExperience.name} - ${month}/${2025}`,
+          active: reservationGroup.active,
+          createdAt: createdDate,
+          membersCount: numMembers,
+        },
+      });
+      reservations.push(reservation);
 
       // Create documents (50% chance)
       if (Math.random() > 0.5) {

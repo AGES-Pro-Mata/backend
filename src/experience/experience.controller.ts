@@ -18,6 +18,7 @@ import {
   CreateExperienceFormDto,
   ExperienceSearchParamsDto,
   UpdateExperienceFormDto,
+  GetExperienceFilterDto,
 } from './experience.model';
 
 @Controller('experience')
@@ -56,5 +57,11 @@ export class ExperienceController {
   @ApiBearerAuth('access-token')
   async createExperienceAsAdmin(@Body() createExperienceDto: CreateExperienceFormDto) {
     return await this.experienceService.createExperience(createExperienceDto);
+  }
+
+  @Get('search')
+  @HttpCode(HttpStatus.OK)
+  async getExperienceFilter(@Query() getExperienceFilterDto: GetExperienceFilterDto) {
+    return await this.experienceService.getExperienceFilter(getExperienceFilterDto);
   }
 }

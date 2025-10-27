@@ -27,7 +27,7 @@ export class ReservationController {
     return await this.reservationService.createReservationGroup(user.id, payload);
   }
 
-  @Get(':reservationGroupId')
+  @Get('search/:reservationGroupId')
   @Roles(UserType.ADMIN)
   @ApiBearerAuth('access-token')
   async getReservationAdmin(@Param('reservationGroupId') reservationGroupId: string) {
@@ -43,15 +43,15 @@ export class ReservationController {
   }
 
   @Get('user')
-  @Roles(UserType.GUEST)
   @ApiBearerAuth('access-token')
+  @Roles(UserType.GUEST)
   @HttpCode(HttpStatus.OK)
   async getReservations(@User() user: CurrentUser) {
     return await this.reservationService.getReservations(user.id);
   }
 
   @Get('user/:reservationGroupId')
-  @Roles(UserType.ADMIN, UserType.GUEST)
+  @Roles(UserType.GUEST)
   @ApiBearerAuth('access-token')
   async getReservationUser(
     @Param('reservationGroupId') reservationGroupId: string,
