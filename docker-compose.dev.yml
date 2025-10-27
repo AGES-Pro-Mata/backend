@@ -102,4 +102,3 @@ volumes:
 networks:
   promata_dev:
     name: promata-dev-network
-    driver: bridge
