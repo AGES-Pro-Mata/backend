@@ -95,6 +95,8 @@ export const GetExperienceFilterSchema = z.object({
   name: z.string().optional(),
   startDate: z.iso.datetime().optional(),
   endDate: z.iso.datetime().optional(),
+  page: z.string().transform((val) => parseInt(val, 10)),
+  limit: z.string().transform((val) => parseInt(val, 10)),
 });
 
 export class GetExperienceFilterDto extends createZodDto(GetExperienceFilterSchema) {}
