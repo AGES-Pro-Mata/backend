@@ -87,11 +87,11 @@ jobs:
           file: Dockerfile.dev
           push: true
           tags: |
-            ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:dev
-            ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.define-tags.outputs.image_tag }}
+            ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-dev:latest
+            ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-dev:${{ steps.define-tags.outputs.image_tag }}
           # Cache otimizado: registry + gha
           cache-from: |
-            type=registry,ref=${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:dev
+            type=registry,ref=${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}-dev:latest
             type=gha
           cache-to: type=gha,mode=max
           # DEV: apenas AMD64 (mais rápido)
@@ -161,14 +161,14 @@ jobs:
       - name: Print Image Digest
         run: echo "PROD image pushed with digest ${{ steps.docker_build_prod.outputs.digest }}"
 
-  # DESABILITADO: DEV deve rodar localmente via docker-compose.yml
-  # Motivo: EC2 t2.medium não tem recursos suficientes para DEV + PROD simultaneamente
-  # Imagem DEV continua sendo publicada no Docker Hub para uso opcional
+  # Deploy DEV agora é gerenciado pelo deploy-compose.yml
+  # que roda após este workflow completar
+  # Mantido aqui apenas para referência histórica
   deploy-dev:
     name: Deploy DEV to EC2
     needs: [publish-dev]
     runs-on: ubuntu-latest
-    if: false  # DESABILITADO - usar ambiente local
+    if: false  # DESABILITADO - usar deploy-compose.yml
     steps:
       - name: Deploy container on DEV host
         uses: appleboy/ssh-action@v1.0.0

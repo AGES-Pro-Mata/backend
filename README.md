@@ -111,67 +111,134 @@ O projeto possui os seguintes ambientes:
 
 #### 🔵 Desenvolvimento (DEV)
 
-- **Onde roda:** Localmente via `docker-compose.yml`
-- **Como rodar:** `docker compose up`
+- **Onde roda:** EC2 AWS via Docker Compose (mesma máquina que PROD)
+- **Arquivo:** `docker-compose.dev.yml`
+- **Deploy:** Automático via GitHub Actions quando há push na branch `dev`
 - **Serviços inclusos:**
-  - Backend NestJS (porta 3000)
-  - PostgreSQL (porta 5432)
-  - Umami Analytics (porta 5050)
-  - Metabase (porta 3001)
-  - Prisma Studio (porta 5555)
+  - Backend NestJS (porta 3010 - externa)
+  - PostgreSQL (porta 5431 - externa)
+  - Prisma Studio (porta 5555 - externa)
+- **URLs de acesso:**
+  - Backend API: `http://ec2-3-139-75-61.us-east-2.compute.amazonaws.com:3010`
+  - Health Check: `http://ec2-3-139-75-61.us-east-2.compute.amazonaws.com:3010/health`
+  - Prisma Studio: `http://ec2-3-139-75-61.us-east-2.compute.amazonaws.com:5555`
+  - Database: `postgres://promata:promata123postgres@ec2-3-139-75-61.us-east-2.compute.amazonaws.com:5431/promata`
 
-**Importante:** O ambiente DEV **NÃO** é mais deployado na EC2 automaticamente. Sempre rode localmente para economizar recursos da infraestrutura.
+**Importante:** DEV e PROD rodam lado a lado na mesma EC2, mas com **portas diferentes** para evitar conflitos.
+
+📋 **Para configuração completa do frontend e ferramentas de teste, veja [DEV-ACCESS.md](DEV-ACCESS.md)**
 
 #### 🟢 Produção (PROD)
 
-- **Onde roda:** EC2 AWS via Docker Compose
+- **Onde roda:** EC2 AWS via Docker Compose (mesma máquina que DEV)
 - **Arquivo:** `docker-compose.prod.yml`
-- **Deploy:** Automático via GitHub Actions quando há merge na branch `main`
+- **Deploy:** Automático via GitHub Actions quando há push na branch `main`
 - **Stack completa:**
   - Traefik (reverse proxy + SSL/TLS Let's Encrypt)
-  - Backend NestJS
-  - PostgreSQL
+  - Backend NestJS (porta interna 3000, exposto via Traefik)
+  - PostgreSQL (porta interna 5432)
   - Umami Analytics
   - Metabase
   - Prisma Studio
   - Frontend Proxy (Nginx → S3)
+- **URLs de acesso:**
+  - Backend API: `https://api.promata.com.br`
+  - Frontend: `https://promata.com.br`
+  - Analytics: `https://analytics.promata.com.br`
+  - Metabase: `https://metabase.promata.com.br`
+  - Prisma Studio: `https://prisma.promata.com.br`
 
 ### CI/CD
 
 #### Build e Publish
 
 - Arquivo: `.github/workflows/ci-cd.yml`
-- Triggers:
-  - Push na branch `dev`: builda imagem Docker DEV
-  - Push na branch `main`: builda imagem Docker PROD
+- Imagens Docker publicadas:
+  - **DEV**: `norohim/pro-mata-backend-dev:latest` (branch `dev`)
+  - **PROD**: `norohim/pro-mata-backend:latest` (branch `main`)
+- Nota: Database usa imagem oficial `postgres:15-alpine`, Frontend está no S3
 
-#### Deploy Produção
+#### Deploy Automático
 
 - Arquivo: `.github/workflows/deploy-compose.yml`
-- Trigger: Após sucesso do workflow `ci-cd.yml` na branch `main`
-- Ações:
-  - Faz pull das imagens mais recentes
-  - Atualiza serviços via `docker-compose.prod.yml`
+- Triggers:
+  - **DEV**: Após sucesso do workflow `ci-cd.yml` na branch `dev`
+  - **PROD**: Após sucesso do workflow `ci-cd.yml` na branch `main`
+- Ações (para cada ambiente):
+  - Clona/atualiza o repositório na EC2 (`/opt/promata-backend-dev` ou `/opt/promata-backend`)
+  - Cria arquivo `.env` com secrets do GitHub
+  - Faz pull das imagens mais recentes do Docker Hub
+  - Atualiza serviços via `docker-compose.dev.yml` ou `docker-compose.prod.yml`
   - Executa migrations do Prisma
-  - Inclui migração automática de setup legado
+  - Limpa imagens antigas
+
+#### Deploy Manual
+
+Caso precise fazer deploy manual (sem usar CI/CD):
+
+```bash
+# No servidor EC2 via SSH
+cd /opt/promata-backend-dev    # Para DEV
+# ou
+cd /opt/promata-backend         # Para PROD
+
+# Criar .env.dev ou .env.production com as variáveis necessárias
+# Em seguida:
+./deploy-dev.sh    # Para DEV
+```
 
 ### Recursos da EC2
 
-A instância EC2 de produção é uma **t2.medium** (2 vCPUs, 4 GB RAM). Por limitações de recursos, apenas o ambiente de **PRODUÇÃO** roda na EC2. O ambiente de **DESENVOLVIMENTO** deve ser executado localmente.
+A instância EC2 é uma **t2.medium** (2 vCPUs, 4 GB RAM) que hospeda **ambos** os ambientes DEV e PROD simultaneamente, utilizando **portas diferentes** para evitar conflitos:
+
+| Ambiente | Backend | Database | Prisma Studio |
+|----------|---------|----------|---------------|
+| DEV      | 3010    | 5431     | 5555          |
+| PROD     | 3000*   | 5432*    | 5555*         |
+
+\* _Portas internas, expostas via Traefik com SSL/TLS_
+
+**Mapeamento de portas DEV:**
+
+- Backend: `3010:3010` (host:container)
+- Database: `5431:5432` (host:container)
+- Prisma Studio: `5555:5555` (host:container)
 
 ### Secrets e Variáveis de Ambiente
 
-Para produção, configure os seguintes secrets no GitHub Actions:
+Configure os seguintes secrets no GitHub Actions para deploy automático:
 
-#### Obrigatórios
+#### Secrets de Infraestrutura (Obrigatórios)
 
-- `PROD_DATABASE_URL` - URL de conexão PostgreSQL
-- `PROD_JWT_SECRET` - Secret para JWT tokens
+- `DEV_EC2_HOST` - Host/IP da EC2
+- `DEV_EC2_USER` - Usuário SSH (geralmente `ubuntu`)
+- `DEV_EC2_SSH_KEY` - Chave privada SSH para acesso
+- `PROD_EC2_HOST` - Host/IP da EC2 (pode ser o mesmo que DEV)
+- `PROD_EC2_USER` - Usuário SSH (geralmente `ubuntu`)
+- `PROD_EC2_SSH_KEY` - Chave privada SSH para acesso
+
+#### Secrets de Aplicação (Obrigatórios)
+
+**DEV:**
+
+- `DEV_DATABASE_URL` - URL de conexão PostgreSQL DEV
+- `DEV_JWT_SECRET` - Secret para JWT tokens DEV
+- `DEV_POSTGRES_PASSWORD` - Senha do PostgreSQL DEV
+- `DEV_AWS_S3_BUCKET` - Nome do bucket S3 DEV (opcional)
+
+**PROD:**
+
+- `PROD_DATABASE_URL` - URL de conexão PostgreSQL PROD
+- `PROD_JWT_SECRET` - Secret para JWT tokens PROD
+- `POSTGRES_PASSWORD` - Senha do PostgreSQL PROD
+- `PROD_AWS_S3_BUCKET` - Nome do bucket S3 PROD
+
+**Compartilhados (DEV e PROD):**
+
 - `AWS_ACCESS_KEY_ID` - Credenciais AWS S3
 - `AWS_SECRET_ACCESS_KEY` - Credenciais AWS S3
-- `PROD_AWS_S3_BUCKET` - Nome do bucket S3
-- `CF_API_EMAIL` - Email Cloudflare (para SSL)
-- `CF_DNS_API_TOKEN` - Token API Cloudflare (para SSL)
+- `CF_API_EMAIL` - Email Cloudflare (para SSL - apenas PROD)
+- `CF_DNS_API_TOKEN` - Token API Cloudflare (para SSL - apenas PROD)
 
 #### Opcionais (com valores padrão)
 

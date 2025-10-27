@@ -87,8 +87,12 @@ jobs:
               git fetch origin
               git reset --hard origin/main
             else
-              echo "Clonando repositório..."
-              git clone https://github.com/AGES-Pro-Mata/backend.git .
+              echo "Repositório não encontrado. Recriando..."
+              cd /opt
+              sudo rm -rf promata-backend
+              git clone https://github.com/AGES-Pro-Mata/backend.git promata-backend
+              sudo chown -R $USER:$USER promata-backend
+              cd promata-backend
             fi
 
             # Definir defaults para secrets opcionais
@@ -173,3 +177,107 @@ jobs:
             docker image prune -af --filter "until=24h" || true
 
             echo "✅ Deploy concluído!"
+
+  deploy-dev-compose:
+    name: Deploy Development (Docker Compose)
+    runs-on: ubuntu-latest
+    # Só roda se o workflow anterior foi bem-sucedido na branch dev (ou se for dispatch manual)
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'dev')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy DEV via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DEV_EC2_HOST }}
+          username: ${{ secrets.DEV_EC2_USER }}
+          key: ${{ secrets.DEV_EC2_SSH_KEY }}
+          script: |
+            set -euo pipefail
+
+            # Navegar para diretório do projeto DEV em /opt
+            sudo mkdir -p /opt/promata-backend-dev
+            sudo chown $USER:$USER /opt/promata-backend-dev
+            cd /opt/promata-backend-dev
+
+            # Fazer pull do repositório ou atualizar
+            if [ -d ".git" ]; then
+              echo "Atualizando repositório DEV..."
+              git fetch origin
+              git reset --hard origin/dev
+            else
+              echo "Repositório não encontrado. Recriando..."
+              cd /opt
+              sudo rm -rf promata-backend-dev
+              git clone -b dev https://github.com/AGES-Pro-Mata/backend.git promata-backend-dev
+              sudo chown -R $USER:$USER promata-backend-dev
+              cd promata-backend-dev
+            fi
+
+            # Criar/atualizar arquivo .env.dev com secrets
+            cat > .env.dev << EOF
+            # Docker - Backend (imagem -dev publicada pelo CI/CD)
+            DOCKER_REGISTRY=${{ env.DOCKER_REGISTRY }}
+            IMAGE_NAME=${{ env.IMAGE_NAME }}-dev
+            IMAGE_TAG=latest
+            CONTAINER_NAME=promata-dev-backend
+
+            # Backend Configuration
+            NODE_ENV=development
+            BACKEND_PORT=3010
+            PORT=3010
+
+            # Database Dev (conexão interna do Docker)
+            DATABASE_URL=postgresql://${{ secrets.DEV_POSTGRES_USER || 'promata' }}:${{ secrets.DEV_POSTGRES_PASSWORD }}@database:5432/${{ secrets.DEV_POSTGRES_DB || 'promata' }}
+            POSTGRES_DB=${{ secrets.DEV_POSTGRES_DB || 'promata' }}
+            POSTGRES_USER=${{ secrets.DEV_POSTGRES_USER || 'promata' }}
+            POSTGRES_PASSWORD=${{ secrets.DEV_POSTGRES_PASSWORD }}
+            DATABASE_PORT_MAPPING=5431:5432
+
+            # JWT
+            JWT_SECRET=${{ secrets.DEV_JWT_SECRET }}
+            JWT_EXPIRES_IN=24h
+
+            # AWS
+            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_S3_REGION=${{ vars.AWS_REGION }}
+            AWS_S3_BUCKET=${{ secrets.DEV_AWS_S3_BUCKET }}
+
+            # Analytics (optional for dev)
+            UMAMI_URL=${{ secrets.DEV_UMAMI_URL || '' }}
+            UMAMI_WEBSITE_ID=${{ secrets.DEV_UMAMI_WEBSITE_ID || '' }}
+            EOF
+
+            # Pull das imagens mais recentes
+            echo "Atualizando imagens Docker DEV..."
+            docker compose -f docker-compose.dev.yml --env-file .env.dev pull
+
+            # Parar serviços DEV
+            echo "Parando serviços DEV..."
+            docker compose -f docker-compose.dev.yml --env-file .env.dev down || true
+
+            # Iniciar serviços DEV
+            echo "Iniciando serviços DEV..."
+            docker compose -f docker-compose.dev.yml --env-file .env.dev up -d
+
+            # Aguardar serviços subirem
+            sleep 15
+
+            # Executar migrations
+            echo "Executando migrations..."
+            docker compose -f docker-compose.dev.yml --env-file .env.dev exec -T backend npx prisma migrate deploy || echo "Migrations já aplicadas"
+
+            # Verificar status
+            echo "Status dos serviços DEV:"
+            docker compose -f docker-compose.dev.yml --env-file .env.dev ps
+
+            # Limpar imagens antigas
+            echo "Limpando imagens antigas..."
+            docker image prune -af --filter "until=24h" || true
+
+            echo "✅ Deploy DEV concluído!"

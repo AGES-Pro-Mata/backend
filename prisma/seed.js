@@ -320,28 +320,49 @@ async function main() {
   // Create Images for Experiences
   const images = await Promise.all([
     prisma.image.create({
-      data: { url: 'https://example.com/images/trail-cascata.jpg' },
+      data: { url: 'https://images.unsplash.com/photo-1551632811-561732d1e306' },
     }),
     prisma.image.create({
-      data: { url: 'https://example.com/images/trail-mata-atlantica.jpg' },
+      data: { url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b' },
     }),
     prisma.image.create({
-      data: { url: 'https://example.com/images/hosting-cabana.jpg' },
+      data: { url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4' },
     }),
     prisma.image.create({
-      data: { url: 'https://example.com/images/hosting-camping.jpg' },
+      data: { url: 'https://images.unsplash.com/photo-1470770903676-69b98201ea1c' },
     }),
     prisma.image.create({
-      data: { url: 'https://example.com/images/lab-biodiversidade.jpg' },
+      data: { url: 'https://images.unsplash.com/photo-1445019980597-93fa8acb246c' },
     }),
     prisma.image.create({
-      data: { url: 'https://example.com/images/lab-botanica.jpg' },
+      data: { url: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb' },
     }),
     prisma.image.create({
-      data: { url: 'https://example.com/images/event-workshop.jpg' },
+      data: { url: 'https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5' },
     }),
     prisma.image.create({
-      data: { url: 'https://example.com/images/event-observacao.jpg' },
+      data: { url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d' },
+    }),
+    prisma.image.create({
+      data: { url: 'https://images.unsplash.com/photo-1516426122078-c23e76319801' },
+    }),
+    prisma.image.create({
+      data: { url: 'https://images.unsplash.com/photo-1523438885200-e635ba2c371e' },
+    }),
+    prisma.image.create({
+      data: { url: 'https://images.unsplash.com/photo-1571863533956-01c88e79957e' },
+    }),
+    prisma.image.create({
+      data: { url: 'https://images.unsplash.com/photo-1581092795360-fd1ca04f0952' },
+    }),
+    prisma.image.create({
+      data: { url: 'https://images.unsplash.com/photo-1587691592099-24045742c181' },
+    }),
+    prisma.image.create({
+      data: { url: 'https://images.unsplash.com/photo-1532619675605-1ede6c2ed2b0' },
+    }),
+    prisma.image.create({
+      data: { url: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf' },
     }),
   ]);
 
@@ -488,7 +509,7 @@ async function main() {
     prisma.highlight.create({
       data: {
         category: 'CAROUSEL',
-        imageUrl: 'https://example.com/highlights/hero-promata.jpg',
+        imageUrl: images[4].url,
         title: 'Bem-vindo ao Pro-Mata',
         description: 'Centro de Pesquisa e Conservação da Mata Atlântica',
         order: 1,
@@ -497,7 +518,7 @@ async function main() {
     prisma.highlight.create({
       data: {
         category: 'CAROUSEL',
-        imageUrl: 'https://example.com/highlights/hero-biodiversity.jpg',
+        imageUrl: images[5].url,
         title: 'Biodiversidade Única',
         description: 'Mais de 400 espécies de fauna e flora catalogadas',
         order: 2,
@@ -506,7 +527,7 @@ async function main() {
     prisma.highlight.create({
       data: {
         category: 'TRAIL',
-        imageUrl: 'https://example.com/highlights/trail-highlight.jpg',
+        imageUrl: images[6].url,
         title: 'Trilhas Ecológicas',
         description: 'Explore a natureza em trilhas guiadas',
         order: 1,
@@ -515,7 +536,7 @@ async function main() {
     prisma.highlight.create({
       data: {
         category: 'LABORATORY',
-        imageUrl: 'https://example.com/highlights/lab-highlight.jpg',
+        imageUrl: images[2].url,
         title: 'Pesquisa Científica',
         description: 'Infraestrutura completa para pesquisa',
         order: 1,
@@ -524,7 +545,7 @@ async function main() {
     prisma.highlight.create({
       data: {
         category: 'HOSTING',
-        imageUrl: 'https://example.com/highlights/hosting-highlight.jpg',
+        imageUrl: images[1].url,
         title: 'Hospedagem Sustentável',
         description: 'Fique imerso na natureza',
         order: 1,
@@ -533,7 +554,7 @@ async function main() {
     prisma.highlight.create({
       data: {
         category: 'EVENT',
-        imageUrl: 'https://example.com/highlights/event-highlight.jpg',
+        imageUrl: images[2].url,
         title: 'Eventos Educativos',
         description: 'Workshops e palestras sobre conservação',
         order: 1,
