@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Delete, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Delete,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ReservationService } from './reservation.service';
 import { Roles } from 'src/auth/role/roles.decorator';
 import { UserType } from 'generated/prisma';
@@ -8,6 +18,7 @@ import {
   CreateReservationGroupDto,
   UpdateReservationDto,
   UpdateReservationByAdminDto,
+  ReservationGroupStatusFilterDto,
 } from './reservation.model';
 import { User } from 'src/user/user.decorator';
 import { type CurrentUser } from 'src/auth/auth.model';
@@ -46,8 +57,11 @@ export class ReservationController {
   @ApiBearerAuth('access-token')
   @Roles(UserType.GUEST)
   @HttpCode(HttpStatus.OK)
-  async getReservations(@User() user: CurrentUser) {
-    return await this.reservationService.getReservations(user.id);
+  async getReservationGroups(
+    @User() user: CurrentUser,
+    @Query() filter: ReservationGroupStatusFilterDto,
+  ) {
+    return await this.reservationService.getReservationGroups(user.id, filter);
   }
 
   @Get('user/:reservationGroupId')

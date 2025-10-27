@@ -46,3 +46,9 @@ export const AttachReceiptSchema = z.object({
 });
 
 export class AttachReceiptDto extends createZodDto(AttachReceiptSchema) {}
+
+const ReservationGroupStatusFilter = z.object({
+  status: z.enum([RequestType.APPROVED, RequestType.CANCELED, 'PENDING', 'ALL']).default('ALL'),
+});
+
+export class ReservationGroupStatusFilterDto extends createZodDto(ReservationGroupStatusFilter) {}

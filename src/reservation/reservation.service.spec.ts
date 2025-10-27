@@ -282,6 +282,8 @@ describe('ReservationService', () => {
       expect(databaseService.reservationGroup.findMany).toHaveBeenCalledWith({
         where: { userId },
         select: {
+          members: true,
+          requests: true,
           reservations: {
             select: {
               id: true,
