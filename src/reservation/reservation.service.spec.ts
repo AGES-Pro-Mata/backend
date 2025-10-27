@@ -332,7 +332,7 @@ describe('ReservationService', () => {
             experienceId,
             startDate: '2025-01-01T10:00:00Z',
             endDate: '2025-01-01T12:00:00Z',
-            members: [{ document: '12345678900' }],
+            members: 1,
           },
         ],
         members: [
@@ -383,7 +383,7 @@ describe('ReservationService', () => {
             startDate: '2025-01-01T10:00:00Z',
             endDate: '2025-01-01T12:00:00Z',
             notes: 'Test notes',
-            members: [{ document: '12345678900' }],
+            membersCount: 1,
           },
         ],
         members: [
@@ -405,13 +405,7 @@ describe('ReservationService', () => {
             startDate: new Date('2025-01-01T10:00:00Z'),
             endDate: new Date('2025-01-01T12:00:00Z'),
             notes: 'Test notes',
-            members: [
-              {
-                name: 'John Doe',
-                document: '12345678900',
-                gender: 'M',
-              },
-            ],
+            membersCount: 1,
             experience: {},
           },
         ],
@@ -455,13 +449,13 @@ describe('ReservationService', () => {
             experienceId: 'exp-1',
             startDate: '2025-01-01T10:00:00Z',
             endDate: '2025-01-01T12:00:00Z',
-            members: [{ document: '11111111111' }],
+            membersCount: 1,
           },
           {
             experienceId: 'exp-2',
             startDate: '2025-01-02T10:00:00Z',
             endDate: '2025-01-02T12:00:00Z',
-            members: [{ document: '22222222222' }],
+            membersCount: 1,
           },
         ],
         members: [
@@ -521,14 +515,7 @@ describe('ReservationService', () => {
         },
         reservations: [
           {
-            members: [
-              {
-                id: 'member-1',
-                name: 'Member 1',
-                document: '12345678900',
-                gender: 'M',
-              },
-            ],
+            membersCount: 1,
             notes: 'Notes',
             experience: {
               id: 'exp-1',
@@ -562,14 +549,7 @@ describe('ReservationService', () => {
           },
           reservations: {
             select: {
-              members: {
-                omit: {
-                  createdAt: true,
-                  updatedAt: true,
-                  active: true,
-                  reservationGroupId: true,
-                },
-              },
+              membersCount: true,
               notes: true,
               experience: {
                 omit: {
@@ -623,14 +603,7 @@ describe('ReservationService', () => {
           },
           reservations: {
             select: {
-              members: {
-                omit: {
-                  createdAt: true,
-                  updatedAt: true,
-                  active: true,
-                  reservationGroupId: true,
-                },
-              },
+              membersCount: true,
               notes: true,
               experience: {
                 omit: {
