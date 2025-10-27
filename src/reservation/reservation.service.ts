@@ -86,35 +86,39 @@ export class ReservationService {
   }
 
   async getReservations(userId: string) {
-    return await this.databaseService.reservation.findMany({
+    return await this.databaseService.reservationGroup.findMany({
       where: {
         userId: userId,
       },
       select: {
-        id: true,
-        startDate: true,
-        endDate: true,
-        notes: true,
-        user: {
+        reservations: {
           select: {
-            name: true,
-            phone: true,
-            document: true,
-            gender: true,
-          },
-        },
-        experience: {
-          select: {
-            name: true,
+            id: true,
             startDate: true,
             endDate: true,
-            price: true,
-            capacity: true,
-            trailLength: true,
-            durationMinutes: true,
-            image: {
+            notes: true,
+            user: {
               select: {
-                url: true,
+                name: true,
+                phone: true,
+                document: true,
+                gender: true,
+              },
+            },
+            experience: {
+              select: {
+                name: true,
+                startDate: true,
+                endDate: true,
+                price: true,
+                capacity: true,
+                trailLength: true,
+                durationMinutes: true,
+                image: {
+                  select: {
+                    url: true,
+                  },
+                },
               },
             },
           },
