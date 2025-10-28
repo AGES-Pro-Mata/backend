@@ -205,6 +205,7 @@ export class ReservationService {
             id: true,
             name: true,
             email: true,
+            phone: true,
           },
         },
         // enviando os membros do grupo de reserva
@@ -221,9 +222,20 @@ export class ReservationService {
             membersCount: true,
             notes: true,
             experience: {
-              omit: {
-                imageId: true,
-                active: true,
+              select: {
+                id: true,
+                name: true,
+                startDate: true,
+                endDate: true,
+                price: true,
+                capacity: true,
+                trailLength: true,
+                durationMinutes: true,
+                image: {
+                  select: {
+                    url: true,
+                  },
+                },
               },
             },
           },
