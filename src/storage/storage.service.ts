@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import crypto from 'crypto';
+import sharp from 'sharp';
 
 const randomFileName = () => crypto.randomBytes(16).toString('hex');
 
@@ -61,11 +62,23 @@ export class StorageService {
     const fileName = `${directory}/${randomFileName()}`;
 
     try {
+      let fileBuffer = file.buffer;
+      let contentType = options?.contentType || file.mimetype;
+
+      if (this.isImage(file.mimetype)) {
+        const compressionResult = await this.compressImage(file.buffer, file.mimetype);
+        fileBuffer = compressionResult.buffer;
+        contentType = compressionResult.contentType;
+        this.logger.log(
+          `Image compressed: ${file.size} bytes -> ${fileBuffer.length} bytes (${Math.round((1 - fileBuffer.length / file.size) * 100)}% reduction)`,
+        );
+      }
+
       const command = new PutObjectCommand({
         Bucket: this.bucket,
         Key: fileName,
-        Body: file.buffer,
-        ContentType: options?.contentType || file.mimetype,
+        Body: fileBuffer,
+        ContentType: contentType,
         CacheControl: options?.cacheControl,
       });
 
@@ -110,5 +123,37 @@ export class StorageService {
 
   getFileUrl(fileKey: string): string {
     return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${fileKey}`;
+  }
+
+  private isImage(mimetype: string): boolean {
+    return mimetype.startsWith('image/');
+  }
+
+  private async compressImage(
+    buffer: Buffer,
+    mimetype: string,
+  ): Promise<{ buffer: Buffer; contentType: string }> {
+    try {
+      const image = sharp(buffer);
+
+      let compressedBuffer: Buffer;
+      let contentType: string;
+
+      if (mimetype === 'image/png') {
+        compressedBuffer = await image.png({ quality: 80, compressionLevel: 9 }).toBuffer();
+        contentType = 'image/png';
+      } else if (mimetype === 'image/gif') {
+        compressedBuffer = buffer;
+        contentType = 'image/gif';
+      } else {
+        compressedBuffer = await image.webp({ quality: 80 }).toBuffer();
+        contentType = 'image/webp';
+      }
+
+      return { buffer: compressedBuffer, contentType };
+    } catch (error) {
+      this.logger.error(`Failed to compress image: ${error.message}`, error.stack);
+      return { buffer, contentType: mimetype };
+    }
   }
 }
