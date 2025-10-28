@@ -43,6 +43,7 @@ WORKDIR /app
 COPY --from=build --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=build --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=nestjs:nodejs /app/prisma ./prisma
+COPY --from=build --chown=nestjs:nodejs /app/generated/prisma ./generated/prisma
 COPY --from=build --chown=nestjs:nodejs package*.json ./
 
 ENV NODE_ENV=production
