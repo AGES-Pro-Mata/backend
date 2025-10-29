@@ -593,6 +593,12 @@ async function main() {
                 ? `${Math.floor(Math.random() * 900 + 100)}.${Math.floor(Math.random() * 900 + 100)}.${Math.floor(Math.random() * 900 + 100)}-${Math.floor(Math.random() * 90 + 10)}`
                 : null,
             gender: ['Male', 'Female', 'Other'][Math.floor(Math.random() * 3)],
+            phone: `+55 ${Math.floor(Math.random() * 90 + 10)} 9${Math.floor(Math.random() * 9000 + 1000)}-${Math.floor(Math.random() * 9000 + 1000)}`, // ✅ ADICIONAR
+            birthDate: new Date(
+              1950 + Math.floor(Math.random() * 50), 
+              Math.floor(Math.random() * 12),        
+              Math.floor(Math.random() * 28) + 1     
+            ), 
             reservationGroupId: reservationGroup.id,
           },
         });

@@ -4,7 +4,6 @@ import { DatabaseService } from '../database/database.service';
 import type { GetRequestsQueryDto } from './request.model';
 import { RequestType } from '../../generated/prisma';
 
-
 describe('RequestService', () => {
   let service: RequestService;
   let databaseService: DatabaseService;
@@ -419,7 +418,7 @@ describe('RequestService', () => {
       const query: GetRequestsQueryDto = { page: 1, limit: 10 };
 
       mockDatabaseService.reservationGroup.findMany.mockRejectedValue(
-        new Error('Database connection failed')
+        new Error('Database connection failed'),
       );
 
       await expect(service.getRequest(query)).rejects.toThrow('Database connection failed');
@@ -429,9 +428,7 @@ describe('RequestService', () => {
       const query: GetRequestsQueryDto = { page: 1, limit: 10 };
 
       mockDatabaseService.reservationGroup.findMany.mockResolvedValue([]);
-      mockDatabaseService.reservationGroup.count.mockRejectedValue(
-        new Error('Count query failed')
-      );
+      mockDatabaseService.reservationGroup.count.mockRejectedValue(new Error('Count query failed'));
 
       await expect(service.getRequest(query)).rejects.toThrow('Count query failed');
     });
@@ -663,5 +660,24 @@ describe('RequestService', () => {
         }),
       );
     });
+  });
+  
+  it('should use default pagination values when query is empty', async () => {
+    const query = {} as GetRequestsQueryDto; // Nenhum campo definido
+
+    mockDatabaseService.reservationGroup.findMany.mockResolvedValue([]);
+    mockDatabaseService.reservationGroup.count.mockResolvedValue(0);
+
+    const result = await service.getRequest(query);
+
+    expect(mockDatabaseService.reservationGroup.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 0, // (1 - 1) * 10
+        take: 10,
+      }),
+    );
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(10);
+    expect(result.totalPages).toBe(0);
   });
 });

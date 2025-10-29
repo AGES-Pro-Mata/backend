@@ -212,6 +212,8 @@ model Member {
   id                 String           @id @default(uuid())
   name               String
   document           String?
+  phone              String?
+  birthDate         DateTime?
   gender             String
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
