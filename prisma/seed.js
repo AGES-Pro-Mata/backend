@@ -139,6 +139,96 @@ async function main() {
         country: 'Brazil',
       },
     }),
+    prisma.address.create({
+      data: {
+        street: 'Rua das Palmeiras',
+        number: '101',
+        city: 'Belo Horizonte',
+        zip: '30130-010',
+        country: 'Brasil',
+      },
+    }),
+    prisma.address.create({
+      data: {
+        street: 'Av. Brasil',
+        number: '2020',
+        city: 'Recife',
+        zip: '50030-010',
+        country: 'Brasil',
+      },
+    }),
+    prisma.address.create({
+      data: {
+        street: 'Rua do Sol',
+        number: '303',
+        city: 'Fortaleza',
+        zip: '60040-010',
+        country: 'Brasil',
+      },
+    }),
+    prisma.address.create({
+      data: {
+        street: 'Av. Amazonas',
+        number: '404',
+        city: 'Manaus',
+        zip: '69010-010',
+        country: 'Brasil',
+      },
+    }),
+    prisma.address.create({
+      data: {
+        street: 'Rua das Acácias',
+        number: '505',
+        city: 'Salvador',
+        zip: '40010-010',
+        country: 'Brasil',
+      },
+    }),
+    prisma.address.create({
+      data: {
+        street: 'Av. Paraná',
+        number: '606',
+        city: 'Curitiba',
+        zip: '80020-010',
+        country: 'Brasil',
+      },
+    }),
+    prisma.address.create({
+      data: {
+        street: 'Rua do Comércio',
+        number: '707',
+        city: 'Florianópolis',
+        zip: '88010-010',
+        country: 'Brasil',
+      },
+    }),
+    prisma.address.create({
+      data: {
+        street: 'Av. das Nações',
+        number: '808',
+        city: 'Brasília',
+        zip: '70040-010',
+        country: 'Brasil',
+      },
+    }),
+    prisma.address.create({
+      data: {
+        street: 'Rua das Oliveiras',
+        number: '909',
+        city: 'Porto Alegre',
+        zip: '90040-010',
+        country: 'Brasil',
+      },
+    }),
+    prisma.address.create({
+      data: {
+        street: 'Av. Rio Branco',
+        number: '1010',
+        city: 'Rio de Janeiro',
+        zip: '20040-010',
+        country: 'Brasil',
+      },
+    }),
   ]);
 
   // Simple password for demo purposes
@@ -153,6 +243,7 @@ async function main() {
     },
   );
 
+  // ROOT
   const rootUser = await prisma.user.create({
     data: {
       userType: UserType.ROOT,
@@ -166,10 +257,11 @@ async function main() {
       institution: 'Sistema',
       isForeign: false,
       verified: true,
-      addressId: addresses[0].id,
+      addressId: addresses[0].id, 
     },
   });
 
+  // ADMIN
   const adminUser = await prisma.user.create({
     data: {
       userType: UserType.ADMIN,
@@ -183,12 +275,11 @@ async function main() {
       institution: 'Pro-Mata',
       isForeign: false,
       verified: true,
-      addressId: addresses[1].id,
+      addressId: addresses[1].id, 
       createdByUserId: rootUser.id,
     },
   });
 
-  // Create PROFESSOR users
   const professors = await Promise.all([
     prisma.user.create({
       data: {
@@ -203,7 +294,7 @@ async function main() {
         institution: 'Universidade Federal do Rio de Janeiro',
         isForeign: false,
         verified: true,
-        addressId: addresses[2].id,
+        addressId: addresses[2].id, 
         createdByUserId: adminUser.id,
       },
     }),
@@ -237,7 +328,109 @@ async function main() {
         institution: 'Universidade Federal de Minas Gerais',
         isForeign: false,
         verified: true,
-        addressId: addresses[4].id,
+        addressId: addresses[4].id, 
+        createdByUserId: adminUser.id,
+      },
+    }),
+    prisma.user.create({
+      data: {
+        userType: UserType.PROFESSOR,
+        name: 'Dr. Paulo Lima',
+        email: 'paulo.lima@ufpr.br',
+        password: demoPassword,
+        phone: '+55 41 91234-5678',
+        document: '444.444.444-44',
+        gender: 'Male',
+        rg: '44.444.444-4',
+        institution: 'Universidade Federal do Paraná',
+        isForeign: false,
+        verified: true,
+        addressId: addresses[11].id, 
+        createdByUserId: adminUser.id,
+      },
+    }),
+    prisma.user.create({
+      data: {
+        userType: UserType.PROFESSOR,
+        name: 'Dra. Fernanda Souza',
+        email: 'fernanda.souza@usp.br',
+        password: demoPassword,
+        phone: '+55 11 93456-7890',
+        document: '555.555.555-55',
+        gender: 'Female',
+        rg: '55.555.555-5',
+        institution: 'Universidade de São Paulo',
+        isForeign: false,
+        verified: true,
+        addressId: addresses[6].id, 
+        createdByUserId: adminUser.id,
+      },
+    }),
+    prisma.user.create({
+      data: {
+        userType: UserType.PROFESSOR,
+        name: 'Dr. Eduardo Martins',
+        email: 'eduardo.martins@ufsc.br',
+        password: demoPassword,
+        phone: '+55 48 92345-6789',
+        document: '666.666.666-66',
+        gender: 'Male',
+        rg: '66.666.666-6',
+        institution: 'Universidade Federal de Santa Catarina',
+        isForeign: false,
+        verified: true,
+        addressId: addresses[7].id, 
+        createdByUserId: adminUser.id,
+      },
+    }),
+    prisma.user.create({
+      data: {
+        userType: UserType.PROFESSOR,
+        name: 'Dra. Camila Ribeiro',
+        email: 'camila.ribeiro@ufba.br',
+        password: demoPassword,
+        phone: '+55 71 93456-1234',
+        document: '777.777.777-77',
+        gender: 'Female',
+        rg: '77.777.777-7',
+        institution: 'Universidade Federal da Bahia',
+        isForeign: false,
+        verified: true,
+        addressId: addresses[8].id, 
+        createdByUserId: adminUser.id,
+      },
+    }),
+    prisma.user.create({
+      data: {
+        userType: UserType.PROFESSOR,
+        name: 'Dr. André Costa',
+        email: 'andre.costa@ufpe.br',
+        password: demoPassword,
+        phone: '+55 81 91234-5678',
+        document: '889.889.889-89',
+        gender: 'Male',
+        rg: '89.889.889-8',
+        institution: 'Universidade Federal de Pernambuco',
+        isForeign: false,
+        verified: true,
+        addressId: addresses[9].id, 
+        createdByUserId: adminUser.id,
+      },
+    }),
+    prisma.user.create({
+      data: {
+        userType: UserType.PROFESSOR,
+        name: 'Dra. Juliana Alves',
+        email: 'juliana.alves@ufc.br',
+        password: demoPassword,
+        phone: '+55 85 93456-7890',
+        document: '990.990.990-99',
+        gender: 'Female',
+        rg: '99.990.990-9',
+        institution: 'Universidade Federal do Ceará',
+        isForeign: false,
+        verified: true,
+        addressId: addresses[10].id, 
         createdByUserId: adminUser.id,
       },
     }),
@@ -252,13 +445,13 @@ async function main() {
         email: 'carlos@email.com',
         password: demoPassword,
         phone: '+55 11 95555-5555',
-        document: '444.444.444-44',
+        document: '445.445.445-45', 
         gender: 'Male',
-        rg: '44.444.444-4',
+        rg: '45.445.445-4',
         institution: 'Empresa ABC',
         isForeign: false,
         verified: true,
-        addressId: addresses[5].id,
+        addressId: addresses[12].id,
         createdByUserId: professors[0].id,
       },
     }),
@@ -275,7 +468,7 @@ async function main() {
         institution: 'International Research Institute',
         isForeign: true,
         verified: true,
-        addressId: addresses[6].id,
+        addressId: addresses[13].id,
         createdByUserId: adminUser.id,
       },
     }),
@@ -286,13 +479,13 @@ async function main() {
         email: 'beatriz.mendes@gmail.com',
         password: demoPassword,
         phone: '+55 41 94444-4444',
-        document: '999.999.999-99',
+        document: '999.999.999-99', 
         gender: 'Female',
         rg: '99.999.999-9',
         institution: 'ONG Natureza Viva',
         isForeign: false,
         verified: true,
-        addressId: addresses[7].id,
+        addressId: addresses[14].id,
         createdByUserId: professors[1].id,
       },
     }),
@@ -698,101 +891,6 @@ async function main() {
         expiredAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
         createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
         isActive: false,
-      },
-    }),
-  ]);
-
-  const professorRequests = await Promise.all([
-    // existing examples
-    prisma.requests.create({
-      data: {
-        type: "CREATED",
-        description: `Professor application: ${guests[0].name} <${guests[0].email}>`,
-        createdByUserId: guests[0].id,
-        createdAt: new Date(),
-      },
-    }),
-
-    prisma.requests.create({
-      data: {
-        type: "APPROVED",
-        description: `Approved professor: ${professors[0].name} <${professors[0].email}>`,
-        createdByUserId: adminUser.id,
-        createdAt: addDays(new Date(), -2),
-      },
-    }),
-
-    prisma.requests.create({
-      data: {
-        type: "REJECTED",
-        description: `Rejected professor: ${professors[1].name} <${professors[1].email}>`,
-        createdByUserId: adminUser.id,
-        createdAt: addDays(new Date(), -1),
-      },
-    }),
-
-    prisma.requests.create({
-      data: {
-        type: "CREATED",
-        description: `Professor application: ${guests[1].name} <${guests[1].email}>`,
-        createdByUserId: guests[1].id,
-        createdAt: addDays(new Date(), -3),
-      },
-    }),
-    prisma.requests.create({
-      data: {
-        type: "CREATED",
-        description: `Professor application: ${guests[2].name} <${guests[2].email}>`,
-        createdByUserId: guests[2].id,
-        createdAt: addDays(new Date(), -4),
-      },
-    }),
-    prisma.requests.create({
-      data: {
-        type: "APPROVED",
-        description: `Approved professor: ${professors[2].name} <${professors[2].email}>`,
-        createdByUserId: adminUser.id,
-        createdAt: addDays(new Date(), -5),
-      },
-    }),
-    prisma.requests.create({
-      data: {
-        type: "REJECTED",
-        description: `Rejected professor candidate: Candidate A <candidate.a@example.com>`,
-        createdByUserId: adminUser.id,
-        createdAt: addDays(new Date(), -6),
-      },
-    }),
-    prisma.requests.create({
-      data: {
-        type: "CREATED",
-        description: `Professor application: Candidate B <candidate.b@example.com>`,
-        createdByUserId: guests[0].id,
-        createdAt: addDays(new Date(), -7),
-      },
-    }),
-    prisma.requests.create({
-      data: {
-        type: "APPROVED",
-        description: `Approved professor: Candidate C <candidate.c@example.com>`,
-        createdByUserId: adminUser.id,
-        createdAt: addDays(new Date(), -8),
-      },
-    }),
-    prisma.requests.create({
-      data: {
-        type: "REJECTED",
-        description: `Rejected professor: Candidate D <candidate.d@example.com>`,
-        createdByUserId: adminUser.id,
-        createdAt: addDays(new Date(), -9),
-      },
-    }),
-    prisma.requests.create({
-      data: {
-        type: "CREATED",
-        description: `Professor application: Candidate E <candidate.e@example.com>`,
-        createdByUserId: guests[1].id,
-        createdAt: addDays(new Date(), -10),
       },
     }),
   ]);

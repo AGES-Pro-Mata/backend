@@ -11,18 +11,14 @@ export class RequestService {
     const { page = 1, limit = 10, status, sort, dir } = query;
     const skip = (page - 1) * limit;
 
-    // 1. Filtro base: Apenas requests que SÃO de um grupo (não de professores)
     const baseWhere: any = {
       reservationGroupId: { not: null },
     };
 
-    // 2. Adiciona o filtro de status (se existir)
     const statusWhere = status && status.length > 0 ? { type: { in: status } } : undefined;
-
     const where = statusWhere ? { AND: [baseWhere, statusWhere] } : baseWhere;
 
-    // 3. Ordenação
-    let orderBy: any = { createdAt: 'desc' }; // Ordenar pela data da request
+    let orderBy: any = { createdAt: 'desc' };
     if (sort && dir) {
       if (sort === 'member.name') {
         orderBy = { reservationGroup: { user: { name: dir } } };
@@ -31,17 +27,15 @@ export class RequestService {
       }
     }
 
-    // 4. MUDANÇA PRINCIPAL: Buscamos na tabela 'requests'
     const [requests, total] = await Promise.all([
       this.databaseService.requests.findMany({
         where,
         select: {
-          id: true, // ID da Request
+          id: true,
           type: true,
           ReservationGroup: {
-            // Incluímos os dados do grupo e do usuário
             select: {
-              id: true, // ID do Grupo
+              id: true,
               user: { select: { email: true, name: true } },
             },
           },
@@ -50,13 +44,12 @@ export class RequestService {
         take: limit,
         orderBy,
       }),
-      // Contamos o total de requests que batem com o filtro
+
       this.databaseService.requests.count({ where }),
     ]);
 
-    // 5. Mapeamos os dados para o DTO de resposta
     const data = requests
-      .filter((r) => r.ReservationGroup) // Filtra requests sem grupo
+      .filter((r) => r.ReservationGroup)
       .map((r) => {
         const group = r.ReservationGroup!;
 
@@ -85,59 +78,82 @@ export class RequestService {
     const { page = 1, limit = 10, status, sort, dir } = query;
     const skip = (page - 1) * limit;
 
-    const requestsWhere =
+    // Filtra apenas usuários PROFESSOR
+    const userWhere: any = {
+      userType: UserType.PROFESSOR,
+    };
+
+    // Filtro de status nas requests do professor
+    const requestsStatusWhere =
       status && status.length > 0
         ? {
-            requests: {
+            ReservationGroup: {
               some: {
-                type: { in: status },
+                requests: {
+                  some: {
+                    type: { in: status },
+                  },
+                },
               },
             },
           }
-        : undefined;
+        : {};
 
-    const where = requestsWhere ?? {};
+    // Combina os filtros
+    const where = Object.keys(requestsStatusWhere).length
+      ? { AND: [userWhere, requestsStatusWhere] }
+      : userWhere;
 
+    // Ordenação
     let orderBy: any = { createdAt: 'desc' };
-
     if (sort && dir) {
-      if (sort === 'member.name') {
-        orderBy = { user: { name: dir } };
-      } else if (sort === 'member.email') {
-        orderBy = { user: { email: dir } };
-      }
+      if (sort === 'member.name') orderBy = { name: dir };
+      else if (sort === 'member.email') orderBy = { email: dir };
     }
 
-    const [groups, total] = await Promise.all([
-      this.databaseService.reservationGroup.findMany({
+    // Busca usuários PROFESSOR com paginação
+    const [users, total] = await Promise.all([
+      this.databaseService.user.findMany({
         where,
-        select: {
-          id: true,
-          user: { select: { email: true, name: true } },
-          requests: {
-            where: status && status.length > 0 ? { type: { in: status } } : undefined,
-            orderBy: { createdAt: 'desc' },
-            take: 1,
-            select: { type: true },
-          },
-        },
         skip,
         take: limit,
         orderBy,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          ReservationGroup: {
+            select: {
+              requests: {
+                orderBy: { createdAt: 'desc' },
+                take: 1,
+                select: { type: true },
+                where: status && status.length > 0 ? { type: { in: status } } : undefined,
+              },
+            },
+          },
+        },
       }),
-      this.databaseService.reservationGroup.count({ where }),
+      this.databaseService.user.count({ where }),
     ]);
 
-    const data = groups.map((g) => ({
-      id: g.id,
-      member: {
-        name: g.user?.name ?? 'N/A',
-        email: g.user?.email ?? 'N/A',
-      },
-      request: {
-        type: (g.requests[0]?.type as RequestType) ?? RequestType.CREATED,
-      },
-    }));
+    // Monta o resultado
+    const data = users.map((u) => {
+      // Pega o tipo da request mais recente do professor
+      const latestRequest =
+        u.ReservationGroup?.flatMap((g) => g.requests)[0]?.type ?? RequestType.CREATED;
+
+      return {
+        id: u.id,
+        member: {
+          name: u.name ?? 'N/A',
+          email: u.email ?? 'N/A',
+        },
+        request: {
+          type: latestRequest,
+        },
+      };
+    });
 
     return {
       data,
