@@ -702,6 +702,101 @@ async function main() {
     }),
   ]);
 
+  const professorRequests = await Promise.all([
+    // existing examples
+    prisma.requests.create({
+      data: {
+        type: "CREATED",
+        description: `Professor application: ${guests[0].name} <${guests[0].email}>`,
+        createdByUserId: guests[0].id,
+        createdAt: new Date(),
+      },
+    }),
+
+    prisma.requests.create({
+      data: {
+        type: "APPROVED",
+        description: `Approved professor: ${professors[0].name} <${professors[0].email}>`,
+        createdByUserId: adminUser.id,
+        createdAt: addDays(new Date(), -2),
+      },
+    }),
+
+    prisma.requests.create({
+      data: {
+        type: "REJECTED",
+        description: `Rejected professor: ${professors[1].name} <${professors[1].email}>`,
+        createdByUserId: adminUser.id,
+        createdAt: addDays(new Date(), -1),
+      },
+    }),
+
+    prisma.requests.create({
+      data: {
+        type: "CREATED",
+        description: `Professor application: ${guests[1].name} <${guests[1].email}>`,
+        createdByUserId: guests[1].id,
+        createdAt: addDays(new Date(), -3),
+      },
+    }),
+    prisma.requests.create({
+      data: {
+        type: "CREATED",
+        description: `Professor application: ${guests[2].name} <${guests[2].email}>`,
+        createdByUserId: guests[2].id,
+        createdAt: addDays(new Date(), -4),
+      },
+    }),
+    prisma.requests.create({
+      data: {
+        type: "APPROVED",
+        description: `Approved professor: ${professors[2].name} <${professors[2].email}>`,
+        createdByUserId: adminUser.id,
+        createdAt: addDays(new Date(), -5),
+      },
+    }),
+    prisma.requests.create({
+      data: {
+        type: "REJECTED",
+        description: `Rejected professor candidate: Candidate A <candidate.a@example.com>`,
+        createdByUserId: adminUser.id,
+        createdAt: addDays(new Date(), -6),
+      },
+    }),
+    prisma.requests.create({
+      data: {
+        type: "CREATED",
+        description: `Professor application: Candidate B <candidate.b@example.com>`,
+        createdByUserId: guests[0].id,
+        createdAt: addDays(new Date(), -7),
+      },
+    }),
+    prisma.requests.create({
+      data: {
+        type: "APPROVED",
+        description: `Approved professor: Candidate C <candidate.c@example.com>`,
+        createdByUserId: adminUser.id,
+        createdAt: addDays(new Date(), -8),
+      },
+    }),
+    prisma.requests.create({
+      data: {
+        type: "REJECTED",
+        description: `Rejected professor: Candidate D <candidate.d@example.com>`,
+        createdByUserId: adminUser.id,
+        createdAt: addDays(new Date(), -9),
+      },
+    }),
+    prisma.requests.create({
+      data: {
+        type: "CREATED",
+        description: `Professor application: Candidate E <candidate.e@example.com>`,
+        createdByUserId: guests[1].id,
+        createdAt: addDays(new Date(), -10),
+      },
+    }),
+  ]);
+
   console.log('✅ Seed concluído com sucesso!');
   console.log(`
 📊 Created (2025 Full Year Data):

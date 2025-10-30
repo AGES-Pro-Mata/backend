@@ -43,3 +43,46 @@ export const PaginatedRequestResponseSchema = z.object({
 });
 
 export class PaginatedRequestResponseDto extends createZodDto(PaginatedRequestResponseSchema) {}
+
+export const GetRequestByIdAdminDtoSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  description: z.string().nullable().optional(),
+  user: z.object({
+    id: z.string(),
+    name: z.string(),
+    email: z.string().email(),
+    phone: z.string().nullable().optional(),
+  }),
+  members: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      document: z.string().nullable(),
+      gender: z.string().nullable(),
+      phone: z.string().nullable(),
+      birthDate: z.string().nullable(),
+    })
+  ),
+  reservations: z.array(
+    z.object({
+      membersCount: z.number(),
+      notes: z.string().nullable(),
+      experience: z.object({
+        id: z.string(),
+        name: z.string(),
+        startDate: z.string(),
+        endDate: z.string(),
+        price: z.number(),
+        capacity: z.number(),
+        trailLength: z.number().nullable(),
+        durationMinutes: z.number(),
+        image: z.object({
+          url: z.string().nullable(),
+        }).nullable(),
+      }),
+    })
+  ),
+});
+
+export class GetRequestByIdAdminDto extends createZodDto(GetRequestByIdAdminDtoSchema) {}

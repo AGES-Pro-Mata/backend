@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, HttpStatus, Query } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Param, Query } from '@nestjs/common';
 import { Roles } from 'src/auth/role/roles.decorator';
 import { UserType } from 'generated/prisma';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -16,6 +16,25 @@ export class RequestController {
   @ApiBearerAuth('access-token')
   @ApiResponse({ status: 200, type: PaginatedRequestResponseDto })
   async getAllRequest(@Query() query: GetRequestsQueryDto): Promise<PaginatedRequestResponseDto> {
-    return await this.requestService.getRequest(query);
+    return await this.requestService.getRequestReservation(query);
+  }
+
+  @Get('professor')
+  @HttpCode(HttpStatus.OK)
+  @Roles(UserType.ADMIN)
+  @ApiBearerAuth('access-token')
+  @ApiResponse({ status: 200, type: PaginatedRequestResponseDto })
+  async getAllRequests(@Query() query: GetRequestsQueryDto): Promise<PaginatedRequestResponseDto> {
+    return await this.requestService.getRequestProfessor(query);
+  }
+
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  @Roles(UserType.ADMIN)
+  @ApiBearerAuth('access-token')
+  @ApiResponse({ status: 200, description: 'Request found successfully.' })
+  @ApiResponse({ status: 404, description: 'Request not found.' })
+  async getRequestById(@Param('id') id: string) {
+    return await this.requestService.getRequestByIdAdmin(id);
   }
 }
