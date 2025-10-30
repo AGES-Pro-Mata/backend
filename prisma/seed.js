@@ -298,6 +298,23 @@ async function main() {
         createdByUserId: adminUser.id,
       },
     }),
+      prisma.user.create({
+      data: {
+        userType: UserType.PROFESSOR,
+        name: 'Dr. Renato Almeira',
+        email: 'renato.almeira@university.edu.br',
+        password: demoPassword,
+        phone: '+55 21 97777-7345',
+        document: '222.222.333-55',
+        gender: 'Male',
+        rg: '22.225.333-3',
+        institution: 'Universidade Federal do Rio de Janeiro',
+        isForeign: false,
+        verified: true,
+        addressId: addresses[21].id, 
+        createdByUserId: adminUser.id,
+      },
+    }),
     prisma.user.create({
       data: {
         userType: UserType.PROFESSOR,

@@ -17,6 +17,12 @@ export const RequestAdminDtoSchema = z.object({
   request: TypeSchema,
 });
 
+const RequestStatusSchema = z.object({
+  id: z.string(),
+  type: z.nativeEnum(RequestType),
+  description: z.string().nullable().optional(),
+});
+
 export class RequestAdminDto extends createZodDto(RequestAdminDtoSchema) {}
 
 // Query params para filtro e paginação
@@ -83,6 +89,7 @@ export const GetRequestByIdAdminDtoSchema = z.object({
       }),
     })
   ),
+  requests: z.array(RequestStatusSchema).optional(),
 });
 
 export class GetRequestByIdAdminDto extends createZodDto(GetRequestByIdAdminDtoSchema) {}

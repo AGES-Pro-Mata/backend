@@ -78,12 +78,10 @@ export class RequestService {
     const { page = 1, limit = 10, status, sort, dir } = query;
     const skip = (page - 1) * limit;
 
-    // Filtra apenas usuários PROFESSOR
     const userWhere: any = {
       userType: UserType.PROFESSOR,
     };
 
-    // Filtro de status nas requests do professor
     const requestsStatusWhere =
       status && status.length > 0
         ? {
@@ -99,19 +97,16 @@ export class RequestService {
           }
         : {};
 
-    // Combina os filtros
     const where = Object.keys(requestsStatusWhere).length
       ? { AND: [userWhere, requestsStatusWhere] }
       : userWhere;
 
-    // Ordenação
     let orderBy: any = { createdAt: 'desc' };
     if (sort && dir) {
       if (sort === 'member.name') orderBy = { name: dir };
       else if (sort === 'member.email') orderBy = { email: dir };
     }
 
-    // Busca usuários PROFESSOR com paginação
     const [users, total] = await Promise.all([
       this.databaseService.user.findMany({
         where,
@@ -137,9 +132,7 @@ export class RequestService {
       this.databaseService.user.count({ where }),
     ]);
 
-    // Monta o resultado
     const data = users.map((u) => {
-      // Pega o tipo da request mais recente do professor
       const latestRequest =
         u.ReservationGroup?.flatMap((g) => g.requests)[0]?.type ?? RequestType.CREATED;
 
