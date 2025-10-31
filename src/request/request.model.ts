@@ -17,21 +17,20 @@ export const RequestAdminDtoSchema = z.object({
   request: TypeSchema,
 });
 
+export class RequestAdminDto extends createZodDto(RequestAdminDtoSchema) {}
+
 const RequestStatusSchema = z.object({
   id: z.string(),
   type: z.nativeEnum(RequestType),
   description: z.string().nullable().optional(),
 });
 
-export class RequestAdminDto extends createZodDto(RequestAdminDtoSchema) {}
-
-// Query params para filtro e paginação
 export const GetRequestsQueryDtoSchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(10),
   status: z
-    .array(z.nativeEnum(RequestType)) 
-    .or(z.nativeEnum(RequestType).transform(v => [v]))
+    .array(z.nativeEnum(RequestType))
+    .or(z.nativeEnum(RequestType).transform((v) => [v]))
     .optional(),
   sort: z.string().optional(),
   dir: z.enum(['asc', 'desc']).optional(),
@@ -39,7 +38,21 @@ export const GetRequestsQueryDtoSchema = z.object({
 
 export class GetRequestsQueryDto extends createZodDto(GetRequestsQueryDtoSchema) {}
 
-// Response com paginação
+export const GetRequestsProfessorQueryDtoSchema = z.object({
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(10),
+  status: z
+    .array(z.enum(['CREATED', 'APPROVED', 'REJECTED']))
+    .or(z.enum(['CREATED', 'APPROVED', 'REJECTED']).transform((v) => [v]))
+    .optional(),
+  sort: z.string().optional(),
+  dir: z.enum(['asc', 'desc']).optional(),
+});
+
+export class GetRequestsProfessorQueryDto extends createZodDto(
+  GetRequestsProfessorQueryDtoSchema
+) {}
+
 export const PaginatedRequestResponseSchema = z.object({
   data: z.array(RequestAdminDtoSchema),
   total: z.number(),
@@ -48,7 +61,9 @@ export const PaginatedRequestResponseSchema = z.object({
   totalPages: z.number(),
 });
 
-export class PaginatedRequestResponseDto extends createZodDto(PaginatedRequestResponseSchema) {}
+export class PaginatedRequestResponseDto extends createZodDto(
+  PaginatedRequestResponseSchema
+) {}
 
 export const GetRequestByIdAdminDtoSchema = z.object({
   id: z.string(),
@@ -83,13 +98,17 @@ export const GetRequestByIdAdminDtoSchema = z.object({
         capacity: z.number(),
         trailLength: z.number().nullable(),
         durationMinutes: z.number(),
-        image: z.object({
-          url: z.string().nullable(),
-        }).nullable(),
+        image: z
+          .object({
+            url: z.string().nullable(),
+          })
+          .nullable(),
       }),
     })
   ),
   requests: z.array(RequestStatusSchema).optional(),
 });
 
-export class GetRequestByIdAdminDto extends createZodDto(GetRequestByIdAdminDtoSchema) {}
+export class GetRequestByIdAdminDto extends createZodDto(
+  GetRequestByIdAdminDtoSchema
+) {}

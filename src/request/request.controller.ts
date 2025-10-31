@@ -19,7 +19,7 @@ export class RequestController {
     return await this.requestService.getRequestReservation(query);
   }
 
-  @Get('professor')
+  @Get('teacher')
   @HttpCode(HttpStatus.OK)
   @Roles(UserType.ADMIN)
   @ApiBearerAuth('access-token')
