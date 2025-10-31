@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { RequestType, UserType } from 'generated/prisma';
 import { GetRequestsQueryDto } from './request.model';
+import { GetRequestsProfessorQueryDto, GetProfessorRequestByIdDto } from './request.model';
 
 @Injectable()
 export class RequestService {
@@ -74,76 +75,60 @@ export class RequestService {
     };
   }
 
-  async getRequestProfessor(query: GetRequestsQueryDto) {
+  async getRequestProfessor(
+    query: GetRequestsProfessorQueryDto, 
+  ) {
     const { page = 1, limit = 10, status, sort, dir } = query;
     const skip = (page - 1) * limit;
 
-    const userWhere: any = {
-      userType: UserType.PROFESSOR,
+    const where: any = {
+      reservationGroupId: null,
+      ...(status && status.length > 0 && { type: { in: status } }),
+      createdBy: {
+        userType: UserType.PROFESSOR,
+      },
     };
 
-    const requestsStatusWhere =
-      status && status.length > 0
-        ? {
-            ReservationGroup: {
-              some: {
-                requests: {
-                  some: {
-                    type: { in: status },
-                  },
-                },
-              },
-            },
-          }
-        : {};
-
-    const where = Object.keys(requestsStatusWhere).length
-      ? { AND: [userWhere, requestsStatusWhere] }
-      : userWhere;
-
-    let orderBy: any = { createdAt: 'desc' };
+    let orderBy: any = { createdAt: 'desc' }; 
     if (sort && dir) {
-      if (sort === 'member.name') orderBy = { name: dir };
-      else if (sort === 'member.email') orderBy = { email: dir };
+      if (sort === 'member.name') {
+        orderBy = { createdBy: { name: dir } }; 
+      } else if (sort === 'member.email') {
+        orderBy = { createdBy: { email: dir } }; 
+      } else if (sort === 'request.type') {
+        orderBy = { type: dir }; 
+      }
     }
 
-    const [users, total] = await Promise.all([
-      this.databaseService.user.findMany({
+    const [requests, total] = await Promise.all([
+      this.databaseService.requests.findMany({
         where,
         skip,
         take: limit,
         orderBy,
         select: {
-          id: true,
-          name: true,
-          email: true,
-          ReservationGroup: {
+          id: true, 
+          type: true, 
+          createdBy: {
             select: {
-              requests: {
-                orderBy: { createdAt: 'desc' },
-                take: 1,
-                select: { type: true },
-                where: status && status.length > 0 ? { type: { in: status } } : undefined,
-              },
+              name: true,
+              email: true,
             },
           },
         },
       }),
-      this.databaseService.user.count({ where }),
+      this.databaseService.requests.count({ where }), 
     ]);
 
-    const data = users.map((u) => {
-      const latestRequest =
-        u.ReservationGroup?.flatMap((g) => g.requests)[0]?.type ?? RequestType.CREATED;
-
+    const data = requests.map((req) => {
       return {
-        id: u.id,
+        id: req.id, 
         member: {
-          name: u.name ?? 'N/A',
-          email: u.email ?? 'N/A',
+          name: req.createdBy.name ?? 'N/A',
+          email: req.createdBy.email ?? 'N/A',
         },
         request: {
-          type: latestRequest,
+          type: req.type,
         },
       };
     });
@@ -233,4 +218,75 @@ export class RequestService {
       requests: request.ReservationGroup.requests,
     };
   }
+
+  async getRequestProfessorById(
+    id: string,
+  ): Promise<GetProfessorRequestByIdDto> {
+    const mainRequest = await this.databaseService.requests.findUnique({
+      where: {
+        id: id,
+        reservationGroupId: null, 
+      },
+      select: {
+        id: true,
+        type: true,
+        description: true,
+        createdAt: true,
+        createdByUserId: true, 
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            document: true,
+            gender: true,
+            rg: true,
+            institution: true,
+            isForeign: true,
+            verified: true,
+            address: {
+              select: {
+                street: true,
+                number: true,
+                city: true,
+                zip: true,
+                country: true,
+              },
+            },
+          },
+        },
+      },
+    });
+   
+    if (!mainRequest) {
+      throw new NotFoundException('Solicitação de professor não encontrada.');
+    }
+
+    const requestHistory = await this.databaseService.requests.findMany({
+      where: {
+        createdByUserId: mainRequest.createdByUserId,
+        reservationGroupId: null, 
+      },
+      select: {
+        id: true,
+        type: true,
+        description: true,
+      },
+      orderBy: {
+        createdAt: 'asc', 
+      },
+    });
+
+    return {
+      id: mainRequest.id,
+      type: mainRequest.type,
+      description: mainRequest.description,
+      createdAt: mainRequest.createdAt.toISOString(), 
+      user: mainRequest.createdBy, 
+      requests: requestHistory, 
+    };
+  }
 }
+
+

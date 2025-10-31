@@ -112,3 +112,38 @@ export const GetRequestByIdAdminDtoSchema = z.object({
 export class GetRequestByIdAdminDto extends createZodDto(
   GetRequestByIdAdminDtoSchema
 ) {}
+
+const ProfessorAddressSchema = z.object({
+  street: z.string().nullable().optional(),
+  number: z.string().nullable().optional(),
+  city: z.string().nullable().optional(),
+  zip: z.string().nullable().optional(),
+  country: z.string(),
+});
+
+const ProfessorDetailsSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string().email(),
+  phone: z.string().nullable().optional(),
+  document: z.string().nullable().optional(),
+  gender: z.string(),
+  rg: z.string().nullable().optional(),
+  institution: z.string().nullable().optional(),
+  isForeign: z.boolean(),
+  verified: z.boolean(),
+  address: ProfessorAddressSchema.nullable().optional(),
+});
+ 
+export const GetProfessorRequestByIdDtoSchema = z.object({
+  id: z.string(), 
+  type: z.nativeEnum(RequestType), 
+  description: z.string().nullable().optional(),
+  createdAt: z.string().datetime(), 
+  user: ProfessorDetailsSchema,
+  requests: z.array(RequestStatusSchema).optional(),
+});
+
+export class GetProfessorRequestByIdDto extends createZodDto(
+  GetProfessorRequestByIdDtoSchema,
+) {}
