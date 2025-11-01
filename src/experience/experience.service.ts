@@ -7,10 +7,11 @@ import {
   GetExperienceFilterDto,
   UpdateExperienceFormDto,
 } from './experience.model';
+import { StorageService } from 'src/storage/storage.service';
 
 @Injectable()
 export class ExperienceService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(private readonly databaseService: DatabaseService, private readonly storageService: StorageService,) {}
 
   async deleteExperience(experienceId: string) {
     await this.databaseService.experience.update({
@@ -96,20 +97,16 @@ export class ExperienceService {
     };
   }
 
-  async createExperience(createExperienceDto: CreateExperienceFormDto) {
-    let imageId: string | undefined = undefined;
-
-    if (createExperienceDto.experienceImage) {
-      const image = await this.databaseService.image.findUnique({
-        where: { url: createExperienceDto.experienceImage },
-      });
-
-      if (!image) {
-        throw new BadRequestException('Imagem inválida');
-      }
-
-      imageId = image.id;
+  async createExperience(createExperienceDto: CreateExperienceFormDto, file?: Express.Multer.File | null) {
+    if (!file){
+      throw new BadRequestException('Imagem é obrigatória');
     }
+
+    const uploaded = await this.storageService.uploadFile(file, {
+      directory: 'experience',
+      contentType: file.mimetype ?? undefined,
+      cacheControl: 'public, max-age=31536000',
+    });
 
     await this.databaseService.experience.create({
       data: {
@@ -125,7 +122,7 @@ export class ExperienceService {
         trailDifficulty: createExperienceDto.trailDifficulty,
         trailLength: createExperienceDto.trailLength,
         active: true,
-        imageId,
+        imageId: uploaded.url,
       },
     });
   }

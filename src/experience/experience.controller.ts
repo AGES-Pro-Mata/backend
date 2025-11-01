@@ -9,6 +9,8 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ExperienceService } from './experience.service';
 import { Roles } from 'src/auth/role/roles.decorator';
@@ -20,6 +22,7 @@ import {
   UpdateExperienceFormDto,
   GetExperienceFilterDto,
 } from './experience.model';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('experience')
 export class ExperienceController {
@@ -55,8 +58,10 @@ export class ExperienceController {
   @Post()
   @Roles(UserType.ADMIN)
   @ApiBearerAuth('access-token')
-  async createExperienceAsAdmin(@Body() createExperienceDto: CreateExperienceFormDto) {
-    return await this.experienceService.createExperience(createExperienceDto);
+  @UseInterceptors(FileInterceptor('image'))
+  @HttpCode(HttpStatus.CREATED)
+  async createExperienceAsAdmin(@Body() createExperienceDto: CreateExperienceFormDto, @UploadedFile() file: Express.Multer.File | null) {
+    return await this.experienceService.createExperience(createExperienceDto, file);
   }
 
   @Get('search')
