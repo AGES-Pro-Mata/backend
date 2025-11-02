@@ -54,40 +54,44 @@ export class UserService {
   async updateUser(userId: string, updateUserDto: UpdateUserFormDto) {
     this.verifyUserId(userId);
 
-    const user = await this.databaseService.user.update({
-      where: { id: userId, userType: { not: UserType.ROOT } },
-      data: {
-        name: updateUserDto.name,
-        email: updateUserDto.email,
-        phone: updateUserDto.phone,
-        document: updateUserDto.document,
-        gender: updateUserDto.gender,
-        rg: updateUserDto.rg,
-        userType: updateUserDto.userType,
-        institution: updateUserDto.institution,
-        isForeign: updateUserDto.isForeign,
-      },
+    const result = await this.databaseService.$transaction(async (tx) => {
+      const user = await tx.user.update({
+        where: { id: userId, userType: { not: UserType.ROOT } },
+        data: {
+          name: updateUserDto.name,
+          email: updateUserDto.email,
+          phone: updateUserDto.phone,
+          document: updateUserDto.document,
+          gender: updateUserDto.gender,
+          rg: updateUserDto.rg,
+          userType: updateUserDto.userType,
+          institution: updateUserDto.institution,
+          isForeign: updateUserDto.isForeign,
+        },
+      });
+
+      if (user.userType === UserType.ADMIN || user.userType === UserType.ROOT) {
+        return;
+      }
+
+      if (!user.addressId) {
+        this.logger.fatal(`The common user (GEST or PROFESSOR) ${user.id} must have an Address`);
+        return;
+      }
+
+      await tx.address.update({
+        where: { id: user.addressId },
+        data: {
+          zip: updateUserDto.zipCode,
+          street: updateUserDto.addressLine,
+          city: updateUserDto.city,
+          number: updateUserDto.number?.toString(),
+          country: updateUserDto.country,
+        },
+      });
+      return user;
     });
-
-    if (user.userType === UserType.ADMIN || user.userType === UserType.ROOT) {
-      return;
-    }
-
-    if (!user.addressId) {
-      this.logger.fatal(`The common user (GEST or PROFESSOR) ${user.id} must have an Address`);
-      return;
-    }
-
-    await this.databaseService.address.update({
-      where: { id: user.addressId },
-      data: {
-        zip: updateUserDto.zipCode,
-        street: updateUserDto.addressLine,
-        city: updateUserDto.city,
-        number: updateUserDto.number?.toString(),
-        country: updateUserDto.country,
-      },
-    });
+    return result;
   }
 
   async searchUser(searchParams: UserSearchParamsDto) {
