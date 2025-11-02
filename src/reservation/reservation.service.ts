@@ -11,31 +11,31 @@ export class ReservationService {
   constructor(private readonly databaseService: DatabaseService) {}
 
   async createRequestAdmin(
-  reservationGroupId: string,
-  updateReservationDto: UpdateReservationDto,
-  userId: string,
-) {
-  return await this.databaseService.$transaction(async (tx) => {
-    const payload = await tx.reservation.count({
-      where: {
-        id: reservationGroupId,
-      },
-    });
+    reservationGroupId: string,
+    updateReservationDto: UpdateReservationDto,
+    userId: string,
+  ) {
+    return await this.databaseService.$transaction(async (tx) => {
+      const payload = await tx.reservation.count({
+        where: {
+          id: reservationGroupId,
+        },
+      });
 
-    if (payload === 0) {
-      throw new NotFoundException();
-    }
+      if (payload === 0) {
+        throw new NotFoundException();
+      }
 
-    return await tx.requests.create({
-      data: {
-        description: updateReservationDto.description,
-        type: updateReservationDto.type,
-        reservationGroupId,
-        createdByUserId: userId,
-      },
+      return await tx.requests.create({
+        data: {
+          description: updateReservationDto.description,
+          type: updateReservationDto.type,
+          reservationGroupId,
+          createdByUserId: userId,
+        },
+      });
     });
-  });
-}
+  }
 
   async attachDocument(reservationId: string, url: string, userId: string) {
     return await this.databaseService.document.create({
@@ -58,27 +58,27 @@ export class ReservationService {
   }
 
   async createCancelRequest(reservationGroupId: string, userId: string) {
-  return await this.databaseService.$transaction(async (tx) => {
-    const payload = await tx.reservation.count({
-      where: {
-        id: reservationGroupId,
-        userId,
-      },
-    });
+    return await this.databaseService.$transaction(async (tx) => {
+      const payload = await tx.reservation.count({
+        where: {
+          id: reservationGroupId,
+          userId,
+        },
+      });
 
-    if (payload === 0) {
-      throw new NotFoundException();
-    }
+      if (payload === 0) {
+        throw new NotFoundException();
+      }
 
-    return await tx.requests.create({
-      data: {
-        type: 'CANCELED_REQUESTED',
-        reservationGroupId,
-        createdByUserId: userId,
-      },
+      return await tx.requests.create({
+        data: {
+          type: 'CANCELED_REQUESTED',
+          reservationGroupId,
+          createdByUserId: userId,
+        },
+      });
     });
-  });
-}
+  }
 
   async deleteReservation(reservationId: string) {
     return await this.databaseService.reservationGroup.update({
@@ -269,27 +269,27 @@ export class ReservationService {
   }
 
   async updateReservationByAdmin(
-  reservationId: string,
-  updateReservationDto: UpdateReservationByAdminDto,
-) {
-  return await this.databaseService.$transaction(async (tx) => {
-    const reservation = await tx.reservation.findUnique({
-      where: { id: reservationId },
-    });
+    reservationId: string,
+    updateReservationDto: UpdateReservationByAdminDto,
+  ) {
+    return await this.databaseService.$transaction(async (tx) => {
+      const reservation = await tx.reservation.findUnique({
+        where: { id: reservationId },
+      });
 
-    if (!reservation) {
-      throw new NotFoundException('Reservation not found');
-    }
+      if (!reservation) {
+        throw new NotFoundException('Reservation not found');
+      }
 
-    return await tx.reservation.update({
-      where: { id: reservationId },
-      data: {
-        experienceId: updateReservationDto.experienceId,
-        startDate: updateReservationDto.startDate,
-        endDate: updateReservationDto.endDate,
-        notes: updateReservationDto.notes,
-      },
+      return await tx.reservation.update({
+        where: { id: reservationId },
+        data: {
+          experienceId: updateReservationDto.experienceId,
+          startDate: updateReservationDto.startDate,
+          endDate: updateReservationDto.endDate,
+          notes: updateReservationDto.notes,
+        },
+      });
     });
-  });
-}
+  }
 }
