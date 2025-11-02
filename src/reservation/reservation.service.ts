@@ -11,11 +11,12 @@ export class ReservationService {
   constructor(private readonly databaseService: DatabaseService) {}
 
   async createRequestAdmin(
-    reservationGroupId: string,
-    updateReservationDto: UpdateReservationDto,
-    userId: string,
-  ) {
-    const payload = await this.databaseService.reservation.count({
+  reservationGroupId: string,
+  updateReservationDto: UpdateReservationDto,
+  userId: string,
+) {
+  return await this.databaseService.$transaction(async (tx) => {
+    const payload = await tx.reservation.count({
       where: {
         id: reservationGroupId,
       },
@@ -25,7 +26,7 @@ export class ReservationService {
       throw new NotFoundException();
     }
 
-    await this.databaseService.requests.create({
+    return await tx.requests.create({
       data: {
         description: updateReservationDto.description,
         type: updateReservationDto.type,
@@ -33,7 +34,8 @@ export class ReservationService {
         createdByUserId: userId,
       },
     });
-  }
+  });
+}
 
   async attachDocument(reservationId: string, url: string, userId: string) {
     return await this.databaseService.document.create({
@@ -56,7 +58,8 @@ export class ReservationService {
   }
 
   async createCancelRequest(reservationGroupId: string, userId: string) {
-    const payload = await this.databaseService.reservation.count({
+  return await this.databaseService.$transaction(async (tx) => {
+    const payload = await tx.reservation.count({
       where: {
         id: reservationGroupId,
         userId,
@@ -67,14 +70,15 @@ export class ReservationService {
       throw new NotFoundException();
     }
 
-    await this.databaseService.requests.create({
+    return await tx.requests.create({
       data: {
         type: 'CANCELED_REQUESTED',
         reservationGroupId,
         createdByUserId: userId,
       },
     });
-  }
+  });
+}
 
   async deleteReservation(reservationId: string) {
     return await this.databaseService.reservationGroup.update({
@@ -265,10 +269,11 @@ export class ReservationService {
   }
 
   async updateReservationByAdmin(
-    reservationId: string,
-    updateReservationDto: UpdateReservationByAdminDto,
-  ) {
-    const reservation = await this.databaseService.reservation.findUnique({
+  reservationId: string,
+  updateReservationDto: UpdateReservationByAdminDto,
+) {
+  return await this.databaseService.$transaction(async (tx) => {
+    const reservation = await tx.reservation.findUnique({
       where: { id: reservationId },
     });
 
@@ -276,7 +281,7 @@ export class ReservationService {
       throw new NotFoundException('Reservation not found');
     }
 
-    const updatedReservation = await this.databaseService.reservation.update({
+    return await tx.reservation.update({
       where: { id: reservationId },
       data: {
         experienceId: updateReservationDto.experienceId,
@@ -285,7 +290,6 @@ export class ReservationService {
         notes: updateReservationDto.notes,
       },
     });
-
-    return updatedReservation;
-  }
+  });
+}
 }
