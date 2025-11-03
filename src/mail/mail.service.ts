@@ -33,7 +33,7 @@ export class MailService {
   }
 
   private resolveTemplatePath(templateName: string) {
-    return path.join('./src/mail/templates/', `${templateName}.hbs`);
+    return path.join('./public/templates/', `${templateName}.hbs`);
   }
 
   private compileTemplate(templateName: string): Handlebars.TemplateDelegate {
