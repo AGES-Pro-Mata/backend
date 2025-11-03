@@ -203,6 +203,7 @@ enum RequestType {
   PAYMENT_REQUESTED
   PEOPLE_SENT
   PAYMENT_SENT
+  PAYMENT_REJECTED
   DOCUMENT_REQUESTED
   DOCUMENT_APPROVED
   DOCUMENT_REJECTED
@@ -213,6 +214,7 @@ model Member {
   name               String
   document           String?
   gender             String
+  phone              String?
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   active             Boolean          @default(true)
