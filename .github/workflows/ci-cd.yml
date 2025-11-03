@@ -188,6 +188,13 @@ jobs:
             AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
             AWS_S3_REGION="${{ vars.AWS_REGION }}"
             AWS_S3_BUCKET="${{ secrets.DEV_AWS_S3_BUCKET }}"
+            MAIL_HOST="${{ secrets.MAIL_HOST }}"
+            MAIL_PORT="${{ secrets.MAIL_PORT }}"
+            MAIL_USER="${{ secrets.MAIL_USER }}"
+            MAIL_PASS="${{ secrets.MAIL_PASS }}"
+            MAIL_FROM="${{ secrets.MAIL_FROM }}"
+            MAIL_FROM_NAME="${{ secrets.MAIL_FROM_NAME }}"
+            FRONTEND_URL="${{ secrets.FRONTEND_URL }}"
 
             if [ -z "${DATABASE_URL}" ]; then
               echo "DEV_DATABASE_URL secret must be configured" >&2
