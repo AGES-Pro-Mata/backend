@@ -37,6 +37,18 @@ export class ExperienceController {
     await this.experienceService.deleteExperience(experienceId);
   }
 
+  @Patch(':experienceId/status/:active')
+  @Roles(UserType.ADMIN)
+  @ApiBearerAuth('access-token')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async toggleExperienceStatus(
+    @Param('experienceId') experienceId: string,
+    @Param('active') active: string,
+  ) {
+    const isActive = active === 'true';
+    await this.experienceService.toggleExperienceStatus(experienceId, isActive);
+  }
+
   @Patch(':experienceId')
   @Roles(UserType.ADMIN)
   @ApiBearerAuth('access-token')

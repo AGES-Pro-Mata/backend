@@ -55,6 +55,21 @@ export class ExperienceService {
     });
   }
 
+  async toggleExperienceStatus(experienceId: string, active: boolean) {
+    const experience = await this.databaseService.experience.findUnique({
+      where: { id: experienceId },
+    });
+
+    if (!experience) {
+      throw new NotFoundException('Experiência não encontrada');
+    }
+
+    await this.databaseService.experience.update({
+      where: { id: experienceId },
+      data: { active },
+    });
+  }
+
   async updateExperience(
     experienceId: string,
     updateExperienceDto: UpdateExperienceFormDto,
@@ -108,8 +123,7 @@ export class ExperienceService {
       },
       endDate: {
         gte: experienceSearchParamsDto.date,
-      },
-      active: true,
+      }
     };
 
     const experiences = await this.databaseService.experience.findMany({
@@ -120,6 +134,7 @@ export class ExperienceService {
         description: true,
         startDate: true,
         endDate: true,
+        active: true,
       },
       orderBy: {
         [experienceSearchParamsDto.sort]: experienceSearchParamsDto.dir,

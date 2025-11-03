@@ -75,6 +75,59 @@ describe('ExperienceService', () => {
     });
   });
 
+  describe('toggleExperienceStatus', () => {
+    const experienceId = '1b7b4b0a-1e67-41af-9f0f-4a11f3e8a9f7';
+
+    it('should activate experience when active is true', async () => {
+      const mockExperience = { id: experienceId, active: false };
+
+      databaseService.experience.findUnique.mockResolvedValueOnce(mockExperience as never);
+      databaseService.experience.update.mockResolvedValueOnce({} as never);
+
+      await service.toggleExperienceStatus(experienceId, true);
+
+      expect(databaseService.experience.findUnique).toHaveBeenCalledWith({
+        where: { id: experienceId },
+      });
+
+      expect(databaseService.experience.update).toHaveBeenCalledWith({
+        where: { id: experienceId },
+        data: { active: true },
+      });
+    });
+
+    it('should deactivate experience when active is false', async () => {
+      const mockExperience = { id: experienceId, active: true };
+
+      databaseService.experience.findUnique.mockResolvedValueOnce(mockExperience as never);
+      databaseService.experience.update.mockResolvedValueOnce({} as never);
+
+      await service.toggleExperienceStatus(experienceId, false);
+
+      expect(databaseService.experience.findUnique).toHaveBeenCalledWith({
+        where: { id: experienceId },
+      });
+
+      expect(databaseService.experience.update).toHaveBeenCalledWith({
+        where: { id: experienceId },
+        data: { active: false },
+      });
+    });
+
+    it('should throw NotFoundException when experience does not exist', async () => {
+      databaseService.experience.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.toggleExperienceStatus(experienceId, true)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.toggleExperienceStatus(experienceId, true)).rejects.toThrow(
+        'Experiência não encontrada',
+      );
+
+      expect(databaseService.experience.update).not.toHaveBeenCalled();
+    });
+  });
+
   describe('getExperience', () => {
     const experienceId = 'exp-1';
 
