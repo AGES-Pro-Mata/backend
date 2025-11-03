@@ -11,7 +11,6 @@ WORKDIR /app
 # Copiar apenas arquivos de dependências (para maximizar cache)
 COPY package*.json ./
 COPY prisma ./prisma/
-COPY public ./public
 
 # Instalar todas as dependências (dev + prod)
 # O cache do Docker só será invalidado se package.json ou package-lock.json mudarem
