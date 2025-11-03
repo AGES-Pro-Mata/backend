@@ -55,16 +55,14 @@ const CreateExperienceFormSchema = z.object({
   experienceName: z.string(),
   experienceDescription: z.string(),
   experienceCategory: z.enum(Object.values(Category)),
-  experienceCapacity: z
-    .string()
-    .transform((val) => parseInt(val, 10)),
+  experienceCapacity: z.string().transform((val) => parseInt(val, 10)),
   experienceStartDate: dateFromIsoString,
   experienceEndDate: dateFromIsoString,
   experiencePrice: z
     .string()
     .optional()
     .transform((val) => (val === undefined || val === '' ? undefined : parseFloat(val))),
-  experienceWeekDays: weekDaysSchema,
+  experienceWeekDays: weekDaysSchema.optional(),
   trailDurationMinutes: z
     .string()
     .optional()
