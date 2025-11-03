@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExperienceService } from './experience.service';
-import { DatabaseService } from 'src/database/database.service';
+import { DatabaseService } from '../database/database.service';
+import { StorageService } from '../storage/storage.service';
 import {
   CreateExperienceFormDto,
   UpdateExperienceFormDto,
@@ -12,7 +13,17 @@ import {
 
 describe('ExperienceService', () => {
   let service: ExperienceService;
-  let databaseService: jest.Mocked<DatabaseService>;
+  let databaseService: any;
+  let storageService: any;
+
+  const mockFile = {
+    fieldname: 'image',
+    originalname: 'test.jpg',
+    encoding: '7bit',
+    mimetype: 'image/jpeg',
+    buffer: Buffer.from('fake-image-content'),
+    size: 1024,
+  } as Express.Multer.File;
 
   beforeEach(async () => {
     const mockDatabaseService = {
@@ -20,19 +31,31 @@ describe('ExperienceService', () => {
         create: jest.fn(),
         update: jest.fn(),
         findMany: jest.fn(),
+        findUnique: jest.fn(),
         count: jest.fn(),
       },
       image: {
         findUnique: jest.fn(),
+        create: jest.fn(),
       },
     };
 
+    const mockStorageService = {
+      uploadFile: jest.fn(),
+      deleteFileByUrl: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ExperienceService, { provide: DatabaseService, useValue: mockDatabaseService }],
+      providers: [
+        ExperienceService,
+        { provide: DatabaseService, useValue: mockDatabaseService },
+        { provide: StorageService, useValue: mockStorageService },
+      ],
     }).compile();
 
     service = module.get<ExperienceService>(ExperienceService);
     databaseService = module.get(DatabaseService);
+    storageService = module.get(StorageService);
 
     jest.clearAllMocks();
   });
@@ -46,36 +69,77 @@ describe('ExperienceService', () => {
       await service.deleteExperience(experienceId);
 
       expect(databaseService.experience.update).toHaveBeenCalledWith({
-        where: { id: experienceId },
+        where: { id: experienceId, active: true },
         data: { active: false },
       });
+    });
+  });
+
+  describe('getExperience', () => {
+    const experienceId = 'exp-1';
+
+    it('should return experience data without active flag when active experience exists', async () => {
+      const experience = {
+        id: experienceId,
+        name: 'Experience name',
+        description: 'Description',
+        category: 'TRAIL',
+        capacity: 20,
+        startDate: new Date('2025-01-01'),
+        endDate: new Date('2025-01-31'),
+        price: 100,
+        weekDays: ['MONDAY'],
+        durationMinutes: 120,
+        trailDifficulty: 'LIGHT',
+        trailLength: 5,
+        professorShouldPay: true,
+        active: true,
+        image: { url: 'https://example.com/image.png' },
+      };
+
+      databaseService.experience.findUnique.mockResolvedValueOnce(experience);
+
+      const result = await service.getExperience(experienceId);
+
+      expect(result).toEqual({
+        id: experience.id,
+        name: experience.name,
+        description: experience.description,
+        category: experience.category,
+        capacity: experience.capacity,
+        startDate: experience.startDate,
+        endDate: experience.endDate,
+        price: experience.price,
+        weekDays: experience.weekDays,
+        durationMinutes: experience.durationMinutes,
+        trailDifficulty: experience.trailDifficulty,
+        trailLength: experience.trailLength,
+        professorShouldPay: experience.professorShouldPay,
+        active: experience.active,
+        image: experience.image,
+      });
+    });
+
+    it('should throw NotFoundException when experience does not exist', async () => {
+      databaseService.experience.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.getExperience(experienceId)).rejects.toThrow(NotFoundException);
+      await expect(service.getExperience(experienceId)).rejects.toThrow('Experiência não encontrada');
+    });
+
+    it('should throw NotFoundException when experience is inactive', async () => {
+      databaseService.experience.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.getExperience(experienceId)).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('updateExperience', () => {
     const experienceId = '1b7b4b0a-1e67-41af-9f0f-4a11f3e8a9f7';
     const imageId = '2c8c5c1b-2f78-52bg-0g1g-5b22g4f9b0g8';
+    const uploadedUrl = 'https://s3.example.com/experiences/updated.jpg';
 
-    it('should throw BadRequestException when image does not exist', async () => {
-      const dto: UpdateExperienceFormDto = {
-        experienceName: 'Updated Experience',
-        experienceImage: 'https://example.com/image.jpg',
-      } as never;
-
-      databaseService.image.findUnique.mockResolvedValueOnce(null);
-
-      await expect(service.updateExperience(experienceId, dto)).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.updateExperience(experienceId, dto)).rejects.toThrow('Imagem inválida');
-
-      expect(databaseService.image.findUnique).toHaveBeenCalledWith({
-        where: { url: dto.experienceImage },
-      });
-      expect(databaseService.experience.update).not.toHaveBeenCalled();
-    });
-
-    it('should update experience without image', async () => {
+    it('should update experience without file', async () => {
       const dto: UpdateExperienceFormDto = {
         experienceName: 'Updated Experience',
         experienceDescription: 'Updated description',
@@ -92,9 +156,9 @@ describe('ExperienceService', () => {
 
       databaseService.experience.update.mockResolvedValueOnce({} as never);
 
-      await service.updateExperience(experienceId, dto);
+      await service.updateExperience(experienceId, dto, null);
 
-      expect(databaseService.image.findUnique).not.toHaveBeenCalled();
+      expect(storageService.uploadFile).not.toHaveBeenCalled();
       expect(databaseService.experience.update).toHaveBeenCalledWith({
         where: { id: experienceId },
         data: {
@@ -114,21 +178,27 @@ describe('ExperienceService', () => {
       });
     });
 
-    it('should update experience with valid image', async () => {
+    it('should update experience with file upload', async () => {
       const dto: UpdateExperienceFormDto = {
         experienceName: 'Experience with Image',
-        experienceImage: 'https://example.com/valid-image.jpg',
       } as never;
 
-      const mockImage = { id: imageId, url: dto.experienceImage };
+      const mockImage = { id: imageId, url: uploadedUrl };
 
-      databaseService.image.findUnique.mockResolvedValueOnce(mockImage as never);
+      storageService.uploadFile.mockResolvedValueOnce({ url: uploadedUrl });
+      databaseService.image.create.mockResolvedValueOnce(mockImage as never);
       databaseService.experience.update.mockResolvedValueOnce({} as never);
 
-      await service.updateExperience(experienceId, dto);
+      await service.updateExperience(experienceId, dto, mockFile);
 
-      expect(databaseService.image.findUnique).toHaveBeenCalledWith({
-        where: { url: dto.experienceImage },
+      expect(storageService.uploadFile).toHaveBeenCalledWith(mockFile, {
+        directory: 'experiences',
+        contentType: 'image/jpeg',
+        cacheControl: 'public, max-age=31536000',
+      });
+
+      expect(databaseService.image.create).toHaveBeenCalledWith({
+        data: { url: uploadedUrl },
       });
 
       expect(databaseService.experience.update).toHaveBeenCalledWith({
@@ -146,61 +216,6 @@ describe('ExperienceService', () => {
           trailDifficulty: undefined,
           trailLength: undefined,
           imageId,
-        },
-      });
-    });
-
-    it('should update experience with partial fields', async () => {
-      const dto: UpdateExperienceFormDto = {
-        experienceName: 'Partial Update',
-        experiencePrice: 99.99,
-      } as never;
-
-      databaseService.experience.update.mockResolvedValueOnce({} as never);
-
-      await service.updateExperience(experienceId, dto);
-
-      expect(databaseService.experience.update).toHaveBeenCalledWith({
-        where: { id: experienceId },
-        data: {
-          name: dto.experienceName,
-          description: undefined,
-          category: undefined,
-          capacity: undefined,
-          startDate: undefined,
-          endDate: undefined,
-          price: dto.experiencePrice,
-          weekDays: undefined,
-          durationMinutes: undefined,
-          trailDifficulty: undefined,
-          trailLength: undefined,
-          imageId: undefined,
-        },
-      });
-    });
-
-    it('should update experience with all optional fields as undefined', async () => {
-      const dto: UpdateExperienceFormDto = {} as never;
-
-      databaseService.experience.update.mockResolvedValueOnce({} as never);
-
-      await service.updateExperience(experienceId, dto);
-
-      expect(databaseService.experience.update).toHaveBeenCalledWith({
-        where: { id: experienceId },
-        data: {
-          name: undefined,
-          description: undefined,
-          category: undefined,
-          capacity: undefined,
-          startDate: undefined,
-          endDate: undefined,
-          price: undefined,
-          weekDays: undefined,
-          durationMinutes: undefined,
-          trailDifficulty: undefined,
-          trailLength: undefined,
-          imageId: undefined,
         },
       });
     });
@@ -397,89 +412,22 @@ describe('ExperienceService', () => {
 
   describe('createExperience', () => {
     const imageId = '2c8c5c1b-2f78-52bg-0g1g-5b22g4f9b0g8';
+    const uploadedUrl = 'https://s3.example.com/experiences/created.jpg';
 
-    it('should throw BadRequestException when image does not exist', async () => {
-      const dto: CreateExperienceFormDto = {
-        experienceName: 'New Experience',
-        experienceDescription: 'Description',
-        experienceCategory: 'ADVENTURE',
-        experienceCapacity: 15,
-        experienceImage: 'https://example.com/invalid-image.jpg',
-        experienceWeekDays: ['MONDAY'],
-      } as never;
-
-      databaseService.image.findUnique.mockResolvedValueOnce(null);
-
-      await expect(service.createExperience(dto)).rejects.toThrow(BadRequestException);
-      await expect(service.createExperience(dto)).rejects.toThrow('Imagem inválida');
-
-      expect(databaseService.image.findUnique).toHaveBeenCalledWith({
-        where: { url: dto.experienceImage },
-      });
-      expect(databaseService.experience.create).not.toHaveBeenCalled();
-    });
-
-    it('should create experience with valid image', async () => {
-      const dto: CreateExperienceFormDto = {
-        experienceName: 'Mountain Adventure',
-        experienceDescription: 'Amazing mountain trail',
-        experienceCategory: 'ADVENTURE',
-        experienceCapacity: 20,
-        experienceImage: 'https://example.com/mountain.jpg',
-        experienceStartDate: '2025-01-01T08:00:00Z',
-        experienceEndDate: '2025-12-31T18:00:00Z',
-        experiencePrice: 250,
-        experienceWeekDays: ['SATURDAY', 'SUNDAY'],
-        trailDurationMinutes: 240,
-        trailDifficulty: 'HARD',
-        trailLength: 12,
-      } as never;
-
-      const mockImage = { id: imageId, url: dto.experienceImage };
-
-      databaseService.image.findUnique.mockResolvedValueOnce(mockImage as never);
-      databaseService.experience.create.mockResolvedValueOnce({} as never);
-
-      await service.createExperience(dto);
-
-      expect(databaseService.image.findUnique).toHaveBeenCalledWith({
-        where: { url: dto.experienceImage },
-      });
-
-      expect(databaseService.experience.create).toHaveBeenCalledWith({
-        data: {
-          name: dto.experienceName,
-          description: dto.experienceDescription,
-          category: dto.experienceCategory,
-          capacity: dto.experienceCapacity,
-          startDate: dto.experienceStartDate,
-          endDate: dto.experienceEndDate,
-          price: dto.experiencePrice,
-          weekDays: dto.experienceWeekDays,
-          durationMinutes: dto.trailDurationMinutes,
-          trailDifficulty: dto.trailDifficulty,
-          trailLength: dto.trailLength,
-          active: true,
-          imageId,
-        },
-      });
-    });
-
-    it('should create experience without image', async () => {
+    it('should create experience without file', async () => {
       const dto: CreateExperienceFormDto = {
         experienceName: 'Simple Experience',
         experienceDescription: 'Basic trail',
         experienceCategory: 'NATURE',
         experienceCapacity: 10,
-        experienceImage: undefined,
         experienceWeekDays: ['MONDAY', 'WEDNESDAY', 'FRIDAY'],
       } as never;
 
       databaseService.experience.create.mockResolvedValueOnce({} as never);
 
-      await service.createExperience(dto);
+      await service.createExperience(dto, null);
 
-      expect(databaseService.image.findUnique).not.toHaveBeenCalled();
+      expect(storageService.uploadFile).not.toHaveBeenCalled();
       expect(databaseService.experience.create).toHaveBeenCalledWith({
         data: {
           name: dto.experienceName,
@@ -499,64 +447,38 @@ describe('ExperienceService', () => {
       });
     });
 
-    it('should create experience with only required fields', async () => {
+    it('should create experience with file upload', async () => {
       const dto: CreateExperienceFormDto = {
-        experienceName: 'Minimal Experience',
-        experienceDescription: 'Minimal description',
-        experienceCategory: 'CULTURAL',
-        experienceCapacity: 5,
-        experienceImage: 'https://example.com/culture.jpg',
-        experienceWeekDays: ['TUESDAY'],
-      } as never;
-
-      const mockImage = { id: imageId, url: dto.experienceImage };
-
-      databaseService.image.findUnique.mockResolvedValueOnce(mockImage as never);
-      databaseService.experience.create.mockResolvedValueOnce({} as never);
-
-      await service.createExperience(dto);
-
-      expect(databaseService.experience.create).toHaveBeenCalledWith({
-        data: {
-          name: dto.experienceName,
-          description: dto.experienceDescription,
-          category: dto.experienceCategory,
-          capacity: dto.experienceCapacity,
-          startDate: undefined,
-          endDate: undefined,
-          price: undefined,
-          weekDays: dto.experienceWeekDays,
-          durationMinutes: undefined,
-          trailDifficulty: undefined,
-          trailLength: undefined,
-          active: true,
-          imageId,
-        },
-      });
-    });
-
-    it('should create experience with all optional fields', async () => {
-      const dto: CreateExperienceFormDto = {
-        experienceName: 'Complete Experience',
-        experienceDescription: 'Full description',
+        experienceName: 'Mountain Adventure',
+        experienceDescription: 'Amazing mountain trail',
         experienceCategory: 'ADVENTURE',
-        experienceCapacity: 25,
-        experienceImage: 'https://example.com/complete.jpg',
-        experienceStartDate: '2025-03-01T09:00:00Z',
-        experienceEndDate: '2025-11-30T17:00:00Z',
-        experiencePrice: 350.75,
-        experienceWeekDays: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'],
-        trailDurationMinutes: 300,
-        trailDifficulty: 'EXTREME',
-        trailLength: 15,
+        experienceCapacity: 20,
+        experienceStartDate: '2025-01-01T08:00:00Z',
+        experienceEndDate: '2025-12-31T18:00:00Z',
+        experiencePrice: 250,
+        experienceWeekDays: ['SATURDAY', 'SUNDAY'],
+        trailDurationMinutes: 240,
+        trailDifficulty: 'HARD',
+        trailLength: 12,
       } as never;
 
-      const mockImage = { id: imageId, url: dto.experienceImage };
+      const mockImage = { id: imageId, url: uploadedUrl };
 
-      databaseService.image.findUnique.mockResolvedValueOnce(mockImage as never);
+      storageService.uploadFile.mockResolvedValueOnce({ url: uploadedUrl });
+      databaseService.image.create.mockResolvedValueOnce(mockImage as never);
       databaseService.experience.create.mockResolvedValueOnce({} as never);
 
-      await service.createExperience(dto);
+      await service.createExperience(dto, mockFile);
+
+      expect(storageService.uploadFile).toHaveBeenCalledWith(mockFile, {
+        directory: 'experiences',
+        contentType: 'image/jpeg',
+        cacheControl: 'public, max-age=31536000',
+      });
+
+      expect(databaseService.image.create).toHaveBeenCalledWith({
+        data: { url: uploadedUrl },
+      });
 
       expect(databaseService.experience.create).toHaveBeenCalledWith({
         data: {

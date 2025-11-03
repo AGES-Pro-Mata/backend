@@ -2,31 +2,51 @@ import { Category, TrailDifficulty, WeekDay } from 'generated/prisma';
 import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
 
+const stringToInt = z
+  .string()
+  .transform((val) => (val === '' ? undefined : parseInt(val, 10)))
+  .pipe(z.number().int().optional());
+
+const stringToFloat = z
+  .string()
+  .transform((val) => (val === '' ? undefined : parseFloat(val)))
+  .pipe(z.number().optional());
+
+const booleanFromString = z
+  .string()
+  .optional()
+  .transform((val) => (val === undefined ? undefined : val === 'true'));
+
+const dateFromIsoString = z.iso.datetime().optional();
+
+const weekDaysSchema = z
+  .union([
+    z.array(z.enum(Object.values(WeekDay))),
+    z
+      .string()
+      .transform((val) =>
+        val
+          .split(',')
+          .map((item) => item.trim())
+          .filter((item) => item.length > 0),
+      )
+      .pipe(z.array(z.enum(Object.values(WeekDay)))),
+  ])
+  .transform((val) => (Array.isArray(val) ? val : val));
+
 const UpdateExperienceFormSchema = z.object({
-  experienceName: z.string().optional(),
-  experienceDescription: z.string().optional(),
-  experienceCategory: z.enum(Object.values(Category)).optional(),
-  experienceCapacity: z
-    .string()
-    .transform((val) => parseInt(val))
-    .optional(),
-  experienceImage: z.url().optional(),
-  experienceStartDate: z.iso.datetime().optional(),
-  experienceEndDate: z.iso.datetime().optional(),
-  experiencePrice: z
-    .string()
-    .transform((val) => parseFloat(val))
-    .optional(),
-  experienceWeekDays: z.array(z.enum(Object.values(WeekDay))).optional(),
-  trailDurationMinutes: z
-    .string()
-    .transform((val) => parseInt(val))
-    .optional(),
+  experienceName: z.string(),
+  experienceDescription: z.string(),
+  experienceCategory: z.enum(Object.values(Category)),
+  experienceCapacity: stringToInt,
+  experienceStartDate: dateFromIsoString,
+  experienceEndDate: dateFromIsoString,
+  experiencePrice: stringToFloat.optional(),
+  experienceWeekDays: weekDaysSchema.optional(),
+  trailDurationMinutes: stringToInt.optional(),
   trailDifficulty: z.enum(Object.values(TrailDifficulty)).optional(),
-  trailLength: z
-    .string()
-    .transform((val) => parseInt(val))
-    .optional(),
+  trailLength: stringToFloat.optional(),
+  professorShouldPay: booleanFromString,
 });
 
 export class UpdateExperienceFormDto extends createZodDto(UpdateExperienceFormSchema) {}
@@ -35,24 +55,26 @@ const CreateExperienceFormSchema = z.object({
   experienceName: z.string(),
   experienceDescription: z.string(),
   experienceCategory: z.enum(Object.values(Category)),
-  experienceCapacity: z.string().transform((val) => parseInt(val)),
-  experienceImage: z.url(),
-  experienceStartDate: z.iso.datetime().optional(),
-  experienceEndDate: z.iso.datetime().optional(),
+  experienceCapacity: z
+    .string()
+    .transform((val) => parseInt(val, 10)),
+  experienceStartDate: dateFromIsoString,
+  experienceEndDate: dateFromIsoString,
   experiencePrice: z
     .string()
-    .transform((val) => parseFloat(val))
-    .optional(),
-  experienceWeekDays: z.array(z.enum(Object.values(WeekDay))),
+    .optional()
+    .transform((val) => (val === undefined || val === '' ? undefined : parseFloat(val))),
+  experienceWeekDays: weekDaysSchema,
   trailDurationMinutes: z
     .string()
-    .transform((val) => parseFloat(val))
-    .optional(),
+    .optional()
+    .transform((val) => (val === undefined || val === '' ? undefined : parseInt(val, 10))),
   trailDifficulty: z.enum(Object.values(TrailDifficulty)).optional(),
   trailLength: z
     .string()
-    .transform((val) => parseInt(val))
-    .optional(),
+    .optional()
+    .transform((val) => (val === undefined || val === '' ? undefined : parseFloat(val))),
+  professorShouldPay: booleanFromString,
 });
 
 export class CreateExperienceFormDto extends createZodDto(CreateExperienceFormSchema) {}
