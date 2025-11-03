@@ -5,15 +5,17 @@ import {
   CreateReservationGroupDto,
   UpdateReservationByAdminDto,
   ReservationGroupStatusFilterDto,
+  RegisterMemberDto,
 } from './reservation.model';
 import { RequestType } from 'generated/prisma';
-import { Decimal } from 'generated/prisma/runtime/library';
+import { Decimal } from '@prisma/client/runtime/library';
 
 const PENDING_LIST: string[] = [
   RequestType.PAYMENT_REQUESTED,
   RequestType.PEOPLE_REQUESTED,
   RequestType.CREATED,
   RequestType.DOCUMENT_REQUESTED,
+  RequestType.CANCELED_REQUESTED,
 ];
 
 @Injectable()
@@ -66,20 +68,34 @@ export class ReservationService {
   }
 
   async createCancelRequest(reservationGroupId: string, userId: string) {
-    const payload = await this.databaseService.reservation.count({
+    const payload = await this.databaseService.reservationGroup.findUnique({
       where: {
         id: reservationGroupId,
         userId,
       },
+      select: {
+        requests: {
+          select: {
+            type: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+        },
+      },
     });
 
-    if (payload === 0) {
-      throw new NotFoundException();
+    if (!payload) {
+      throw new NotFoundException('Reservation group not found');
     }
+
+    const type: RequestType =
+      payload.requests[0].type === 'APPROVED' ? 'CANCELED_REQUESTED' : 'CANCELED';
 
     await this.databaseService.requests.create({
       data: {
-        type: 'CANCELED_REQUESTED',
+        type,
         reservationGroupId,
         createdByUserId: userId,
       },
@@ -149,10 +165,20 @@ export class ReservationService {
           Math.max(...rg.reservations.map((r) => r.endDate?.getTime() ?? Number.MAX_VALUE)),
         );
 
+        let status: (typeof rg.requests)[number] | null = null;
+
+        for (const request of rg.requests) {
+          if (
+            request.createdAt.getTime() > (status?.createdAt.getTime() ?? Number.MIN_SAFE_INTEGER)
+          ) {
+            status = request;
+          }
+        }
+
         return {
           ...rg,
           requests: undefined,
-          status: rg.requests[rg.requests.length - 1].type,
+          status: status?.type,
           price: rg.reservations.reduce((total, res) => {
             return total.plus(res.experience.price?.mul(res.membersCount) ?? 0);
           }, new Decimal(0)),
@@ -161,6 +187,8 @@ export class ReservationService {
         };
       })
       .filter((rg) => {
+        if (!rg.status) return false;
+
         if (filter.status === 'ALL') {
           return true;
         } else if (filter.status === 'PENDING') {
@@ -335,5 +363,31 @@ export class ReservationService {
     });
 
     return updatedReservation;
+  }
+
+  async registerMembers(
+    reservationGroupId: string,
+    userId: string,
+    registerMemberDto: RegisterMemberDto[],
+  ) {
+    await this.databaseService.reservationGroup.update({
+      where: {
+        id: reservationGroupId,
+        userId,
+      },
+      data: {
+        requests: {
+          create: {
+            type: 'PAYMENT_REQUESTED',
+            createdByUserId: userId,
+          },
+        },
+        members: {
+          createMany: {
+            data: registerMemberDto,
+          },
+        },
+      },
+    });
   }
 }

@@ -19,6 +19,7 @@ import {
   UpdateReservationDto,
   UpdateReservationByAdminDto,
   ReservationGroupStatusFilterDto,
+  RegisterMemberDto,
 } from './reservation.model';
 import { User } from 'src/user/user.decorator';
 import { type CurrentUser } from 'src/auth/auth.model';
@@ -113,6 +114,20 @@ export class ReservationController {
       reservationGroupId,
       updateReservationDto,
       user.id,
+    );
+  }
+
+  @Post(':reservationGroupId/members')
+  @Roles(UserType.GUEST)
+  async registerMembers(
+    @User() user: CurrentUser,
+    @Body() registerMemberDto: RegisterMemberDto[],
+    @Param('reservationGroupId') reservationGroupId: string,
+  ) {
+    return await this.reservationService.registerMembers(
+      reservationGroupId,
+      user.id,
+      registerMemberDto,
     );
   }
 

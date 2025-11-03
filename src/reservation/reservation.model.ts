@@ -52,3 +52,12 @@ const ReservationGroupStatusFilter = z.object({
 });
 
 export class ReservationGroupStatusFilterDto extends createZodDto(ReservationGroupStatusFilter) {}
+
+const RegisterMemberSchema = z.object({
+  name: z.string(),
+  phone: z.string(),
+  document: z.string(),
+  gender: z.string(),
+});
+
+export class RegisterMemberDto extends createZodDto(RegisterMemberSchema) {}
