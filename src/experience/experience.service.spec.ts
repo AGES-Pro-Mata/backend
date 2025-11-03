@@ -69,7 +69,7 @@ describe('ExperienceService', () => {
       await service.deleteExperience(experienceId);
 
       expect(databaseService.experience.update).toHaveBeenCalledWith({
-        where: { id: experienceId, active: true },
+        where: { id: experienceId },
         data: { active: false },
       });
     });
@@ -314,7 +314,6 @@ describe('ExperienceService', () => {
           description: { contains: 'Mountain' },
           startDate: { lte: '2025-06-15T00:00:00Z' },
           endDate: { gte: '2025-06-15T00:00:00Z' },
-          active: true,
         },
         select: {
           id: true,
@@ -322,6 +321,7 @@ describe('ExperienceService', () => {
           description: true,
           startDate: true,
           endDate: true,
+          active: true,
         },
         orderBy: { name: 'asc' },
         skip: 0,
@@ -334,7 +334,6 @@ describe('ExperienceService', () => {
           description: { contains: 'Mountain' },
           startDate: { lte: '2025-06-15T00:00:00Z' },
           endDate: { gte: '2025-06-15T00:00:00Z' },
-          active: true,
         },
       });
     });
@@ -362,7 +361,6 @@ describe('ExperienceService', () => {
           description: { contains: undefined },
           startDate: { lte: undefined },
           endDate: { gte: undefined },
-          active: true,
         },
         select: {
           id: true,
@@ -370,6 +368,7 @@ describe('ExperienceService', () => {
           description: true,
           startDate: true,
           endDate: true,
+          active: true,
         },
         orderBy: { description: 'desc' },
         skip: 10,
@@ -400,8 +399,7 @@ describe('ExperienceService', () => {
           name: { contains: undefined },
           description: { contains: undefined },
           startDate: { lte: undefined },
-          endDate: { gte: undefined },
-          active: true,
+          endDate: { gte: undefined }
         },
         select: {
           id: true,
@@ -409,6 +407,7 @@ describe('ExperienceService', () => {
           description: true,
           startDate: true,
           endDate: true,
+          active: true,
         },
         orderBy: { name: 'asc' },
         skip: 0,

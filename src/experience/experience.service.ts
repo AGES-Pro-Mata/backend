@@ -18,7 +18,7 @@ export class ExperienceService {
 
   async getExperience(experienceId: string) {
     const experience = await this.databaseService.experience.findUnique({
-      where: { id: experienceId, active: true },
+      where: { id: experienceId },
       select: {
         id: true,
         name: true,
@@ -50,7 +50,7 @@ export class ExperienceService {
 
   async deleteExperience(experienceId: string) {
     await this.databaseService.experience.update({
-      where: { id: experienceId, active: true },
+      where: { id: experienceId },
       data: { active: false },
     });
   }
