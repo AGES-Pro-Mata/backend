@@ -123,7 +123,7 @@ export class ExperienceService {
       },
       endDate: {
         gte: experienceSearchParamsDto.date,
-      }
+      },
     };
 
     const experiences = await this.databaseService.experience.findMany({
@@ -213,6 +213,7 @@ export class ExperienceService {
         id: true,
         name: true,
         description: true,
+        active: true,
         category: true,
         capacity: true,
         startDate: true,
