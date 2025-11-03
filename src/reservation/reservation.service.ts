@@ -140,7 +140,7 @@ export class ReservationService {
       },
     });
 
-    return reservationGroup
+    const groups = reservationGroup
       .map((rg) => {
         const minDate = new Date(
           Math.min(...rg.reservations.map((r) => r.startDate?.getTime() ?? Number.MAX_VALUE)),
@@ -169,6 +169,10 @@ export class ReservationService {
 
         return rg.status === filter.status;
       });
+
+    return groups.sort((a, b) => {
+      return b.startDate.getTime() - a.startDate.getTime();
+    });
   }
 
   async createReservationGroup(
