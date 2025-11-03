@@ -241,6 +241,13 @@ jobs:
               -e "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" \
               -e "AWS_S3_REGION=${AWS_S3_REGION}" \
               -e "AWS_S3_BUCKET=${AWS_S3_BUCKET}" \
+              -e MAIL_HOST="${MAIL_HOST}" \
+              -e MAIL_PORT="${MAIL_PORT}" \
+              -e MAIL_USER="${MAIL_USER}" \
+              -e MAIL_PASS="${MAIL_PASS}" \
+              -e MAIL_FROM="${MAIL_FROM}" \
+              -e MAIL_FROM_NAME="${MAIL_FROM_NAME}" \
+              -e FRONTEND_URL="${FRONTEND_URL}" \
               ${EXTRA_FLAG} \
               --restart always \
               "${IMAGE_WITH_TAG}"
@@ -312,6 +319,13 @@ jobs:
             AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
             AWS_S3_REGION="${{ vars.AWS_REGION }}"
             AWS_S3_BUCKET="${{ secrets.PROD_AWS_S3_BUCKET }}"
+            MAIL_HOST="${{ secrets.MAIL_HOST }}"
+            MAIL_PORT="${{ secrets.MAIL_PORT }}"
+            MAIL_USER="${{ secrets.MAIL_USER }}"
+            MAIL_PASS="${{ secrets.MAIL_PASS }}"
+            MAIL_FROM="${{ secrets.MAIL_FROM }}"
+            MAIL_FROM_NAME="${{ secrets.MAIL_FROM_NAME }}"
+            FRONTEND_URL="${{ secrets.FRONTEND_URL }}"
 
             if [ -z "${DATABASE_URL}" ]; then
               echo "PROD_DATABASE_URL secret must be configured" >&2
@@ -360,6 +374,13 @@ jobs:
               -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
               -e AWS_S3_REGION="${AWS_S3_REGION}" \
               -e AWS_S3_BUCKET="${AWS_S3_BUCKET}" \
+              -e MAIL_HOST="${MAIL_HOST}" \
+              -e MAIL_PORT="${MAIL_PORT}" \
+              -e MAIL_USER="${MAIL_USER}" \
+              -e MAIL_PASS="${MAIL_PASS}" \
+              -e MAIL_FROM="${MAIL_FROM}" \
+              -e MAIL_FROM_NAME="${MAIL_FROM_NAME}" \
+              -e FRONTEND_URL="${FRONTEND_URL}" \
               ${EXTRA_FLAG} \
               --restart always \
               "${IMAGE_WITH_TAG}"
