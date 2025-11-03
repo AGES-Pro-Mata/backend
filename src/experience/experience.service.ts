@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { StorageService } from 'src/storage/storage.service';
 import { Prisma } from 'generated/prisma';
@@ -18,7 +18,7 @@ export class ExperienceService {
 
   async getExperience(experienceId: string) {
     const experience = await this.databaseService.experience.findUnique({
-      where: { id: experienceId },
+      where: { id: experienceId, active: true },
       select: {
         id: true,
         name: true,
@@ -33,7 +33,6 @@ export class ExperienceService {
         trailDifficulty: true,
         trailLength: true,
         professorShouldPay: true,
-        active: true,
         image: {
           select: {
             url: true,
@@ -42,18 +41,16 @@ export class ExperienceService {
       },
     });
 
-    if (!experience || !experience.active) {
+    if (!experience) {
       throw new NotFoundException('Experiência não encontrada');
     }
 
-    const { active, ...experienceData } = experience;
-
-    return experienceData;
+    return experience;
   }
 
   async deleteExperience(experienceId: string) {
     await this.databaseService.experience.update({
-      where: { id: experienceId },
+      where: { id: experienceId, active: true },
       data: { active: false },
     });
   }
@@ -72,18 +69,11 @@ export class ExperienceService {
         cacheControl: 'public, max-age=31536000',
       });
 
-      const image = await this.databaseService.image.findUnique({
-        where: { url: uploaded.url },
+      const createdImage = await this.databaseService.image.create({
+        data: { url: uploaded.url },
       });
 
-      if (!image) {
-        const createdImage = await this.databaseService.image.create({
-          data: { url: uploaded.url },
-        });
-        imageId = createdImage.id;
-      } else {
-        imageId = image.id;
-      }
+      imageId = createdImage.id;
     }
 
     await this.databaseService.experience.update({
@@ -148,7 +138,10 @@ export class ExperienceService {
     };
   }
 
-  async createExperience(createExperienceDto: CreateExperienceFormDto, file?: Express.Multer.File | null) {
+  async createExperience(
+    createExperienceDto: CreateExperienceFormDto,
+    file?: Express.Multer.File | null,
+  ) {
     let imageId: string | undefined = undefined;
 
     if (file) {
@@ -158,18 +151,11 @@ export class ExperienceService {
         cacheControl: 'public, max-age=31536000',
       });
 
-      const image = await this.databaseService.image.findUnique({
-        where: { url: uploaded.url },
+      const createdImage = await this.databaseService.image.create({
+        data: { url: uploaded.url },
       });
 
-      if (!image) {
-        const createdImage = await this.databaseService.image.create({
-          data: { url: uploaded.url },
-        });
-        imageId = createdImage.id;
-      } else {
-        imageId = image.id;
-      }
+      imageId = createdImage.id;
     }
 
     await this.databaseService.experience.create({

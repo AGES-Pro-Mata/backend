@@ -69,7 +69,7 @@ describe('ExperienceService', () => {
       await service.deleteExperience(experienceId);
 
       expect(databaseService.experience.update).toHaveBeenCalledWith({
-        where: { id: experienceId },
+        where: { id: experienceId, active: true },
         data: { active: false },
       });
     });
@@ -115,6 +115,7 @@ describe('ExperienceService', () => {
         trailDifficulty: experience.trailDifficulty,
         trailLength: experience.trailLength,
         professorShouldPay: experience.professorShouldPay,
+        active: experience.active,
         image: experience.image,
       });
     });
@@ -127,7 +128,7 @@ describe('ExperienceService', () => {
     });
 
     it('should throw NotFoundException when experience is inactive', async () => {
-      databaseService.experience.findUnique.mockResolvedValueOnce({ active: false } as never);
+      databaseService.experience.findUnique.mockResolvedValueOnce(null);
 
       await expect(service.getExperience(experienceId)).rejects.toThrow(NotFoundException);
     });
@@ -185,7 +186,7 @@ describe('ExperienceService', () => {
       const mockImage = { id: imageId, url: uploadedUrl };
 
       storageService.uploadFile.mockResolvedValueOnce({ url: uploadedUrl });
-      databaseService.image.findUnique.mockResolvedValueOnce(mockImage as never);
+      databaseService.image.create.mockResolvedValueOnce(mockImage as never);
       databaseService.experience.update.mockResolvedValueOnce({} as never);
 
       await service.updateExperience(experienceId, dto, mockFile);
@@ -196,8 +197,8 @@ describe('ExperienceService', () => {
         cacheControl: 'public, max-age=31536000',
       });
 
-      expect(databaseService.image.findUnique).toHaveBeenCalledWith({
-        where: { url: uploadedUrl },
+      expect(databaseService.image.create).toHaveBeenCalledWith({
+        data: { url: uploadedUrl },
       });
 
       expect(databaseService.experience.update).toHaveBeenCalledWith({
@@ -464,7 +465,7 @@ describe('ExperienceService', () => {
       const mockImage = { id: imageId, url: uploadedUrl };
 
       storageService.uploadFile.mockResolvedValueOnce({ url: uploadedUrl });
-      databaseService.image.findUnique.mockResolvedValueOnce(mockImage as never);
+      databaseService.image.create.mockResolvedValueOnce(mockImage as never);
       databaseService.experience.create.mockResolvedValueOnce({} as never);
 
       await service.createExperience(dto, mockFile);
@@ -475,8 +476,8 @@ describe('ExperienceService', () => {
         cacheControl: 'public, max-age=31536000',
       });
 
-      expect(databaseService.image.findUnique).toHaveBeenCalledWith({
-        where: { url: uploadedUrl },
+      expect(databaseService.image.create).toHaveBeenCalledWith({
+        data: { url: uploadedUrl },
       });
 
       expect(databaseService.experience.create).toHaveBeenCalledWith({

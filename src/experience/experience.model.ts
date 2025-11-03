@@ -35,17 +35,17 @@ const weekDaysSchema = z
   .transform((val) => (Array.isArray(val) ? val : val));
 
 const UpdateExperienceFormSchema = z.object({
-  experienceName: z.string().optional(),
-  experienceDescription: z.string().optional(),
-  experienceCategory: z.enum(Object.values(Category)).optional(),
+  experienceName: z.string(),
+  experienceDescription: z.string(),
+  experienceCategory: z.enum(Object.values(Category)),
   experienceCapacity: stringToInt,
   experienceStartDate: dateFromIsoString,
   experienceEndDate: dateFromIsoString,
-  experiencePrice: stringToFloat,
+  experiencePrice: stringToFloat.optional(),
   experienceWeekDays: weekDaysSchema.optional(),
-  trailDurationMinutes: stringToInt,
+  trailDurationMinutes: stringToInt.optional(),
   trailDifficulty: z.enum(Object.values(TrailDifficulty)).optional(),
-  trailLength: stringToFloat,
+  trailLength: stringToFloat.optional(),
   professorShouldPay: booleanFromString,
 });
 
