@@ -1,5 +1,6 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
+import { StorageService } from 'src/storage/storage.service';
 import { Prisma } from 'generated/prisma';
 import {
   CreateExperienceFormDto,
@@ -10,7 +11,42 @@ import {
 
 @Injectable()
 export class ExperienceService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly storageService: StorageService,
+  ) {}
+
+  async getExperience(experienceId: string) {
+    const experience = await this.databaseService.experience.findUnique({
+      where: { id: experienceId },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        category: true,
+        capacity: true,
+        startDate: true,
+        endDate: true,
+        price: true,
+        weekDays: true,
+        durationMinutes: true,
+        trailDifficulty: true,
+        trailLength: true,
+        professorShouldPay: true,
+        image: {
+          select: {
+            url: true,
+          },
+        },
+      },
+    });
+
+    if (!experience) {
+      throw new NotFoundException('Experiência não encontrada');
+    }
+
+    return experience;
+  }
 
   async deleteExperience(experienceId: string) {
     await this.databaseService.experience.update({
@@ -69,7 +105,6 @@ export class ExperienceService {
       endDate: {
         gte: experienceSearchParamsDto.date,
       },
-      active: true,
     };
 
     const experiences = await this.databaseService.experience.findMany({
@@ -80,6 +115,7 @@ export class ExperienceService {
         description: true,
         startDate: true,
         endDate: true,
+        active: true,
       },
       orderBy: {
         [experienceSearchParamsDto.sort]: experienceSearchParamsDto.dir,
@@ -155,6 +191,7 @@ export class ExperienceService {
         id: true,
         name: true,
         description: true,
+        active: true,
         category: true,
         capacity: true,
         startDate: true,

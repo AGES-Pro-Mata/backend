@@ -4,7 +4,19 @@ import {
   UpdateReservationDto,
   CreateReservationGroupDto,
   UpdateReservationByAdminDto,
+  ReservationGroupStatusFilterDto,
+  RegisterMemberDto,
 } from './reservation.model';
+import { RequestType } from 'generated/prisma';
+import { Decimal } from '@prisma/client/runtime/library';
+
+const PENDING_LIST: string[] = [
+  RequestType.PAYMENT_REQUESTED,
+  RequestType.PEOPLE_REQUESTED,
+  RequestType.CREATED,
+  RequestType.DOCUMENT_REQUESTED,
+  RequestType.CANCELED_REQUESTED,
+];
 
 @Injectable()
 export class ReservationService {
@@ -89,18 +101,22 @@ export class ReservationService {
     });
   }
 
-  async getReservations(userId: string) {
-    return await this.databaseService.reservationGroup.findMany({
+  async getReservationGroups(userId: string, filter: ReservationGroupStatusFilterDto) {
+    const reservationGroup = await this.databaseService.reservationGroup.findMany({
       where: {
         userId: userId,
       },
       select: {
+        id: true,
+        members: true,
+        requests: true,
         reservations: {
           select: {
             id: true,
             startDate: true,
             endDate: true,
             notes: true,
+            membersCount: true,
             user: {
               select: {
                 name: true,
@@ -128,6 +144,52 @@ export class ReservationService {
           },
         },
       },
+    });
+
+    const groups = reservationGroup
+      .map((rg) => {
+        const minDate = new Date(
+          Math.min(...rg.reservations.map((r) => r.startDate?.getTime() ?? Number.MAX_VALUE)),
+        );
+        const maxDate = new Date(
+          Math.max(...rg.reservations.map((r) => r.endDate?.getTime() ?? Number.MAX_VALUE)),
+        );
+
+        let status: (typeof rg.requests)[number] | null = null;
+
+        for (const request of rg.requests) {
+          if (
+            request.createdAt.getTime() > (status?.createdAt.getTime() ?? Number.MIN_SAFE_INTEGER)
+          ) {
+            status = request;
+          }
+        }
+
+        return {
+          ...rg,
+          requests: undefined,
+          status: status?.type,
+          price: rg.reservations.reduce((total, res) => {
+            return total.plus(res.experience.price?.mul(res.membersCount) ?? 0);
+          }, new Decimal(0)),
+          startDate: minDate,
+          endDate: maxDate,
+        };
+      })
+      .filter((rg) => {
+        if (!rg.status) return false;
+
+        if (filter.status === 'ALL') {
+          return true;
+        } else if (filter.status === 'PENDING') {
+          return PENDING_LIST.includes(rg.status);
+        }
+
+        return rg.status === filter.status;
+      });
+
+    return groups.sort((a, b) => {
+      return b.startDate.getTime() - a.startDate.getTime();
     });
   }
 
@@ -290,6 +352,32 @@ export class ReservationService {
           notes: updateReservationDto.notes,
         },
       });
+    });
+  }
+
+  async registerMembers(
+    reservationGroupId: string,
+    userId: string,
+    registerMemberDto: RegisterMemberDto[],
+  ) {
+    await this.databaseService.reservationGroup.update({
+      where: {
+        id: reservationGroupId,
+        userId,
+      },
+      data: {
+        requests: {
+          create: {
+            type: 'PAYMENT_REQUESTED',
+            createdByUserId: userId,
+          },
+        },
+        members: {
+          createMany: {
+            data: registerMemberDto,
+          },
+        },
+      },
     });
   }
 }
