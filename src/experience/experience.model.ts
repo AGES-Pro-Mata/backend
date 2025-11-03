@@ -17,7 +17,7 @@ const booleanFromString = z
   .optional()
   .transform((val) => (val === undefined ? undefined : val === 'true'));
 
-const dateFromIsoString = z.string().optional();
+const dateFromIsoString = z.iso.datetime().optional();
 
 const weekDaysSchema = z
   .union([
