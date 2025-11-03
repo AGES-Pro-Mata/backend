@@ -1,5 +1,6 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
+import { StorageService } from 'src/storage/storage.service';
 import { Prisma } from 'generated/prisma';
 import {
   CreateExperienceFormDto,
@@ -10,7 +11,45 @@ import {
 
 @Injectable()
 export class ExperienceService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly storageService: StorageService,
+  ) {}
+
+  async getExperience(experienceId: string) {
+    const experience = await this.databaseService.experience.findUnique({
+      where: { id: experienceId },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        category: true,
+        capacity: true,
+        startDate: true,
+        endDate: true,
+        price: true,
+        weekDays: true,
+        durationMinutes: true,
+        trailDifficulty: true,
+        trailLength: true,
+        professorShouldPay: true,
+        active: true,
+        image: {
+          select: {
+            url: true,
+          },
+        },
+      },
+    });
+
+    if (!experience || !experience.active) {
+      throw new NotFoundException('Experiência não encontrada');
+    }
+
+    const { active, ...experienceData } = experience;
+
+    return experienceData;
+  }
 
   async deleteExperience(experienceId: string) {
     await this.databaseService.experience.update({
@@ -19,19 +58,32 @@ export class ExperienceService {
     });
   }
 
-  async updateExperience(experienceId: string, updateExperienceDto: UpdateExperienceFormDto) {
+  async updateExperience(
+    experienceId: string,
+    updateExperienceDto: UpdateExperienceFormDto,
+    file?: Express.Multer.File | null,
+  ) {
     let imageId: string | undefined = undefined;
 
-    if (updateExperienceDto.experienceImage) {
+    if (file) {
+      const uploaded = await this.storageService.uploadFile(file, {
+        directory: 'experiences',
+        contentType: file.mimetype ?? undefined,
+        cacheControl: 'public, max-age=31536000',
+      });
+
       const image = await this.databaseService.image.findUnique({
-        where: { url: updateExperienceDto.experienceImage },
+        where: { url: uploaded.url },
       });
 
       if (!image) {
-        throw new BadRequestException('Imagem inválida');
+        const createdImage = await this.databaseService.image.create({
+          data: { url: uploaded.url },
+        });
+        imageId = createdImage.id;
+      } else {
+        imageId = image.id;
       }
-
-      imageId = image.id;
     }
 
     await this.databaseService.experience.update({
@@ -96,19 +148,28 @@ export class ExperienceService {
     };
   }
 
-  async createExperience(createExperienceDto: CreateExperienceFormDto) {
+  async createExperience(createExperienceDto: CreateExperienceFormDto, file?: Express.Multer.File | null) {
     let imageId: string | undefined = undefined;
 
-    if (createExperienceDto.experienceImage) {
+    if (file) {
+      const uploaded = await this.storageService.uploadFile(file, {
+        directory: 'experiences',
+        contentType: file.mimetype ?? undefined,
+        cacheControl: 'public, max-age=31536000',
+      });
+
       const image = await this.databaseService.image.findUnique({
-        where: { url: createExperienceDto.experienceImage },
+        where: { url: uploaded.url },
       });
 
       if (!image) {
-        throw new BadRequestException('Imagem inválida');
+        const createdImage = await this.databaseService.image.create({
+          data: { url: uploaded.url },
+        });
+        imageId = createdImage.id;
+      } else {
+        imageId = image.id;
       }
-
-      imageId = image.id;
     }
 
     await this.databaseService.experience.create({

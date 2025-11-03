@@ -9,7 +9,11 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiConsumes } from '@nestjs/swagger';
 import { ExperienceService } from './experience.service';
 import { Roles } from 'src/auth/role/roles.decorator';
 import { ApiBearerAuth } from '@nestjs/swagger';
@@ -36,12 +40,15 @@ export class ExperienceController {
   @Patch(':experienceId')
   @Roles(UserType.ADMIN)
   @ApiBearerAuth('access-token')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('image'))
   @HttpCode(HttpStatus.NO_CONTENT)
   async updateExperienceAsAdmin(
     @Param('experienceId') experienceId: string,
     @Body() updateExperienceDto: UpdateExperienceFormDto,
+    @UploadedFile() file: Express.Multer.File | null,
   ) {
-    await this.experienceService.updateExperience(experienceId, updateExperienceDto);
+    await this.experienceService.updateExperience(experienceId, updateExperienceDto, file);
   }
 
   @Get()
@@ -55,13 +62,25 @@ export class ExperienceController {
   @Post()
   @Roles(UserType.ADMIN)
   @ApiBearerAuth('access-token')
-  async createExperienceAsAdmin(@Body() createExperienceDto: CreateExperienceFormDto) {
-    return await this.experienceService.createExperience(createExperienceDto);
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('image'))
+  @HttpCode(HttpStatus.CREATED)
+  async createExperienceAsAdmin(
+    @Body() createExperienceDto: CreateExperienceFormDto,
+    @UploadedFile() file: Express.Multer.File | null,
+  ) {
+    return await this.experienceService.createExperience(createExperienceDto, file);
   }
 
   @Get('search')
   @HttpCode(HttpStatus.OK)
   async getExperienceFilter(@Query() getExperienceFilterDto: GetExperienceFilterDto) {
     return await this.experienceService.getExperienceFilter(getExperienceFilterDto);
+  }
+
+  @Get(':experienceId')
+  @HttpCode(HttpStatus.OK)
+  async getExperience(@Param('experienceId') experienceId: string) {
+    return await this.experienceService.getExperience(experienceId);
   }
 }
