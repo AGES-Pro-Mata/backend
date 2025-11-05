@@ -554,7 +554,7 @@ async function main() {
   let totalRequests = 0;
 
   // Create reservations spread throughout the year
-  for (let month = 1; month <= 12; month++) {
+  for (let month = 1; month <= 10; month++) {
     // Each month: 3-5 reservations
     const reservationsThisMonth = Math.floor(Math.random() * 3) + 3;
 
