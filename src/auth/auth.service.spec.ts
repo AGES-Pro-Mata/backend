@@ -539,6 +539,7 @@ describe('AuthService', () => {
           addressId: true,
           createdByUserId: true,
           active: true,
+          isFirstAccess: true
         },
         include: {
           address: {

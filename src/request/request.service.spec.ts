@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RequestService } from './request.service';
 import { DatabaseService } from '../database/database.service';
-import { RequestType } from 'generated/prisma';
 import type { GetRequestsQueryDto } from './request.model';
+import { RequestType } from '../../generated/prisma';
 
 describe('RequestService', () => {
   let service: RequestService;
@@ -59,10 +59,12 @@ describe('RequestService', () => {
       expect(result).toEqual({
         data: [
           {
+            id: '1',
             member: { name: 'John Doe', email: 'john@example.com' },
             request: { type: RequestType.CREATED },
           },
           {
+            id: '2',
             member: { name: 'Jane Smith', email: 'jane@example.com' },
             request: { type: RequestType.APPROVED },
           },
@@ -178,7 +180,7 @@ describe('RequestService', () => {
       expect(result.totalPages).toBe(3);
       expect(mockDatabaseService.reservationGroup.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          skip: 5, // (page - 1) * limit = (2 - 1) * 5 = 5
+          skip: 5,
           take: 5,
         }),
       );
@@ -250,7 +252,7 @@ describe('RequestService', () => {
 
       const result = await service.getRequest(query);
 
-      expect(result.totalPages).toBe(3); // Math.ceil(25 / 10)
+      expect(result.totalPages).toBe(3);
     });
 
     it('should handle empty status array as no filter', async () => {
@@ -267,7 +269,7 @@ describe('RequestService', () => {
 
       expect(mockDatabaseService.reservationGroup.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: {}, // status vazio = sem filtro
+          where: {},
         }),
       );
     });
@@ -293,5 +295,389 @@ describe('RequestService', () => {
         }),
       );
     });
+
+    it('should sort by member name ascending', async () => {
+      const query: GetRequestsQueryDto = {
+        page: 1,
+        limit: 10,
+        sort: 'member.name',
+        dir: 'asc',
+      };
+
+      mockDatabaseService.reservationGroup.findMany.mockResolvedValue([]);
+      mockDatabaseService.reservationGroup.count.mockResolvedValue(0);
+
+      await service.getRequest(query);
+
+      expect(mockDatabaseService.reservationGroup.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { user: { name: 'asc' } },
+        }),
+      );
+    });
+
+    it('should sort by member name descending', async () => {
+      const query: GetRequestsQueryDto = {
+        page: 1,
+        limit: 10,
+        sort: 'member.name',
+        dir: 'desc',
+      };
+
+      mockDatabaseService.reservationGroup.findMany.mockResolvedValue([]);
+      mockDatabaseService.reservationGroup.count.mockResolvedValue(0);
+
+      await service.getRequest(query);
+
+      expect(mockDatabaseService.reservationGroup.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { user: { name: 'desc' } },
+        }),
+      );
+    });
+
+    it('should sort by member email ascending', async () => {
+      const query: GetRequestsQueryDto = {
+        page: 1,
+        limit: 10,
+        sort: 'member.email',
+        dir: 'asc',
+      };
+
+      mockDatabaseService.reservationGroup.findMany.mockResolvedValue([]);
+      mockDatabaseService.reservationGroup.count.mockResolvedValue(0);
+
+      await service.getRequest(query);
+
+      expect(mockDatabaseService.reservationGroup.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { user: { email: 'asc' } },
+        }),
+      );
+    });
+
+    it('should sort by member email descending', async () => {
+      const query: GetRequestsQueryDto = {
+        page: 1,
+        limit: 10,
+        sort: 'member.email',
+        dir: 'desc',
+      };
+
+      mockDatabaseService.reservationGroup.findMany.mockResolvedValue([]);
+      mockDatabaseService.reservationGroup.count.mockResolvedValue(0);
+
+      await service.getRequest(query);
+
+      expect(mockDatabaseService.reservationGroup.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { user: { email: 'desc' } },
+        }),
+      );
+    });
+
+    it('should use default ordering when sort is provided without dir', async () => {
+      const query: GetRequestsQueryDto = {
+        page: 1,
+        limit: 10,
+        sort: 'member.name',
+      };
+
+      mockDatabaseService.reservationGroup.findMany.mockResolvedValue([]);
+      mockDatabaseService.reservationGroup.count.mockResolvedValue(0);
+
+      await service.getRequest(query);
+
+      expect(mockDatabaseService.reservationGroup.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { createdAt: 'desc' },
+        }),
+      );
+    });
+
+    it('should include id in response data', async () => {
+      const query: GetRequestsQueryDto = { page: 1, limit: 10 };
+
+      const mockGroups = [
+        {
+          id: 'unique-id-123',
+          user: { name: 'John Doe', email: 'john@example.com' },
+          requests: [{ type: RequestType.CREATED }],
+        },
+      ];
+
+      mockDatabaseService.reservationGroup.findMany.mockResolvedValue(mockGroups);
+      mockDatabaseService.reservationGroup.count.mockResolvedValue(1);
+
+      const result = await service.getRequest(query);
+
+      expect(result.data[0].id).toBe('unique-id-123');
+    });
+
+    it('should throw error when database findMany fails', async () => {
+      const query: GetRequestsQueryDto = { page: 1, limit: 10 };
+
+      mockDatabaseService.reservationGroup.findMany.mockRejectedValue(
+        new Error('Database connection failed'),
+      );
+
+      await expect(service.getRequest(query)).rejects.toThrow('Database connection failed');
+    });
+
+    it('should throw error when database count fails', async () => {
+      const query: GetRequestsQueryDto = { page: 1, limit: 10 };
+
+      mockDatabaseService.reservationGroup.findMany.mockResolvedValue([]);
+      mockDatabaseService.reservationGroup.count.mockRejectedValue(new Error('Count query failed'));
+
+      await expect(service.getRequest(query)).rejects.toThrow('Count query failed');
+    });
+
+    it('should handle database returning undefined for user name', async () => {
+      const query: GetRequestsQueryDto = { page: 1, limit: 10 };
+
+      const mockGroups = [
+        {
+          id: '1',
+          user: { name: undefined, email: 'test@example.com' },
+          requests: [{ type: RequestType.CREATED }],
+        },
+      ];
+
+      mockDatabaseService.reservationGroup.findMany.mockResolvedValue(mockGroups);
+      mockDatabaseService.reservationGroup.count.mockResolvedValue(1);
+
+      const result = await service.getRequest(query);
+
+      expect(result.data[0].member.name).toBe('N/A');
+      expect(result.data[0].member.email).toBe('test@example.com');
+    });
+
+    it('should handle database returning undefined for user email', async () => {
+      const query: GetRequestsQueryDto = { page: 1, limit: 10 };
+
+      const mockGroups = [
+        {
+          id: '1',
+          user: { name: 'John Doe', email: undefined },
+          requests: [{ type: RequestType.CREATED }],
+        },
+      ];
+
+      mockDatabaseService.reservationGroup.findMany.mockResolvedValue(mockGroups);
+      mockDatabaseService.reservationGroup.count.mockResolvedValue(1);
+
+      const result = await service.getRequest(query);
+
+      expect(result.data[0].member.name).toBe('John Doe');
+      expect(result.data[0].member.email).toBe('N/A');
+    });
+
+    it('should handle status undefined', async () => {
+      const query: GetRequestsQueryDto = {
+        page: 1,
+        limit: 10,
+        status: undefined,
+      };
+
+      mockDatabaseService.reservationGroup.findMany.mockResolvedValue([]);
+      mockDatabaseService.reservationGroup.count.mockResolvedValue(0);
+
+      await service.getRequest(query);
+
+      expect(mockDatabaseService.reservationGroup.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {},
+        }),
+      );
+    });
+
+    it('should handle status null', async () => {
+      const query: GetRequestsQueryDto = {
+        page: 1,
+        limit: 10,
+        status: null as any,
+      };
+
+      mockDatabaseService.reservationGroup.findMany.mockResolvedValue([]);
+      mockDatabaseService.reservationGroup.count.mockResolvedValue(0);
+
+      await service.getRequest(query);
+
+      expect(mockDatabaseService.reservationGroup.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {},
+        }),
+      );
+    });
+
+    it('should handle page 0 with default behavior', async () => {
+      const query: GetRequestsQueryDto = { page: 0, limit: 10 };
+
+      mockDatabaseService.reservationGroup.findMany.mockResolvedValue([]);
+      mockDatabaseService.reservationGroup.count.mockResolvedValue(0);
+
+      const result = await service.getRequest(query);
+
+      expect(mockDatabaseService.reservationGroup.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: -10,
+          take: 10,
+        }),
+      );
+      expect(result.page).toBe(0);
+    });
+
+    it('should handle limit 0', async () => {
+      const query: GetRequestsQueryDto = { page: 1, limit: 0 };
+
+      mockDatabaseService.reservationGroup.findMany.mockResolvedValue([]);
+      mockDatabaseService.reservationGroup.count.mockResolvedValue(0);
+
+      const result = await service.getRequest(query);
+
+      expect(mockDatabaseService.reservationGroup.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 0,
+          take: 0,
+        }),
+      );
+      expect(result.limit).toBe(0);
+    });
+
+    it('should handle extremely high page number', async () => {
+      const query: GetRequestsQueryDto = { page: 999999, limit: 10 };
+
+      mockDatabaseService.reservationGroup.findMany.mockResolvedValue([]);
+      mockDatabaseService.reservationGroup.count.mockResolvedValue(100);
+
+      const result = await service.getRequest(query);
+
+      expect(mockDatabaseService.reservationGroup.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 9999980,
+          take: 10,
+        }),
+      );
+      expect(result.page).toBe(999999);
+      expect(result.totalPages).toBe(10);
+    });
+
+    it('should handle extremely high limit number', async () => {
+      const query: GetRequestsQueryDto = { page: 1, limit: 1000 };
+
+      mockDatabaseService.reservationGroup.findMany.mockResolvedValue([]);
+      mockDatabaseService.reservationGroup.count.mockResolvedValue(100);
+
+      const result = await service.getRequest(query);
+
+      expect(mockDatabaseService.reservationGroup.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 0,
+          take: 1000,
+        }),
+      );
+      expect(result.limit).toBe(1000);
+      expect(result.totalPages).toBe(1);
+    });
+
+    it('should handle invalid sort field and use default ordering', async () => {
+      const query: GetRequestsQueryDto = {
+        page: 1,
+        limit: 10,
+        sort: 'invalid.field',
+        dir: 'asc',
+      };
+
+      mockDatabaseService.reservationGroup.findMany.mockResolvedValue([]);
+      mockDatabaseService.reservationGroup.count.mockResolvedValue(0);
+
+      await service.getRequest(query);
+
+      expect(mockDatabaseService.reservationGroup.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { createdAt: 'desc' },
+        }),
+      );
+    });
+
+    it('should handle sort with random string value', async () => {
+      const query: GetRequestsQueryDto = {
+        page: 1,
+        limit: 10,
+        sort: 'randomSortField',
+        dir: 'asc',
+      };
+
+      mockDatabaseService.reservationGroup.findMany.mockResolvedValue([]);
+      mockDatabaseService.reservationGroup.count.mockResolvedValue(0);
+
+      await service.getRequest(query);
+
+      expect(mockDatabaseService.reservationGroup.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { createdAt: 'desc' },
+        }),
+      );
+    });
+
+    it('should handle sort with empty string', async () => {
+      const query: GetRequestsQueryDto = {
+        page: 1,
+        limit: 10,
+        sort: '',
+        dir: 'asc',
+      };
+
+      mockDatabaseService.reservationGroup.findMany.mockResolvedValue([]);
+      mockDatabaseService.reservationGroup.count.mockResolvedValue(0);
+
+      await service.getRequest(query);
+
+      expect(mockDatabaseService.reservationGroup.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { createdAt: 'desc' },
+        }),
+      );
+    });
+
+    it('should handle sort with special characters', async () => {
+      const query: GetRequestsQueryDto = {
+        page: 1,
+        limit: 10,
+        sort: '@#$%^&*()',
+        dir: 'asc',
+      };
+
+      mockDatabaseService.reservationGroup.findMany.mockResolvedValue([]);
+      mockDatabaseService.reservationGroup.count.mockResolvedValue(0);
+
+      await service.getRequest(query);
+
+      expect(mockDatabaseService.reservationGroup.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { createdAt: 'desc' },
+        }),
+      );
+    });
+  });
+  
+  it('should use default pagination values when query is empty', async () => {
+    const query = {} as GetRequestsQueryDto; // Nenhum campo definido
+
+    mockDatabaseService.reservationGroup.findMany.mockResolvedValue([]);
+    mockDatabaseService.reservationGroup.count.mockResolvedValue(0);
+
+    const result = await service.getRequest(query);
+
+    expect(mockDatabaseService.reservationGroup.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 0, // (1 - 1) * 10
+        take: 10,
+      }),
+    );
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(10);
+    expect(result.totalPages).toBe(0);
   });
 });

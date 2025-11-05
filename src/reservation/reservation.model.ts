@@ -7,12 +7,16 @@ const MemberSchema = z.object({
   document: z.string(),
   gender: z.string(),
 });
+  birthDate: z.iso.date(),
+  phone: z.string(),
+});
 
 const ReservationSchema = z.object({
   notes: z.string().optional(),
   experienceId: z.uuid(),
   startDate: z.iso.datetime(),
   endDate: z.iso.datetime(),
+  membersCount: z.number(),
   membersCount: z.number(),
 });
 
@@ -46,3 +50,18 @@ export const AttachReceiptSchema = z.object({
 });
 
 export class AttachReceiptDto extends createZodDto(AttachReceiptSchema) {}
+
+const ReservationGroupStatusFilter = z.object({
+  status: z.enum([RequestType.APPROVED, RequestType.CANCELED, 'PENDING', 'ALL']).default('ALL'),
+});
+
+export class ReservationGroupStatusFilterDto extends createZodDto(ReservationGroupStatusFilter) {}
+
+const RegisterMemberSchema = z.object({
+  name: z.string(),
+  phone: z.string(),
+  document: z.string(),
+  gender: z.string(),
+});
+
+export class RegisterMemberDto extends createZodDto(RegisterMemberSchema) {}
