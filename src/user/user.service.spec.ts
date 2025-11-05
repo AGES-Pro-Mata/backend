@@ -220,7 +220,7 @@ describe('UserService', () => {
       await service.updateUser(userId, dto);
 
       expect(fatalSpy).toHaveBeenCalledWith(
-        `The common user (GEST or PROFESSOR) ${userId} must have an Address`,
+        `The common user ${mockUser.userType} ${mockUser.id} must have an Address`,
       );
       expect(databaseService.address.update).not.toHaveBeenCalled();
     });
