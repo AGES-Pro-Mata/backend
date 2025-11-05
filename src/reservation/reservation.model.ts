@@ -7,12 +7,16 @@ const MemberSchema = z.object({
   document: z.string(),
   gender: z.string(),
 });
+  birthDate: z.iso.date(),
+  phone: z.string(),
+});
 
 const ReservationSchema = z.object({
   notes: z.string().optional(),
   experienceId: z.uuid(),
   startDate: z.iso.datetime(),
   endDate: z.iso.datetime(),
+  membersCount: z.number(),
   membersCount: z.number(),
 });
 
