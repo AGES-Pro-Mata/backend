@@ -291,7 +291,6 @@ export class ReservationService {
             document: true,
             gender: true,
             phone: true,
-            birthDate: true,
           },
         },
         reservations: {
