@@ -70,13 +70,10 @@ export class UserService {
         },
       });
 
-      if (user.userType === UserType.ADMIN || user.userType === UserType.ROOT) {
-        return;
-      }
-
       if (!user.addressId) {
-        this.logger.fatal(`The common user (GEST or PROFESSOR) ${user.id} must have an Address`);
-        return;
+        return this.logger.fatal(
+          `The common user ${user.userType} ${user.id} must have an Address`,
+        );
       }
 
       await tx.address.update({
