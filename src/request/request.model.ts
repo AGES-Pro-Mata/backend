@@ -23,7 +23,6 @@ const SimpleMemberSchema = z.object({
   document: z.string().nullable().optional(),
   gender: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
-  birthDate: z.string().nullable().optional(),
 });
 
 const ExperienceImageSchema = z.object({
