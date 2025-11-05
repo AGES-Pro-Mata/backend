@@ -56,38 +56,36 @@ export class ExperienceService {
   }
 
   async updateExperience(experienceId: string, updateExperienceDto: UpdateExperienceFormDto) {
-    return await this.databaseService.$transaction(async (tx) => {
-      let imageId: string | undefined = undefined;
+    let imageId: string | undefined = undefined;
 
-      if (updateExperienceDto.experienceImage) {
-        const image = await tx.image.findUnique({
-          where: { url: updateExperienceDto.experienceImage },
-        });
+    if (updateExperienceDto.experienceImage) {
+      const image = await this.databaseService.image.findUnique({
+        where: { url: updateExperienceDto.experienceImage },
+      });
 
-        if (!image) {
-          throw new BadRequestException('Imagem inválida');
-        }
-
-        imageId = image.id;
+      if (!image) {
+        throw new BadRequestException('Imagem inválida');
       }
 
-      return await tx.experience.update({
-        where: { id: experienceId },
-        data: {
-          name: updateExperienceDto.experienceName,
-          description: updateExperienceDto.experienceDescription,
-          category: updateExperienceDto.experienceCategory,
-          capacity: updateExperienceDto.experienceCapacity,
-          startDate: updateExperienceDto.experienceStartDate,
-          endDate: updateExperienceDto.experienceEndDate,
-          price: updateExperienceDto.experiencePrice,
-          weekDays: updateExperienceDto.experienceWeekDays,
-          durationMinutes: updateExperienceDto.trailDurationMinutes,
-          trailDifficulty: updateExperienceDto.trailDifficulty,
-          trailLength: updateExperienceDto.trailLength,
-          imageId,
-        },
-      });
+      imageId = image.id;
+    }
+
+    await this.databaseService.experience.update({
+      where: { id: experienceId },
+      data: {
+        name: updateExperienceDto.experienceName,
+        description: updateExperienceDto.experienceDescription,
+        category: updateExperienceDto.experienceCategory,
+        capacity: updateExperienceDto.experienceCapacity,
+        startDate: updateExperienceDto.experienceStartDate,
+        endDate: updateExperienceDto.experienceEndDate,
+        price: updateExperienceDto.experiencePrice,
+        weekDays: updateExperienceDto.experienceWeekDays,
+        durationMinutes: updateExperienceDto.trailDurationMinutes,
+        trailDifficulty: updateExperienceDto.trailDifficulty,
+        trailLength: updateExperienceDto.trailLength,
+        imageId,
+      },
     });
   }
 
@@ -135,38 +133,36 @@ export class ExperienceService {
   }
 
   async createExperience(createExperienceDto: CreateExperienceFormDto) {
-    return await this.databaseService.$transaction(async (tx) => {
-      let imageId: string | undefined = undefined;
+    let imageId: string | undefined = undefined;
 
-      if (createExperienceDto.experienceImage) {
-        const image = await tx.image.findUnique({
-          where: { url: createExperienceDto.experienceImage },
-        });
+    if (createExperienceDto.experienceImage) {
+      const image = await this.databaseService.image.findUnique({
+        where: { url: createExperienceDto.experienceImage },
+      });
 
-        if (!image) {
-          throw new BadRequestException('Imagem inválida');
-        }
-
-        imageId = image.id;
+      if (!image) {
+        throw new BadRequestException('Imagem inválida');
       }
 
-      return await tx.experience.create({
-        data: {
-          name: createExperienceDto.experienceName,
-          description: createExperienceDto.experienceDescription,
-          category: createExperienceDto.experienceCategory,
-          capacity: createExperienceDto.experienceCapacity,
-          startDate: createExperienceDto.experienceStartDate,
-          endDate: createExperienceDto.experienceEndDate,
-          price: createExperienceDto.experiencePrice,
-          weekDays: createExperienceDto.experienceWeekDays,
-          durationMinutes: createExperienceDto.trailDurationMinutes,
-          trailDifficulty: createExperienceDto.trailDifficulty,
-          trailLength: createExperienceDto.trailLength,
-          active: true,
-          imageId,
-        },
-      });
+      imageId = image.id;
+    }
+
+    await this.databaseService.experience.create({
+      data: {
+        name: createExperienceDto.experienceName,
+        description: createExperienceDto.experienceDescription,
+        category: createExperienceDto.experienceCategory,
+        capacity: createExperienceDto.experienceCapacity,
+        startDate: createExperienceDto.experienceStartDate,
+        endDate: createExperienceDto.experienceEndDate,
+        price: createExperienceDto.experiencePrice,
+        weekDays: createExperienceDto.experienceWeekDays,
+        durationMinutes: createExperienceDto.trailDurationMinutes,
+        trailDifficulty: createExperienceDto.trailDifficulty,
+        trailLength: createExperienceDto.trailLength,
+        active: true,
+        imageId,
+      },
     });
   }
 
