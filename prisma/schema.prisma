@@ -215,6 +215,7 @@ model Member {
   document           String?
   gender             String
   phone              String?
+  birthDate          DateTime?
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   active             Boolean          @default(true)
