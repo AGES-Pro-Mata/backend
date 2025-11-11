@@ -6,8 +6,6 @@ import { createZodDto } from 'nestjs-zod';
 const Id = z.string();
 const Email = z.string().email();
 const Name = z.string();
-const OptString = z.string().nullable().optional();
-const OptBool = z.boolean().optional();
 
 const AddressSchema = z.object({
   street: z.string().nullable().optional(),
