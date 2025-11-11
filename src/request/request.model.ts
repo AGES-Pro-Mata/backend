@@ -2,12 +2,9 @@ import { z } from 'zod';
 import { RequestType } from 'generated/prisma';
 import { createZodDto } from 'nestjs-zod';
 
-
 const Id = z.string();
 const Email = z.string().email();
 const Name = z.string();
-const OptString = z.string().nullable().optional();
-const OptBool = z.boolean().optional();
 
 const AddressSchema = z.object({
   street: z.string().nullable().optional(),
@@ -25,9 +22,11 @@ const SimpleMemberSchema = z.object({
   phone: z.string().nullable().optional(),
 });
 
-const ExperienceImageSchema = z.object({
-  url: z.string().nullable(),
-}).nullable();
+const ExperienceImageSchema = z
+  .object({
+    url: z.string().nullable(),
+  })
+  .nullable();
 
 const ExperienceSchema = z.object({
   id: Id,
@@ -72,7 +71,10 @@ export class RequestAdminDto extends createZodDto(RequestAdminDtoSchema) {}
 export const GetRequestsQueryDtoSchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(10),
-  status: z.array(z.nativeEnum(RequestType)).optional(),
+  status: z
+    .array(z.nativeEnum(RequestType))
+    .or(z.nativeEnum(RequestType).transform((v) => [v]))
+    .optional(),
   sort: z.string().optional(),
   dir: z.enum(['asc', 'desc']).optional(),
 });
@@ -85,7 +87,7 @@ export const GetRequestsProfessorQueryDtoSchema = GetRequestsQueryDtoSchema.exte
     .optional(),
 });
 export class GetRequestsProfessorQueryDto extends createZodDto(
-  GetRequestsProfessorQueryDtoSchema
+  GetRequestsProfessorQueryDtoSchema,
 ) {}
 
 export const PaginatedRequestResponseSchema = z.object({
@@ -95,20 +97,20 @@ export const PaginatedRequestResponseSchema = z.object({
   limit: z.number(),
   totalPages: z.number(),
 });
-export class PaginatedRequestResponseDto extends createZodDto(
-  PaginatedRequestResponseSchema
-) {}
+export class PaginatedRequestResponseDto extends createZodDto(PaginatedRequestResponseSchema) {}
 
 export const GetRequestByIdAdminDtoSchema = z.object({
   id: Id,
   type: z.string(),
   description: z.string().nullable().optional(),
-  user: z.object({
-    id: Id,
-    name: Name,
-    email: Email,
-    phone: z.string().nullable().optional(),
-  }).nullable(),
+  user: z
+    .object({
+      id: Id,
+      name: Name,
+      email: Email,
+      phone: z.string().nullable().optional(),
+    })
+    .nullable(),
   members: z.array(SimpleMemberSchema),
   reservations: z.array(ReservationSchema),
   requests: z.array(RequestStatusSchema).optional(),
@@ -137,6 +139,4 @@ export const GetProfessorRequestByIdDtoSchema = z.object({
   user: ProfessorDetailsSchema,
   requests: z.array(RequestStatusSchema).optional(),
 });
-export class GetProfessorRequestByIdDto extends createZodDto(
-  GetProfessorRequestByIdDtoSchema
-) {}
+export class GetProfessorRequestByIdDto extends createZodDto(GetProfessorRequestByIdDtoSchema) {}
