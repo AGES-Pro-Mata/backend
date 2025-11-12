@@ -35,15 +35,21 @@ export class ReservationService {
       });
 
       if (payload === 0) {
+        throw new NotFoundException('Reservation group not found');
+      }
+
+      const type: RequestType = updateReservationDto.type as RequestType;
+
+      if (payload === 0) {
         throw new NotFoundException();
       }
 
       return await tx.requests.create({
         data: {
-          description: updateReservationDto.description,
-          type: updateReservationDto.type,
+          type,
           reservationGroupId,
           createdByUserId: userId,
+          description: updateReservationDto.description,
         },
       });
     });
@@ -71,20 +77,34 @@ export class ReservationService {
 
   async createCancelRequest(reservationGroupId: string, userId: string) {
     return await this.databaseService.$transaction(async (tx) => {
-      const payload = await tx.reservation.count({
+      const payload = await tx.reservationGroup.findUnique({
         where: {
           id: reservationGroupId,
           userId,
         },
+        select: {
+          requests: {
+            select: {
+              type: true,
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+            take: 1,
+          },
+        },
       });
 
-      if (payload === 0) {
+      if (!payload) {
         throw new NotFoundException();
       }
 
+      const type: RequestType =
+        payload.requests[0].type === 'APPROVED' ? 'CANCELED_REQUESTED' : 'CANCELED';
+
       return await tx.requests.create({
         data: {
-          type: 'CANCELED_REQUESTED',
+          type,
           reservationGroupId,
           createdByUserId: userId,
         },
