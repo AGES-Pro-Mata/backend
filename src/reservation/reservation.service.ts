@@ -27,23 +27,31 @@ export class ReservationService {
     updateReservationDto: UpdateReservationDto,
     userId: string,
   ) {
-    const payload = await this.databaseService.reservation.count({
-      where: {
-        id: reservationGroupId,
-      },
-    });
+    return await this.databaseService.$transaction(async (tx) => {
+      const payload = await tx.reservation.count({
+        where: {
+          id: reservationGroupId,
+        },
+      });
 
-    if (payload === 0) {
-      throw new NotFoundException();
-    }
+      if (payload === 0) {
+        throw new NotFoundException('Reservation group not found');
+      }
 
-    await this.databaseService.requests.create({
-      data: {
-        description: updateReservationDto.description,
-        type: updateReservationDto.type,
-        reservationGroupId,
-        createdByUserId: userId,
-      },
+      const type: RequestType = updateReservationDto.type as RequestType;
+
+      if (payload === 0) {
+        throw new NotFoundException();
+      }
+
+      return await tx.requests.create({
+        data: {
+          type,
+          reservationGroupId,
+          createdByUserId: userId,
+          description: updateReservationDto.description,
+        },
+      });
     });
   }
 
@@ -68,37 +76,39 @@ export class ReservationService {
   }
 
   async createCancelRequest(reservationGroupId: string, userId: string) {
-    const payload = await this.databaseService.reservationGroup.findUnique({
-      where: {
-        id: reservationGroupId,
-        userId,
-      },
-      select: {
-        requests: {
-          select: {
-            type: true,
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 1,
+    return await this.databaseService.$transaction(async (tx) => {
+      const payload = await tx.reservationGroup.findUnique({
+        where: {
+          id: reservationGroupId,
+          userId,
         },
-      },
-    });
+        select: {
+          requests: {
+            select: {
+              type: true,
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+            take: 1,
+          },
+        },
+      });
 
-    if (!payload) {
-      throw new NotFoundException('Reservation group not found');
-    }
+      if (!payload) {
+        throw new NotFoundException();
+      }
 
-    const type: RequestType =
-      payload.requests[0].type === 'APPROVED' ? 'CANCELED_REQUESTED' : 'CANCELED';
+      const type: RequestType =
+        payload.requests[0].type === 'APPROVED' ? 'CANCELED_REQUESTED' : 'CANCELED';
 
-    await this.databaseService.requests.create({
-      data: {
-        type,
-        reservationGroupId,
-        createdByUserId: userId,
-      },
+      return await tx.requests.create({
+        data: {
+          type,
+          reservationGroupId,
+          createdByUserId: userId,
+        },
+      });
     });
   }
 
@@ -344,25 +354,25 @@ export class ReservationService {
     reservationId: string,
     updateReservationDto: UpdateReservationByAdminDto,
   ) {
-    const reservation = await this.databaseService.reservation.findUnique({
-      where: { id: reservationId },
+    return await this.databaseService.$transaction(async (tx) => {
+      const reservation = await tx.reservation.findUnique({
+        where: { id: reservationId },
+      });
+
+      if (!reservation) {
+        throw new NotFoundException('Reservation not found');
+      }
+
+      return await tx.reservation.update({
+        where: { id: reservationId },
+        data: {
+          experienceId: updateReservationDto.experienceId,
+          startDate: updateReservationDto.startDate,
+          endDate: updateReservationDto.endDate,
+          notes: updateReservationDto.notes,
+        },
+      });
     });
-
-    if (!reservation) {
-      throw new NotFoundException('Reservation not found');
-    }
-
-    const updatedReservation = await this.databaseService.reservation.update({
-      where: { id: reservationId },
-      data: {
-        experienceId: updateReservationDto.experienceId,
-        startDate: updateReservationDto.startDate,
-        endDate: updateReservationDto.endDate,
-        notes: updateReservationDto.notes,
-      },
-    });
-
-    return updatedReservation;
   }
 
   async registerMembers(
