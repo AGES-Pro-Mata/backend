@@ -22,23 +22,38 @@ export class RequestService {
     let orderBy: any = { createdAt: 'desc' };
     if (sort && dir) {
       if (sort === 'member.name') {
-        orderBy = { reservationGroup: { user: { name: dir } } };
+        orderBy = { user: { name: dir } };
       } else if (sort === 'member.email') {
-        orderBy = { reservationGroup: { user: { email: dir } } };
+        orderBy = { user: { email: dir } };
       }
     }
 
-    const [requests, total] = await Promise.all([
-      this.databaseService.requests.findMany({
-        where,
+    const [reservationGroups, total] = await this.databaseService.$transaction([
+      this.databaseService.reservationGroup.findMany({
+        where: {
+          requests: {
+            some: statusWhere || {},
+          },
+        },
         select: {
           id: true,
-          type: true,
-          ReservationGroup: {
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+          requests: {
+            where: statusWhere || {},
             select: {
               id: true,
-              user: { select: { email: true, name: true } },
+              type: true,
+              createdAt: true,
             },
+            orderBy: {
+              createdAt: 'desc',
+            },
+            take: 1,
           },
         },
         skip,
@@ -46,22 +61,28 @@ export class RequestService {
         orderBy,
       }),
 
-      this.databaseService.requests.count({ where }),
+      this.databaseService.reservationGroup.count({
+        where: {
+          requests: {
+            some: statusWhere || {},
+          },
+        },
+      }),
     ]);
 
-    const data = requests
-      .filter((r) => r.ReservationGroup)
-      .map((r) => {
-        const group = r.ReservationGroup!;
+    const data = reservationGroups
+      .filter((group) => group.requests.length > 0)
+      .map((group) => {
+        const matchingRequest = group.requests[0];
 
         return {
-          id: r.id,
+          id: matchingRequest.id,
           member: {
             name: group.user?.name ?? 'N/A',
             email: group.user?.email ?? 'N/A',
           },
           request: {
-            type: r.type as RequestType,
+            type: matchingRequest.type,
           },
         };
       });
@@ -166,7 +187,7 @@ export class RequestService {
                 document: true,
                 gender: true,
                 phone: true,
-                //birthDate: true,
+                birthDate: true,
               },
             },
             reservations: {
@@ -225,66 +246,73 @@ export class RequestService {
     const mainRequest = await this.databaseService.requests.findUnique({
       where: {
         id: id,
-        reservationGroupId: null, 
+        reservationGroupId: null,
       },
       select: {
         id: true,
         type: true,
         description: true,
         createdAt: true,
-        createdByUserId: true, 
-        createdBy: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-            document: true,
-            gender: true,
-            rg: true,
-            institution: true,
-            isForeign: true,
-            verified: true,
-            address: {
-              select: {
-                street: true,
-                number: true,
-                city: true,
-                zip: true,
-                country: true,
-              },
-            },
-          },
-        },
+        createdByUserId: true,
       },
     });
-   
+
     if (!mainRequest) {
       throw new NotFoundException('Solicitação de professor não encontrada.');
     }
 
-    const requestHistory = await this.databaseService.requests.findMany({
+    const professor = await this.databaseService.user.findUnique({
       where: {
-        createdByUserId: mainRequest.createdByUserId,
-        reservationGroupId: null, 
+        id: mainRequest.createdByUserId,
+        userType: UserType.PROFESSOR,
       },
       select: {
         id: true,
-        type: true,
-        description: true,
-      },
-      orderBy: {
-        createdAt: 'asc', 
+        name: true,
+        email: true,
+        phone: true,
+        document: true,
+        gender: true,
+        rg: true,
+        institution: true,
+        isForeign: true,
+        verified: true,
+        address: {
+          select: {
+            street: true,
+            number: true,
+            city: true,
+            zip: true,
+            country: true,
+          },
+        },
+        Requests: {
+          where: {
+            reservationGroupId: null,
+          },
+          select: {
+            id: true,
+            type: true,
+            description: true,
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
       },
     });
+
+    if (!professor) {
+      throw new NotFoundException('Professor não encontrado.');
+    }
 
     return {
       id: mainRequest.id,
       type: mainRequest.type,
       description: mainRequest.description,
-      createdAt: mainRequest.createdAt.toISOString(), 
-      user: mainRequest.createdBy, 
-      requests: requestHistory, 
+      createdAt: mainRequest.createdAt.toISOString(),
+      user: professor,
+      requests: professor.Requests,
     };
   }
 }
