@@ -89,19 +89,6 @@ export class ExperienceService {
           data: { url: uploaded.url },
         });
 
-        imageId = createdImage.id;
-      } else if (updateExperienceDto.experienceImage) {
-        const image = await tx.image.findUnique({
-          where: { url: updateExperienceDto.experienceImage },
-        });
-
-        if (!image) {
-          throw new Error('Imagem inválida');
-        }
-
-        imageId = image.id;
-      }
-
       return await tx.experience.update({
         where: { id: experienceId },
         data: {
@@ -166,55 +153,45 @@ export class ExperienceService {
   }
 
   async createExperience(
-    createExperienceDto: CreateExperienceFormDto,
-    file?: Express.Multer.File | null,
-  ) {
-    return await this.databaseService.$transaction(async (tx) => {
-      let imageId: string | undefined = undefined;
+  createExperienceDto: CreateExperienceFormDto,
+  file?: Express.Multer.File | null,
+) {
+  return await this.databaseService.$transaction(async (tx) => {
+    let imageId: string | undefined = undefined;
 
-      if (file) {
-        const uploaded = await this.storageService.uploadFile(file, {
-          directory: 'experiences',
-          contentType: file.mimetype ?? undefined,
-          cacheControl: 'public, max-age=31536000',
-        });
-
-        const createdImage = await tx.image.create({
-          data: { url: uploaded.url },
-        });
-
-        imageId = createdImage.id;
-      } else if (createExperienceDto.experienceImage) {
-        const image = await tx.image.findUnique({
-          where: { url: createExperienceDto.experienceImage },
-        });
-
-        if (!image) {
-          throw new Error('Imagem inválida');
-        }
-
-        imageId = image.id;
-      }
-
-      return await tx.experience.create({
-        data: {
-          name: createExperienceDto.experienceName,
-          description: createExperienceDto.experienceDescription,
-          category: createExperienceDto.experienceCategory,
-          capacity: createExperienceDto.experienceCapacity,
-          startDate: createExperienceDto.experienceStartDate,
-          endDate: createExperienceDto.experienceEndDate,
-          price: createExperienceDto.experiencePrice,
-          weekDays: createExperienceDto.experienceWeekDays,
-          durationMinutes: createExperienceDto.trailDurationMinutes,
-          trailDifficulty: createExperienceDto.trailDifficulty,
-          trailLength: createExperienceDto.trailLength,
-          active: true,
-          imageId,
-        },
+    if (file) {
+      const uploaded = await this.storageService.uploadFile(file, {
+        directory: 'experiences',
+        contentType: file.mimetype ?? undefined,
+        cacheControl: 'public, max-age=31536000',
       });
+
+      const createdImage = await tx.image.create({
+        data: { url: uploaded.url },
+      });
+
+      imageId = createdImage.id;
+    }
+
+    return await tx.experience.create({
+      data: {
+        name: createExperienceDto.experienceName,
+        description: createExperienceDto.experienceDescription,
+        category: createExperienceDto.experienceCategory,
+        capacity: createExperienceDto.experienceCapacity,
+        startDate: createExperienceDto.experienceStartDate,
+        endDate: createExperienceDto.experienceEndDate,
+        price: createExperienceDto.experiencePrice,
+        weekDays: createExperienceDto.experienceWeekDays,
+        durationMinutes: createExperienceDto.trailDurationMinutes,
+        trailDifficulty: createExperienceDto.trailDifficulty,
+        trailLength: createExperienceDto.trailLength,
+        active: true,
+        imageId,
+      },
     });
-  }
+  });
+}
 
   async getExperienceFilter(getExperienceFilterDto: GetExperienceFilterDto) {
     const where: Prisma.ExperienceWhereInput = {
