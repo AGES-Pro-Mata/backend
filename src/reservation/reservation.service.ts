@@ -359,6 +359,7 @@ export class ReservationService {
         startDate: updateReservationDto.startDate,
         endDate: updateReservationDto.endDate,
         notes: updateReservationDto.notes,
+        price: updateReservationDto.price,
       },
     });
 

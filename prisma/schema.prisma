@@ -170,6 +170,7 @@ model Reservation {
   userId             String
   experience         Experience       @relation(fields: [experienceId], references: [id])
   experienceId       String
+  price              Decimal?         @default(0)
   startDate          DateTime?
   endDate            DateTime?
   notes              String?

@@ -37,6 +37,7 @@ const UpdateReservationByAdmin = z.object({
   startDate: z.iso.datetime().optional(),
   endDate: z.iso.datetime().optional(),
   notes: z.string().optional(),
+  price: z.number().optional(),
 });
 
 export class UpdateReservationByAdminDto extends createZodDto(UpdateReservationByAdmin) {}
