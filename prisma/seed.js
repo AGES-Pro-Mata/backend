@@ -585,6 +585,10 @@ async function main() {
       // Create members for this reservation
       const numMembers = Math.floor(Math.random() * 5) + 1;
       for (let m = 0; m < numMembers; m++) {
+        const randomBirthYear = 1960 + Math.floor(Math.random() * 45); // 1960-2005
+        const randomMonth = Math.floor(Math.random() * 12);
+        const randomDay = Math.floor(Math.random() * 28) + 1;
+        
         await prisma.member.create({
           data: {
             name: `Participante ${totalMembers + m + 1}`,
@@ -593,6 +597,12 @@ async function main() {
                 ? `${Math.floor(Math.random() * 900 + 100)}.${Math.floor(Math.random() * 900 + 100)}.${Math.floor(Math.random() * 900 + 100)}-${Math.floor(Math.random() * 90 + 10)}`
                 : null,
             gender: ['Male', 'Female', 'Other'][Math.floor(Math.random() * 3)],
+            phone: Math.random() > 0.3 
+              ? `+55 ${Math.floor(Math.random() * 90 + 10)} 9${Math.floor(Math.random() * 9000 + 1000)}-${Math.floor(Math.random() * 9000 + 1000)}`
+              : null,
+            birthDate: Math.random() > 0.2
+              ? new Date(randomBirthYear, randomMonth, randomDay)
+              : null,
             reservationGroupId: reservationGroup.id,
           },
         });

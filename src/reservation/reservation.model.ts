@@ -6,6 +6,8 @@ const MemberSchema = z.object({
   name: z.string(),
   document: z.string(),
   gender: z.string(),
+  birthDate: z.iso.date(),
+  phone: z.string(),
 });
 
 const ReservationSchema = z.object({
