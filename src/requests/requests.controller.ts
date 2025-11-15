@@ -11,7 +11,7 @@ import type { CurrentUser } from 'src/auth/auth.model';
 export class RequestsController {
   constructor(private readonly requestsService: RequestsService) {}
 
-  @Get(':reservationGroupId')
+  @Get('reservation/:reservationGroupId')
   @Roles(UserType.ADMIN)
   @ApiBearerAuth('access-token')
   async getReservationAdmin(
@@ -22,5 +22,12 @@ export class RequestsController {
       reservationGroupId,
       user,
     );
+  }
+
+  @Get('professor/:professorId')
+  @Roles(UserType.ADMIN)
+  @ApiBearerAuth('access-token')
+  async getProfessorRequest(@Param('professorId') professorId: string, @User() user: CurrentUser) {
+    return await this.requestsService.getRequestsByIdReservationGroupAdmin(professorId, user);
   }
 }

@@ -1,58 +1,53 @@
 // import { Select } from '@aws-sdk/client-dynamodb'; // Removed unused import
-import { Injectable } from '@nestjs/common';
-import { Request } from 'express';
-import { JwtService } from '@nestjs/jwt';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { CurrentUser } from 'src/auth/auth.model';
 
 @Injectable()
 export class RequestsService {
-  constructor(
-    private readonly databaseService: DatabaseService,
-    private readonly jwtService: JwtService,
-  ) {}
+  constructor(private readonly databaseService: DatabaseService) {}
 
   async getRequestsByIdReservationGroupAdmin(reservationGroupId: string, adminUser: CurrentUser) {
-    const rawEvents = await this.databaseService.requests.findMany({
-      where: { reservationGroupId: reservationGroupId },
-      orderBy: { createdAt: 'asc' },
-      select: {
-        id: true,
-        type: true,
-        description: true,
-        createdBy: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        createdAt: true,
-      },
-    });
-
-    const reservation = await this.databaseService.reservationGroup.findFirst({
+    const reservationGroup = await this.databaseService.reservationGroup.findUnique({
       where: { id: reservationGroupId },
       select: {
-        user: {
+        userId: true,
+        requests: {
+          orderBy: { createdAt: 'asc' },
           select: {
             id: true,
+            type: true,
+            description: true,
+            createdBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            createdAt: true,
           },
         },
       },
     });
 
-    const events = rawEvents.map((e) => ({
+    if (reservationGroup === null) {
+      throw new NotFoundException('ReservationGroup not found');
+    }
+
+    const events = reservationGroup.requests.map((e) => ({
       id: e.id,
       status: e.type,
       description: e.description,
       createdAt: e.createdAt,
-      name: e.createdBy.id === adminUser.id ? 'Você' : e.createdBy.name,
-      email: e.createdBy?.email ?? '',
+      name: e.createdBy.name,
+      email: e.createdBy.email,
       userId: e.createdBy.id,
+      isSender: e.createdBy.id === adminUser.id,
+      isRequester: e.createdBy.id === reservationGroup.userId,
     }));
+
     return {
-      requestUserId: reservation?.user.id,
       events,
       createdAt: events[0].createdAt,
       status: events[events.length - 1].status,
