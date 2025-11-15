@@ -1,7 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { CurrentUser } from 'src/auth/auth.model';
-import { PROFESSOR_REQUEST_TYPES } from 'src/professor/professor.model';
 import { InsertRequestDto } from './requests.model';
 
 @Injectable()
@@ -107,6 +106,13 @@ export class RequestsService {
   }
 
   async insertRequest(createdByUserId: string, insertRequestDto: InsertRequestDto) {
+    if (
+      insertRequestDto.reservationGroupId === undefined &&
+      insertRequestDto.professorId === undefined
+    ) {
+      throw new BadRequestException('ProfessorId and ReservationGroupId not found');
+    }
+
     return await this.databaseService.requests.create({
       data: { ...insertRequestDto, createdByUserId },
     });
