@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PROFESSOR_REQUEST_TYPES, ProfessorRequestSearchParamsDto } from './professor.model';
+import { ProfessorRequestSearchParamsDto } from './professor.model';
 import { DatabaseService } from 'src/database/database.service';
 import { Prisma } from 'generated/prisma';
 
@@ -15,9 +15,9 @@ export class ProfessorService {
       email: {
         contains: professorRequestSearchParamsDto.email,
       },
-      Requests: {
+      ProfessorRequests: {
         some: {
-          type: professorRequestSearchParamsDto.status ?? { in: PROFESSOR_REQUEST_TYPES },
+          type: professorRequestSearchParamsDto.status,
         },
       },
     };

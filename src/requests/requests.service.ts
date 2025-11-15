@@ -59,12 +59,8 @@ export class RequestsService {
     const professor = await this.databaseService.user.findUnique({
       where: {
         id: professorId,
-        Requests: {
-          some: {
-            type: {
-              in: PROFESSOR_REQUEST_TYPES,
-            },
-          },
+        ProfessorRequests: {
+          some: {},
         },
       },
       select: {
