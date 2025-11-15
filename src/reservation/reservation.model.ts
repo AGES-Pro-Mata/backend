@@ -61,3 +61,18 @@ const RegisterMemberSchema = z.object({
 });
 
 export class RegisterMemberDto extends createZodDto(RegisterMemberSchema) {}
+
+export const ReservationSearchParamsSchema = z.object({
+  page: z.string().transform((val) => parseInt(val, 10)),
+  limit: z.string().transform((val) => parseInt(val, 10)),
+  dir: z
+    .enum(['asc', 'desc'])
+    .optional()
+    .transform((val) => val ?? 'asc'),
+  sort: z.enum(['email', 'status']).optional(),
+  experiences: z.string().optional(),
+  email: z.string().optional(),
+  status: z.enum(Object.values(RequestType)).optional(),
+});
+
+export class ReservationSearchParamsDto extends createZodDto(ReservationSearchParamsSchema) {}

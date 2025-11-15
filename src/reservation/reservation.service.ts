@@ -6,8 +6,10 @@ import {
   UpdateReservationByAdminDto,
   ReservationGroupStatusFilterDto,
   RegisterMemberDto,
+  ReservationSearchParamsDto,
 } from './reservation.model';
-import { RequestType } from 'generated/prisma';
+import { Prisma, RequestType } from 'generated/prisma';
+
 import { Decimal } from '@prisma/client/runtime/library';
 
 const PENDING_LIST: string[] = [
@@ -45,6 +47,97 @@ export class ReservationService {
         createdByUserId: userId,
       },
     });
+  }
+
+  async getAllReservationGroups(searchParams: ReservationSearchParamsDto) {
+    const orderBy: Prisma.ReservationGroupOrderByWithRelationInput[] = [
+      {
+        user: {
+          ['email']: searchParams.sort === 'email' ? searchParams.dir : undefined,
+        },
+      },
+      {
+        createdAt: 'desc',
+      },
+    ];
+
+    const where: Prisma.ReservationGroupWhereInput = {
+      active: true,
+      requests: {
+        some: {
+          type: searchParams.status,
+        },
+      },
+      user: {
+        email: { contains: searchParams.email },
+      },
+      reservations: {
+        some: {
+          experience: {
+            name: { contains: searchParams.experiences },
+          },
+        },
+      },
+    };
+    const groups = await this.databaseService.reservationGroup.findMany({
+      where,
+      orderBy,
+      select: {
+        id: true,
+        user: {
+          select: {
+            email: true,
+          },
+        },
+        createdAt: true,
+        requests: {
+          select: {
+            type: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+        },
+        reservations: {
+          select: {
+            experience: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      skip: searchParams.limit * searchParams.page,
+      take: searchParams.limit,
+    });
+    const items = groups.map((group) => {
+      return {
+        id: group.id,
+        experiences: group.reservations.map((r) => r.experience.name),
+        email: group.user.email,
+        status: group.requests[0]?.type,
+      };
+    });
+
+    const total = await this.databaseService.reservationGroup.count({ where });
+
+    return {
+      page: searchParams.page,
+      limit: searchParams.limit,
+      total,
+      items:
+        searchParams.sort === 'status'
+          ? items.sort((a, b) => {
+              if (searchParams.dir === 'asc') {
+                return a.status.localeCompare(b.status);
+              } else {
+                return b.status.localeCompare(a.status);
+              }
+            })
+          : items,
+    };
   }
 
   async attachDocument(reservationId: string, url: string, userId: string) {

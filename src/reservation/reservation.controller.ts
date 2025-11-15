@@ -20,6 +20,7 @@ import {
   UpdateReservationByAdminDto,
   ReservationGroupStatusFilterDto,
   RegisterMemberDto,
+  ReservationSearchParamsDto,
 } from './reservation.model';
 import { User } from 'src/user/user.decorator';
 import { type CurrentUser } from 'src/auth/auth.model';
@@ -163,5 +164,12 @@ export class ReservationController {
       reservationId,
       updateReservationDto,
     );
+  }
+
+  @Get()
+  @Roles(UserType.ADMIN)
+  @ApiBearerAuth('access-token')
+  async getAllReservationGroups(@Query() searchParams: ReservationSearchParamsDto) {
+    return await this.reservationService.getAllReservationGroups(searchParams);
   }
 }
