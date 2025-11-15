@@ -38,10 +38,12 @@ model User {
   createdBy          User?                @relation("createdBy", fields: [createdByUserId], references: [id])
   createdByUserId    String?
   User               User[]               @relation("createdBy")
-  Requests           Requests[]
+  RequestsCreatedBy  Requests[]           @relation("RequestsCreatedBy")
   documents          Document[]
   ReservationGroup   ReservationGroup[]
   isFirstAccess      Boolean              @default(false)
+  ProfessorRequests  Requests[]           @relation("ProfessorRequest")
+  Requests           Requests[]
 }
 
 enum UserType {
@@ -186,10 +188,14 @@ model Requests {
   type               RequestType
   description        String?
   createdAt          DateTime          @default(now())
-  createdBy          User              @relation(fields: [createdByUserId], references: [id])
+  createdBy          User              @relation("RequestsCreatedBy", fields: [createdByUserId], references: [id])
   createdByUserId    String
   ReservationGroup   ReservationGroup? @relation(fields: [reservationGroupId], references: [id])
   reservationGroupId String?
+  Professor          User?             @relation("ProfessorRequest", fields: [professorId], references: [id])
+  professorId        String?
+  User               User?             @relation(fields: [userId], references: [id])
+  userId             String?
 }
 
 enum RequestType {

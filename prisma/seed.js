@@ -627,7 +627,7 @@ async function main() {
       }
 
       // Create workflow requests
-      const requestTypes = ['CREATED', 'PEOPLE_SENT', 'DOCUMENT_REQUESTED', 'APPROVED'];
+      const requestTypes = ['CREATED', 'PEOPLE_SENT', 'APPROVED'];
       const statusFlow = Math.random() > 0.3 ? requestTypes : ['CREATED', 'CANCELED'];
 
       for (let r = 0; r < statusFlow.length; r++) {

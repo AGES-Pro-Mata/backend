@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { CurrentUser } from 'src/auth/auth.model';
-import { RequestType } from 'generated/prisma';
 import { PROFESSOR_REQUEST_TYPES } from 'src/professor/professor.model';
+import { InsertRequestDto } from './requests.model';
 
 @Injectable()
 export class RequestsService {
@@ -108,5 +108,11 @@ export class RequestsService {
       createdAt: events[0].createdAt,
       status: events[events.length - 1].status,
     };
+  }
+
+  async insertRequest(createdByUserId: string, insertRequestDto: InsertRequestDto) {
+    await this.databaseService.requests.create({
+      data: { ...insertRequestDto, createdByUserId },
+    });
   }
 }
