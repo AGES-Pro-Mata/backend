@@ -1,8 +1,8 @@
-// import { Select } from '@aws-sdk/client-dynamodb'; // Removed unused import
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { CurrentUser } from 'src/auth/auth.model';
 import { RequestType } from 'generated/prisma';
+import { PROFESSOR_REQUEST_TYPES } from 'src/professor/professor.model';
 
 @Injectable()
 export class RequestsService {
@@ -62,11 +62,7 @@ export class RequestsService {
         Requests: {
           some: {
             type: {
-              in: [
-                RequestType.DOCUMENT_REQUESTED,
-                RequestType.DOCUMENT_APPROVED,
-                RequestType.DOCUMENT_REJECTED,
-              ],
+              in: PROFESSOR_REQUEST_TYPES,
             },
           },
         },
