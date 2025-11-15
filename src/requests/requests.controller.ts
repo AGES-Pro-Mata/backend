@@ -1,5 +1,4 @@
 import { Controller, Get, Param } from '@nestjs/common';
-import type { Request } from 'express';
 import { RequestsService } from './requests.service';
 import { Roles } from 'src/auth/role/roles.decorator';
 import { UserType } from 'generated/prisma';
@@ -28,6 +27,6 @@ export class RequestsController {
   @Roles(UserType.ADMIN)
   @ApiBearerAuth('access-token')
   async getProfessorRequest(@Param('professorId') professorId: string, @User() user: CurrentUser) {
-    return await this.requestsService.getRequestsByIdReservationGroupAdmin(professorId, user);
+    return await this.requestsService.getProfessorRequests(professorId, user.id);
   }
 }
