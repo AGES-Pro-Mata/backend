@@ -1,9 +1,11 @@
-import { Controller, Get, Param, Req } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import type { Request } from 'express';
 import { RequestsService } from './requests.service';
 import { Roles } from 'src/auth/role/roles.decorator';
 import { UserType } from 'generated/prisma';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { User } from 'src/user/user.decorator';
+import type { CurrentUser } from 'src/auth/auth.model';
 
 @Controller('requests')
 export class RequestsController {
@@ -14,8 +16,11 @@ export class RequestsController {
   @ApiBearerAuth('access-token')
   async getReservationAdmin(
     @Param('reservationGroupId') reservationGroupId: string,
-    @Req() req: Request,
+    @User() user: CurrentUser,
   ) {
-    return await this.requestsService.getRequestsByIdReservationGroupAdmin(reservationGroupId, req);
+    return await this.requestsService.getRequestsByIdReservationGroupAdmin(
+      reservationGroupId,
+      user,
+    );
   }
 }

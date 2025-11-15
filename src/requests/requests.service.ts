@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { DatabaseService } from 'src/database/database.service';
+import { CurrentUser } from 'src/auth/auth.model';
 
 @Injectable()
 export class RequestsService {
@@ -11,10 +12,7 @@ export class RequestsService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async getRequestsByIdReservationGroupAdmin(reservationGroupId: string, req: Request) {
-    const token = req.headers['authorization']?.replace('Bearer ', '');
-    const adminUser = token ? this.jwtService.decode(token) : null;
-
+  async getRequestsByIdReservationGroupAdmin(reservationGroupId: string, adminUser: CurrentUser) {
     const rawEvents = await this.databaseService.requests.findMany({
       where: { reservationGroupId: reservationGroupId },
       orderBy: { createdAt: 'asc' },
@@ -49,7 +47,7 @@ export class RequestsService {
       status: e.type,
       description: e.description,
       createdAt: e.createdAt,
-      name: e.createdBy.id === adminUser.sub ? 'Você' : e.createdBy.name,
+      name: e.createdBy.id === adminUser.id ? 'Você' : e.createdBy.name,
       email: e.createdBy?.email ?? '',
       userId: e.createdBy.id,
     }));
