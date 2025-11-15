@@ -14,6 +14,8 @@ import {
   ForgotPasswordDto,
   LoginDto,
 } from './auth.model';
+import { StorageService } from 'src/storage/storage.service';
+import type { Express } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -25,20 +27,19 @@ export class AuthService {
     private readonly analyticsService: AnalyticsService,
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
+    private readonly storageService: StorageService,
   ) {}
 
   private comparePasswords(password: string, confirmPassword: string) {
     return timingSafeEqual(Buffer.from(password, 'hex'), Buffer.from(confirmPassword, 'hex'));
   }
 
-  async createUser(arquivo: File, dto: CreateUserFormDto) {
+  async createUser(arquivo: Express.Multer.File | undefined, dto: CreateUserFormDto) {
     if (!this.comparePasswords(dto.password, dto.confirmPassword)) {
       throw new BadRequestException('As senhas não são identicas.');
-    }
+    } // Cria usuário, incluindo 'userType' na seleção.
 
-    console.log(arquivo); // TODO: implementar upload pra s3 e salvar o url no banco
-
-    await this.databaseService.user.create({
+    const user = await this.databaseService.user.create({
       data: {
         name: dto.name,
         email: dto.email,
@@ -51,12 +52,6 @@ export class AuthService {
         verified: dto.userType !== 'PROFESSOR',
         institution: dto.institution,
         isForeign: dto.isForeign,
-        Receipt: {
-          create: {
-            type: ReceiptType.DOCENCY,
-            url: 'url_default',
-          },
-        },
         address: {
           create: {
             zip: dto.zipCode,
@@ -67,7 +62,53 @@ export class AuthService {
           },
         },
       },
+      select: { id: true, userType: true },
     });
+
+    // Lógica de upload e Receipt apenas para PROFESSOR
+    if (user.userType === 'PROFESSOR') {
+      if (!arquivo) {
+        await this.databaseService.receipt.create({
+          data: {
+            userId: user.id,
+            type: ReceiptType.DOCENCY,
+            url: 'url_default',
+            status: 'PENDING',
+          },
+        });
+        return;
+      }
+
+      if (arquivo.mimetype !== 'application/pdf') {
+        throw new BadRequestException('Somente PDF é aceito.');
+      }
+
+      if (arquivo.size > 20 * 1024 * 1024) {
+        throw new BadRequestException('Arquivo maior que 20MB.');
+      }
+
+      const uploaded = await this.storageService.uploadFile(arquivo, {
+        directory: `docency/${user.id}`,
+        contentType: 'application/pdf',
+        cacheControl: 'private, max-age=31536000',
+      });
+
+      try {
+        await this.databaseService.receipt.create({
+          data: {
+            userId: user.id,
+            type: ReceiptType.DOCENCY,
+            url: uploaded.url,
+            status: 'PENDING',
+          },
+        });
+      } catch (error) {
+        await this.storageService.deleteFileByUrl(uploaded.url);
+        throw error;
+      }
+    }
+
+    return;
   }
 
   async signIn(dto: LoginDto) {
@@ -75,41 +116,31 @@ export class AuthService {
       where: { email: dto.email },
       select: { id: true, password: true, isFirstAccess: true },
     });
-
-    if (!user) {
-      throw new BadRequestException('Nenhum usuário encontrado com esse email.');
-    }
+    if (!user) throw new BadRequestException('Nenhum usuário encontrado com esse email.');
 
     if (await this.verifyPassword(user.password, dto.password)) {
       if (user.isFirstAccess) {
         const token = await this.createResetToken(user.id);
-        return { token: token, isFirstAccess: true };
+        return { token, isFirstAccess: true };
       }
-
-      const payload = {
-        sub: user.id,
-      };
-
-      const token = await this.jwtService.signAsync(payload, {
-        secret: this.configService.get('JWT_SECRET'),
-      });
-
+      const token = await this.jwtService.signAsync(
+        { sub: user.id },
+        {
+          secret: this.configService.get('JWT_SECRET'),
+        },
+      );
       return { token, isFirstAccess: user.isFirstAccess };
-    } else {
-      throw new BadRequestException('Senha incorreta.');
     }
+    throw new BadRequestException('Senha incorreta.');
   }
 
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
     const user = await this.databaseService.user.findUnique({
       where: { email: forgotPasswordDto.email },
     });
-    if (!user) {
-      throw new BadRequestException('Usuário não encontrado.');
-    }
+    if (!user) throw new BadRequestException('Usuário não encontrado.');
     const token = await this.createResetToken(user.id);
     const resetUrl = `${this.configService.get('FRONTEND_URL')}/auth/redefine/${token}`;
-
     await this.mailService.sendTemplateMail(user.email, 'Recuperação de senha', 'forgot-password', {
       name: user.name,
       resetUrl,
@@ -120,42 +151,29 @@ export class AuthService {
     if (!this.comparePasswords(changePasswordDto.password, changePasswordDto.confirmPassword)) {
       throw new BadRequestException('As senhas não são identicas.');
     }
-
     const passwordResetToken = await this.checkToken(changePasswordDto.token);
-
     await this.databaseService.user.update({
-      where: {
-        id: passwordResetToken.userId,
-      },
+      where: { id: passwordResetToken.userId },
       data: {
         password: await this.hashPassword(changePasswordDto.password),
         isFirstAccess: false,
       },
     });
-
     await this.databaseService.passwordResetToken.update({
       where: { token: changePasswordDto.token },
-      data: {
-        isActive: false,
-      },
+      data: { isActive: false },
     });
-
     await this.analyticsService.trackPasswordChange(passwordResetToken.userId);
   }
 
   async checkToken(token: string) {
     const passwordResetToken = await this.databaseService.passwordResetToken.findUnique({
-      where: { token: token, isActive: true },
+      where: { token, isActive: true },
     });
-
-    if (!passwordResetToken) {
-      throw new BadRequestException('Token inválido.');
-    }
-
+    if (!passwordResetToken) throw new BadRequestException('Token inválido.');
     if (passwordResetToken.expiredAt < new Date()) {
       throw new UnauthorizedException('Token expirado.');
     }
-
     return passwordResetToken;
   }
 
@@ -182,11 +200,13 @@ export class AuthService {
         addressId: true,
         createdByUserId: true,
         active: true,
-        isFirstAccess: true,
       },
       include: {
         address: {
-          omit: { id: true, createdAt: true },
+          omit: {
+            id: true,
+            createdAt: true,
+          },
         },
       },
     });
@@ -194,28 +214,19 @@ export class AuthService {
 
   async createResetToken(userId: string) {
     const activeToken = await this.databaseService.passwordResetToken.findFirst({
-      where: { userId: userId, isActive: true, expiredAt: { gt: new Date() } },
+      where: { userId, isActive: true, expiredAt: { gt: new Date() } },
       orderBy: { createdAt: 'desc' },
     });
-    if (activeToken) {
-      return activeToken.token;
-    }
+    if (activeToken) return activeToken.token;
+
     const token = randomBytes(20).toString('hex');
-
     const createdAt = new Date();
-
     const expiredAt = new Date(createdAt);
     expiredAt.setHours(createdAt.getHours() + 1);
 
     await this.databaseService.passwordResetToken.create({
-      data: {
-        userId: userId,
-        token: token,
-        createdAt,
-        expiredAt,
-      },
+      data: { userId, token, createdAt, expiredAt },
     });
-
     return token;
   }
 
@@ -223,7 +234,6 @@ export class AuthService {
     if (dto.password !== dto.confirmPassword) {
       throw new BadRequestException('As senhas não são identicas.');
     }
-
     await this.databaseService.user.create({
       data: {
         name: dto.name,
@@ -237,11 +247,7 @@ export class AuthService {
         verified: true,
         rg: dto.rg,
         institution: dto.institution,
-        createdBy: {
-          connect: {
-            id: userId,
-          },
-        },
+        createdBy: { connect: { id: userId } },
         isFirstAccess: true,
         address: {
           create: {

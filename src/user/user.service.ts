@@ -1,191 +1,304 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   Logger,
-  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import argon2 from 'argon2';
+import { ReceiptType } from 'generated/prisma';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { AnalyticsService } from 'src/analytics/analytics.service';
 import { DatabaseService } from 'src/database/database.service';
-import z from 'zod';
-import { Prisma, UserType } from 'generated/prisma';
-import { UserSearchParamsDto, UpdateUserFormDto } from './user.model';
-import { ObfuscateService } from 'src/obfuscate/obfuscate.service';
+import { MailService } from 'src/mail/mail.service';
+import {
+  ChangePasswordDto,
+  CreateRootUserDto,
+  CreateUserFormDto,
+  ForgotPasswordDto,
+  LoginDto,
+} from './auth.model';
+import type { Express } from 'express';
+import { StorageService } from 'src/storage/storage.service';
 
 @Injectable()
-export class UserService {
-  private readonly logger = new Logger(UserService.name);
+export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
 
   constructor(
     private readonly databaseService: DatabaseService,
-    private readonly obfuscateService: ObfuscateService,
+    private readonly jwtService: JwtService,
+    private readonly analyticsService: AnalyticsService,
+    private readonly configService: ConfigService,
+    private readonly mailService: MailService,
+    private readonly storageService: StorageService,
   ) {}
 
-  async deleteUser(userId: string, deleterId: string) {
-    this.verifyUserId(userId);
+  private comparePasswords(password: string, confirmPassword: string) {
+    return timingSafeEqual(
+      Buffer.from(password, 'hex'),
+      Buffer.from(confirmPassword, 'hex'),
+    );
+  }
 
-    if (userId == deleterId) {
-      throw new ForbiddenException('Users cannot delete themselves.');
+  async createUser(arquivo: Express.Multer.File | undefined, dto: CreateUserFormDto) {
+    if (!this.comparePasswords(dto.password, dto.confirmPassword)) {
+      throw new BadRequestException('As senhas não são identicas.');
     }
 
-    const user = await this.databaseService.user.findUnique({
-      where: { id: userId },
-      select: { email: true, document: true, rg: true, userType: true },
+    // 1) cria usuário
+    const user = await this.databaseService.user.create({
+      data: {
+        name: dto.name,
+        email: dto.email,
+        password: await this.hashPassword(dto.password),
+        phone: dto.phone,
+        document: dto.document,
+        gender: dto.gender,
+        rg: dto.rg,
+        userType: dto.userType,
+        verified: dto.userType !== 'PROFESSOR',
+        institution: dto.institution,
+        isForeign: dto.isForeign,
+        address: {
+          create: {
+            zip: dto.zipCode,
+            street: dto.addressLine,
+            city: dto.city,
+            number: dto.number?.toString(),
+            country: dto.country,
+          },
+        },
+      },
+      select: { id: true },
     });
 
-    if (!user) {
-      throw new NotFoundException('User not found');
+    // 2) se não tem arquivo, receipt com placeholder
+    if (!arquivo) {
+      await this.databaseService.receipt.create({
+        data: {
+          userId: user.id,
+          type: ReceiptType.DOCENCY,
+          url: 'url_default',
+          status: 'PENDING',
+        },
+      });
+      return;
     }
 
-    if (user.userType === UserType.ROOT) {
-      throw new ForbiddenException('Root user cannot be deleted.');
+    // sanity checks específicos pro PDF
+    if (arquivo.mimetype !== 'application/pdf') {
+      throw new BadRequestException('Somente PDF é aceito.');
     }
+
+    if (arquivo.size > 20 * 1024 * 1024) {
+      throw new BadRequestException('Arquivo maior que 20MB.');
+    }
+
+    // 3) upload do PDF usando o mesmo padrão do HighlightService
+    const uploaded = await this.storageService.uploadFile(arquivo, {
+      directory: `docency/${user.id}`,
+      contentType: 'application/pdf',
+      // cacheControl pode ser mais restritivo pra documentos do que pra imagens públicas
+      cacheControl: 'private, max-age=31536000',
+    });
+
+    // 4) cria o receipt apontando para a URL do S3; se der erro, remove arquivo
+    try {
+      await this.databaseService.receipt.create({
+        data: {
+          userId: user.id,
+          type: ReceiptType.DOCENCY,
+          url: uploaded.url, // mesma ideia do imageUrl no highlight
+          status: 'PENDING',
+        },
+      });
+    } catch (error) {
+      // rollback do arquivo, igual no highlight
+      await this.storageService.deleteFileByUrl(uploaded.url);
+      throw error;
+    }
+
+    return;
+  }
+
+  async signIn(dto: LoginDto) {
+    const user = await this.databaseService.user.findUnique({
+      where: { email: dto.email },
+      select: { id: true, password: true, isFirstAccess: true },
+    });
+    if (!user) throw new BadRequestException('Nenhum usuário encontrado com esse email.');
+
+    if (await this.verifyPassword(user.password, dto.password)) {
+      if (user.isFirstAccess) {
+        const token = await this.createResetToken(user.id);
+        return { token, isFirstAccess: true };
+      }
+      const token = await this.jwtService.signAsync(
+        { sub: user.id },
+        {
+          secret: this.configService.get('JWT_SECRET'),
+        },
+      );
+      return { token, isFirstAccess: user.isFirstAccess };
+    }
+    throw new BadRequestException('Senha incorreta.');
+  }
+
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
+    const user = await this.databaseService.user.findUnique({
+      where: { email: forgotPasswordDto.email },
+    });
+    if (!user) throw new BadRequestException('Usuário não encontrado.');
+
+    const token = await this.createResetToken(user.id);
+    const resetUrl = `${this.configService.get('FRONTEND_URL')}/auth/redefine/${token}`;
+
+    await this.mailService.sendTemplateMail(
+      user.email,
+      'Recuperação de senha',
+      'forgot-password',
+      {
+        name: user.name,
+        resetUrl,
+      },
+    );
+  }
+
+  async changePassword(changePasswordDto: ChangePasswordDto) {
+    if (!this.comparePasswords(changePasswordDto.password, changePasswordDto.confirmPassword)) {
+      throw new BadRequestException('As senhas não são identicas.');
+    }
+
+    const passwordResetToken = await this.checkToken(changePasswordDto.token);
 
     await this.databaseService.user.update({
-      where: { id: userId },
+      where: { id: passwordResetToken.userId },
       data: {
-        email: this.obfuscateService.obfuscateField(user.email),
-        document: user.document ? this.obfuscateService.obfuscateField(user.document) : null,
-        rg: user.rg ? this.obfuscateService.obfuscateField(user.rg) : null,
-        active: false,
+        password: await this.hashPassword(changePasswordDto.password),
+        isFirstAccess: false,
       },
     });
+
+    await this.databaseService.passwordResetToken.update({
+      where: { token: changePasswordDto.token },
+      data: { isActive: false },
+    });
+
+    await this.analyticsService.trackPasswordChange(passwordResetToken.userId);
   }
 
-  async updateUser(userId: string, updateUserDto: UpdateUserFormDto) {
-    this.verifyUserId(userId);
-
-    const user = await this.databaseService.user.update({
-      where: { id: userId, userType: { not: UserType.ROOT } },
-      data: {
-        name: updateUserDto.name,
-        email: updateUserDto.email,
-        phone: updateUserDto.phone,
-        document: updateUserDto.document,
-        gender: updateUserDto.gender,
-        rg: updateUserDto.rg,
-        userType: updateUserDto.userType,
-        institution: updateUserDto.institution,
-        isForeign: updateUserDto.isForeign,
-      },
+  async checkToken(token: string) {
+    const passwordResetToken = await this.databaseService.passwordResetToken.findUnique({
+      where: { token, isActive: true },
     });
 
-    if (!user.addressId) {
-      return this.logger.fatal(`The common user ${user.userType} ${user.id} must have an Address`);
+    if (!passwordResetToken) {
+      throw new BadRequestException('Token inválido.');
     }
 
-    await this.databaseService.address.update({
-      where: { id: user.addressId },
-      data: {
-        zip: updateUserDto.zipCode,
-        street: updateUserDto.addressLine,
-        city: updateUserDto.city,
-        number: updateUserDto.number?.toString(),
-        country: updateUserDto.country,
-      },
+    if (passwordResetToken.expiredAt < new Date()) {
+      throw new UnauthorizedException('Token expirado.');
+    }
+
+    return passwordResetToken;
+  }
+
+  async hashPassword(plain: string): Promise<string> {
+    return argon2.hash(plain, {
+      type: argon2.argon2id,
+      memoryCost: 65536,
+      timeCost: 3,
+      parallelism: 1,
     });
   }
 
-  async searchUser(searchParams: UserSearchParamsDto) {
-    const orderBy: Prisma.UserOrderByWithRelationInput =
-      searchParams.sort === 'createdBy'
-        ? { createdBy: { name: searchParams.dir } }
-        : { [searchParams.sort]: searchParams.dir };
+  async verifyPassword(hash: string, plain: string): Promise<boolean> {
+    return argon2.verify(hash, plain);
+  }
 
-    const where: Prisma.UserWhereInput = {
-      name: {
-        contains: searchParams.name,
-      },
-      email: {
-        contains: searchParams.email,
-      },
-      createdBy: searchParams.createdBy
-        ? {
-            name: {
-              contains: searchParams.createdBy,
-            },
-          }
-        : undefined,
-      active: true,
-    };
-
-    const users = await this.databaseService.user.findMany({
-      where,
-      select: {
+  async findProfile(id: string) {
+    return await this.databaseService.user.findUnique({
+      where: { id },
+      omit: {
         id: true,
-        name: true,
-        email: true,
-        createdBy: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+        password: true,
+        createdAt: true,
+        addressId: true,
+        createdByUserId: true,
+        active: true,
       },
-      orderBy,
-      skip: searchParams.limit * searchParams.page,
-      take: searchParams.limit,
-    });
-
-    const total = await this.databaseService.user.count({ where });
-
-    return {
-      page: searchParams.page,
-      limit: searchParams.limit,
-      total,
-      items: users,
-    };
-  }
-
-  async getUser(userId: string) {
-    const user = await this.databaseService.user.findUnique({
-      where: { id: userId, active: true },
-      select: {
-        name: true,
-        email: true,
-        phone: true,
-        document: true,
-        rg: true,
-        gender: true,
-        userType: true,
-        institution: true,
-        isForeign: true,
+      include: {
         address: {
-          select: {
-            zip: true,
-            city: true,
-            country: true,
-            street: true,
-            number: true,
+          omit: {
+            id: true,
+            createdAt: true,
           },
         },
       },
     });
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    return {
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      document: user.document,
-      rg: user.rg,
-      gender: user.gender,
-      zipCode: user.address?.zip,
-      userType: user.userType,
-      city: user.address?.city,
-      country: user.address?.country,
-      addressLine: user.address?.street,
-      number: user.address?.number ? parseInt(user.address.number) : null,
-      institution: user.institution,
-      isForeign: user.isForeign,
-    };
   }
 
-  private verifyUserId(userId: string) {
-    if (!z.uuid().safeParse(userId).success) {
-      throw new BadRequestException('O `id` deve vir no formato `uuid`.');
+  async createResetToken(userId: string) {
+    const activeToken = await this.databaseService.passwordResetToken.findFirst({
+      where: {
+        userId,
+        isActive: true,
+        expiredAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (activeToken) return activeToken.token;
+
+    const token = randomBytes(20).toString('hex');
+    const createdAt = new Date();
+    const expiredAt = new Date(createdAt);
+    expiredAt.setHours(createdAt.getHours() + 1);
+
+    await this.databaseService.passwordResetToken.create({
+      data: {
+        userId,
+        token,
+        createdAt,
+        expiredAt,
+      },
+    });
+
+    return token;
+  }
+
+  async createRootUser(userId: string, dto: CreateRootUserDto) {
+    if (dto.password !== dto.confirmPassword) {
+      throw new BadRequestException('As senhas não são identicas.');
     }
+
+    await this.databaseService.user.create({
+      data: {
+        name: dto.name,
+        email: dto.email,
+        password: await this.hashPassword(dto.password),
+        phone: dto.phone,
+        document: dto.document,
+        gender: dto.gender,
+        userType: dto.userType,
+        isForeign: false,
+        verified: true,
+        rg: dto.rg,
+        institution: dto.institution,
+        createdBy: { connect: { id: userId } },
+        isFirstAccess: true,
+        address: {
+          create: {
+            zip: dto.zipCode,
+            street: dto.addressLine,
+            city: dto.city,
+            number: dto.number?.toString(),
+            country: dto.country,
+          },
+        },
+      },
+    });
   }
 }

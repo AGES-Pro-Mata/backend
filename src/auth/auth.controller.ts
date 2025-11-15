@@ -10,8 +10,8 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth } from '@nestjs/swagger';
 import { UserType } from 'generated/prisma';
 import { User } from 'src/user/user.decorator';
 import {
@@ -24,15 +24,40 @@ import {
 } from './auth.model';
 import { AuthService } from './auth.service';
 import { Roles } from './role/roles.decorator';
+import type { Express } from 'express';
+import { memoryStorage } from 'multer';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('signUp')
-  @UseInterceptors(FileInterceptor('arquivo'))
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('arquivo', {
+      storage: memoryStorage(),
+      limits: { fileSize: 20 * 1024 * 1024 },
+      fileFilter: (req, file, cb) => {
+        if (file.mimetype === 'application/pdf') {
+          return cb(null, true);
+        }
+        return cb(null, false);
+      },
+    }),
+  )
   @HttpCode(HttpStatus.CREATED)
-  async createUser(@UploadedFile() arquivo: File, @Body() body: CreateUserFormDto) {
+  async createUser(
+    @UploadedFile() arquivo: Express.Multer.File | undefined,
+    @Body() body: CreateUserFormDto,
+  ) {
+    // debug:
+    console.log('UPLOAD DEBUG:', {
+      hasFile: !!arquivo,
+      fieldname: arquivo?.fieldname,
+      mimetype: arquivo?.mimetype,
+      size: arquivo?.size,
+      hasBuffer: !!arquivo?.buffer,
+    });
     return await this.authService.createUser(arquivo, body);
   }
 
