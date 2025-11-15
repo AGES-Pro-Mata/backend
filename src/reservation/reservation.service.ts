@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
+import { MailService } from 'src/mail/mail.service';
 import {
   UpdateReservationDto,
   CreateReservationGroupDto,
@@ -20,7 +21,10 @@ const PENDING_LIST: string[] = [
 
 @Injectable()
 export class ReservationService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly mailService: MailService,
+  ) {}
 
   async createRequestAdmin(
     reservationGroupId: string,
@@ -45,6 +49,8 @@ export class ReservationService {
         createdByUserId: userId,
       },
     });
+
+    await this.sendStatusChangeEmail(reservationGroupId);
   }
 
   async attachDocument(reservationId: string, url: string, userId: string) {
@@ -58,13 +64,17 @@ export class ReservationService {
   }
 
   async createDocumentRequest(reservationGroupId: string, userId: string) {
-    return await this.databaseService.requests.create({
+    const request = await this.databaseService.requests.create({
       data: {
         type: 'DOCUMENT_REQUESTED',
         createdByUserId: userId,
         reservationGroupId,
       },
     });
+
+    await this.sendStatusChangeEmail(reservationGroupId);
+
+    return request;
   }
 
   async createCancelRequest(reservationGroupId: string, userId: string) {
@@ -100,6 +110,8 @@ export class ReservationService {
         createdByUserId: userId,
       },
     });
+
+    await this.sendStatusChangeEmail(reservationGroupId);
   }
 
   async deleteReservation(reservationId: string) {
@@ -207,7 +219,7 @@ export class ReservationService {
     userId: string,
     createReservationGroupDto: CreateReservationGroupDto,
   ) {
-    return await this.databaseService.$transaction(async (tx) => {
+    const reservationGroup = await this.databaseService.$transaction(async (tx) => {
       const experienceIds = createReservationGroupDto.reservations.map((r) => r.experienceId);
 
       const experiences = await tx.experience.findMany({
@@ -269,6 +281,10 @@ export class ReservationService {
         },
       });
     });
+
+    await this.sendStatusChangeEmail(reservationGroup.id);
+
+    return reservationGroup;
   }
 
   async getReservationGroupByIdAdmin(reservationGroupId: string) {
@@ -389,5 +405,34 @@ export class ReservationService {
         },
       },
     });
+
+    await this.sendStatusChangeEmail(reservationGroupId);
+  }
+
+  private async sendStatusChangeEmail(reservationGroupId: string) {
+    try {
+      const reservation = await this.databaseService.reservationGroup.findUnique({
+        where: { id: reservationGroupId },
+        select: {
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      if (reservation?.user?.email) {
+        await this.mailService.sendTemplateMail(
+          reservation.user.email,
+          'Atualização de Reserva',
+          'reservation-status-change',
+          { userName: reservation.user.name },
+        );
+      }
+    } catch (error) {
+      console.error('Erro ao enviar email:', error);
+    }
   }
 }
