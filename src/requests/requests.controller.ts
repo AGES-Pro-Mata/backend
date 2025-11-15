@@ -36,6 +36,6 @@ export class RequestsController {
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.CREATED)
   async insertRequest(@User() user: CurrentUser, @Body() insertRequestDto: InsertRequestDto) {
-    await this.requestsService.insertRequest(user.id, insertRequestDto);
+    return await this.requestsService.insertRequest(user.id, insertRequestDto);
   }
 }

@@ -107,7 +107,7 @@ export class RequestsService {
   }
 
   async insertRequest(createdByUserId: string, insertRequestDto: InsertRequestDto) {
-    await this.databaseService.requests.create({
+    return await this.databaseService.requests.create({
       data: { ...insertRequestDto, createdByUserId },
     });
   }
