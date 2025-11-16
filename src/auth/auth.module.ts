@@ -14,4 +14,5 @@ import { StorageService } from 'src/storage/storage.service';
   exports: [AuthGuard],
   controllers: [AuthController],
 })
+
 export class AuthModule {}

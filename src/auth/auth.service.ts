@@ -37,7 +37,7 @@ export class AuthService {
   async createUser(arquivo: Express.Multer.File | undefined, dto: CreateUserFormDto) {
     if (!this.comparePasswords(dto.password, dto.confirmPassword)) {
       throw new BadRequestException('As senhas não são identicas.');
-    } // Cria usuário, incluindo 'userType' na seleção.
+    }
 
     const user = await this.databaseService.user.create({
       data: {

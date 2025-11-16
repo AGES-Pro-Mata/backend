@@ -50,14 +50,6 @@ export class AuthController {
     @UploadedFile() arquivo: Express.Multer.File | undefined,
     @Body() body: CreateUserFormDto,
   ) {
-    // debug:
-    console.log('UPLOAD DEBUG:', {
-      hasFile: !!arquivo,
-      fieldname: arquivo?.fieldname,
-      mimetype: arquivo?.mimetype,
-      size: arquivo?.size,
-      hasBuffer: !!arquivo?.buffer,
-    });
     return await this.authService.createUser(arquivo, body);
   }
 
