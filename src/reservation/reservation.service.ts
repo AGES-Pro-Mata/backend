@@ -125,7 +125,6 @@ export class ReservationService {
             id: true,
             startDate: true,
             endDate: true,
-            notes: true,
             membersCount: true,
             user: {
               select: {
@@ -220,7 +219,7 @@ export class ReservationService {
       }
 
       const group = await tx.reservationGroup.create({
-        data: { userId },
+        data: { userId, notes: createReservationGroupDto.notes },
         select: { id: true },
       });
 
@@ -230,6 +229,7 @@ export class ReservationService {
           document: m.document,
           gender: m.gender,
           reservationGroupId: group.id,
+          birthDate: new Date(m.birthDate),
         })),
         skipDuplicates: true,
       });
@@ -243,7 +243,6 @@ export class ReservationService {
               experienceId: r.experienceId,
               startDate: r.startDate,
               endDate: r.endDate,
-              notes: r.notes ?? null,
               membersCount: r.membersCount,
             },
             select: {
@@ -286,7 +285,6 @@ export class ReservationService {
         reservations: {
           select: {
             membersCount: true,
-            notes: true,
             experience: {
               omit: {
                 imageId: true,
@@ -311,6 +309,7 @@ export class ReservationService {
       where: { id: reservationGroupId, userId },
       select: {
         id: true,
+        notes: true,
         user: {
           select: {
             id: true,
@@ -318,14 +317,39 @@ export class ReservationService {
             email: true,
           },
         },
+        members: {
+          select: {
+            id: true,
+            name: true,
+            document: true,
+            gender: true,
+            phone: true,
+            birthDate: true,
+          },
+        },
         reservations: {
           select: {
             membersCount: true,
-            notes: true,
             experience: {
-              omit: {
-                imageId: true,
-                active: true,
+              select: {
+                id: true,
+                name: true,
+                startDate: true,
+                endDate: true,
+                description: true,
+                category: true,
+                price: true,
+                professorShouldPay: true,
+                weekDays: true,
+                durationMinutes: true,
+                capacity: true,
+                trailLength: true,
+                trailDifficulty: true,
+                image: {
+                  select: {
+                    url: true,
+                  },
+                },
               },
             },
           },
@@ -358,7 +382,7 @@ export class ReservationService {
         experienceId: updateReservationDto.experienceId,
         startDate: updateReservationDto.startDate,
         endDate: updateReservationDto.endDate,
-        notes: updateReservationDto.notes,
+        price: updateReservationDto.price,
       },
     });
 

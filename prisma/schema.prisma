@@ -170,9 +170,9 @@ model Reservation {
   userId             String
   experience         Experience       @relation(fields: [experienceId], references: [id])
   experienceId       String
+  price              Decimal?         @default(0)
   startDate          DateTime?
   endDate            DateTime?
-  notes              String?
   createdAt          DateTime         @default(now())
   active             Boolean          @default(true)
   membersCount       Int
@@ -215,6 +215,7 @@ model Member {
   document           String?
   gender             String
   phone              String?
+  birthDate          DateTime         @default(now())
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   active             Boolean          @default(true)
@@ -231,6 +232,7 @@ model ReservationGroup {
   userId       String
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  notes        String?
   active       Boolean       @default(true)
   requests     Requests[]
   members      Member[]

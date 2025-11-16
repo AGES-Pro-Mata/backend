@@ -6,10 +6,10 @@ const MemberSchema = z.object({
   name: z.string(),
   document: z.string(),
   gender: z.string(),
+  birthDate: z.iso.date(),
 });
 
 const ReservationSchema = z.object({
-  notes: z.string().optional(),
   experienceId: z.uuid(),
   startDate: z.iso.datetime(),
   endDate: z.iso.datetime(),
@@ -19,6 +19,7 @@ const ReservationSchema = z.object({
 export const CreateReservationGroupSchema = z.object({
   reservations: z.array(ReservationSchema),
   members: z.array(MemberSchema),
+  notes: z.string().optional(),
 });
 
 export class CreateReservationGroupDto extends createZodDto(CreateReservationGroupSchema) {}
@@ -37,6 +38,7 @@ const UpdateReservationByAdmin = z.object({
   startDate: z.iso.datetime().optional(),
   endDate: z.iso.datetime().optional(),
   notes: z.string().optional(),
+  price: z.number().optional(),
 });
 
 export class UpdateReservationByAdminDto extends createZodDto(UpdateReservationByAdmin) {}
