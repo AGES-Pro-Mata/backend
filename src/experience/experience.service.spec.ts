@@ -178,7 +178,9 @@ describe('ExperienceService', () => {
       databaseService.experience.findUnique.mockResolvedValueOnce(null);
 
       await expect(service.getExperience(experienceId)).rejects.toThrow(NotFoundException);
-      await expect(service.getExperience(experienceId)).rejects.toThrow('Experiência não encontrada');
+      await expect(service.getExperience(experienceId)).rejects.toThrow(
+        'Experiência não encontrada',
+      );
     });
 
     it('should throw NotFoundException when experience is inactive', async () => {
@@ -323,6 +325,8 @@ describe('ExperienceService', () => {
           startDate: true,
           endDate: true,
           active: true,
+          category: true,
+          price: true,
         },
         orderBy: { name: 'asc' },
         skip: 0,
@@ -370,6 +374,8 @@ describe('ExperienceService', () => {
           startDate: true,
           endDate: true,
           active: true,
+          category: true,
+          price: true,
         },
         orderBy: { description: 'desc' },
         skip: 10,
@@ -400,7 +406,7 @@ describe('ExperienceService', () => {
           name: { contains: undefined },
           description: { contains: undefined },
           startDate: { lte: undefined },
-          endDate: { gte: undefined }
+          endDate: { gte: undefined },
         },
         select: {
           id: true,
@@ -409,6 +415,8 @@ describe('ExperienceService', () => {
           startDate: true,
           endDate: true,
           active: true,
+          category: true,
+          price: true,
         },
         orderBy: { name: 'asc' },
         skip: 0,
