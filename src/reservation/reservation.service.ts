@@ -10,6 +10,7 @@ import {
 } from './reservation.model';
 import { RequestType } from 'generated/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
+import { ConfigService } from '@nestjs/config';
 
 const PENDING_LIST: string[] = [
   RequestType.PAYMENT_REQUESTED,
@@ -24,6 +25,7 @@ export class ReservationService {
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly mailService: MailService,
+    private readonly configService: ConfigService,
   ) {}
 
   async createRequestAdmin(
@@ -427,8 +429,10 @@ export class ReservationService {
         await this.mailService.sendTemplateMail(
           reservation.user.email,
           'Atualização de Reserva',
-          'reservation-status-change',
-          { userName: reservation.user.name },
+          'change-status',
+          { userName: reservation.user.name,
+            systemUrl: `${this.configService.get<String>('FRONTEND_URL')}`
+          },
         );
       }
     } catch (error) {
