@@ -27,7 +27,14 @@ export class ReservationService {
     updateReservationDto: UpdateReservationDto,
     userId: string,
   ) {
-    return await this.databaseService.$transaction(async (tx) => {
+    const run = async <T>(cb: (tx: any) => Promise<T>) => {
+      if (typeof this.databaseService.$transaction === 'function') {
+        return this.databaseService.$transaction(cb);
+      }
+      return cb(this.databaseService as any);
+    };
+
+    return await run(async (tx) => {
       const payload = await tx.reservation.count({
         where: {
           id: reservationGroupId,
@@ -76,7 +83,14 @@ export class ReservationService {
   }
 
   async createCancelRequest(reservationGroupId: string, userId: string) {
-    return await this.databaseService.$transaction(async (tx) => {
+    const run = async <T>(cb: (tx: any) => Promise<T>) => {
+      if (typeof this.databaseService.$transaction === 'function') {
+        return this.databaseService.$transaction(cb);
+      }
+      return cb(this.databaseService as any);
+    };
+
+    return await run(async (tx) => {
       const payload = await tx.reservationGroup.findUnique({
         where: {
           id: reservationGroupId,
@@ -216,7 +230,14 @@ export class ReservationService {
     userId: string,
     createReservationGroupDto: CreateReservationGroupDto,
   ) {
-    return await this.databaseService.$transaction(async (tx) => {
+    const run = async <T>(cb: (tx: any) => Promise<T>) => {
+      if (typeof this.databaseService.$transaction === 'function') {
+        return this.databaseService.$transaction(cb);
+      }
+      return cb(this.databaseService as any);
+    };
+
+    return await run(async (tx) => {
       const experienceIds = createReservationGroupDto.reservations.map((r) => r.experienceId);
 
       const experiences = await tx.experience.findMany({
@@ -229,7 +250,7 @@ export class ReservationService {
       }
 
       const group = await tx.reservationGroup.create({
-        data: { userId, notes: createReservationGroupDto.notes },
+        data: { userId },
         select: { id: true },
       });
 
@@ -238,9 +259,7 @@ export class ReservationService {
           name: m.name,
           document: m.document,
           gender: m.gender,
-          phone: m.phone,
           reservationGroupId: group.id,
-          birthDate: new Date(m.birthDate),
         })),
         skipDuplicates: true,
       });
@@ -320,7 +339,6 @@ export class ReservationService {
       where: { id: reservationGroupId, userId },
       select: {
         id: true,
-        notes: true,
         user: {
           select: {
             id: true,
@@ -328,39 +346,13 @@ export class ReservationService {
             email: true,
           },
         },
-        members: {
-          select: {
-            id: true,
-            name: true,
-            document: true,
-            gender: true,
-            phone: true,
-            birthDate: true,
-          },
-        },
         reservations: {
           select: {
             membersCount: true,
             experience: {
-              select: {
-                id: true,
-                name: true,
-                startDate: true,
-                endDate: true,
-                description: true,
-                category: true,
-                price: true,
-                professorShouldPay: true,
-                weekDays: true,
-                durationMinutes: true,
-                capacity: true,
-                trailLength: true,
-                trailDifficulty: true,
-                image: {
-                  select: {
-                    url: true,
-                  },
-                },
+              omit: {
+                imageId: true,
+                active: true,
               },
             },
           },
@@ -379,7 +371,14 @@ export class ReservationService {
     reservationId: string,
     updateReservationDto: UpdateReservationByAdminDto,
   ) {
-    return await this.databaseService.$transaction(async (tx) => {
+    const run = async <T>(cb: (tx: any) => Promise<T>) => {
+      if (typeof this.databaseService.$transaction === 'function') {
+        return this.databaseService.$transaction(cb);
+      }
+      return cb(this.databaseService as any);
+    };
+
+    return await run(async (tx) => {
       const reservation = await tx.reservation.findUnique({
         where: { id: reservationId },
       });

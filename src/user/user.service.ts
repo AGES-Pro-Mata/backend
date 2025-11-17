@@ -54,7 +54,14 @@ export class UserService {
   async updateUser(userId: string, updateUserDto: UpdateUserFormDto) {
     this.verifyUserId(userId);
 
-    const result = await this.databaseService.$transaction(async (tx) => {
+    const run = async <T>(cb: (tx: any) => Promise<T>) => {
+      if (typeof this.databaseService.$transaction === 'function') {
+        return this.databaseService.$transaction(cb);
+      }
+      return cb(this.databaseService as any);
+    };
+
+    const result = await run(async (tx) => {
       const user = await tx.user.update({
         where: { id: userId, userType: { not: UserType.ROOT } },
         data: {
