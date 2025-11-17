@@ -228,6 +228,7 @@ export class ReservationService {
           name: m.name,
           document: m.document,
           gender: m.gender,
+          phone: m.phone,
           reservationGroupId: group.id,
           birthDate: new Date(m.birthDate),
         })),
