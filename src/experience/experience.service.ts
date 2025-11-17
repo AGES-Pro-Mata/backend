@@ -95,6 +95,8 @@ export class ExperienceService {
         const createdImage = await tx.image.create({
           data: { url: uploaded.url },
         });
+
+        imageId = createdImage.id;
       }
 
       return await tx.experience.update({
