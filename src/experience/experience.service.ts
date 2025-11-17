@@ -135,6 +135,8 @@ export class ExperienceService {
         startDate: true,
         endDate: true,
         active: true,
+        category: true,
+        price: true,
       },
       orderBy: {
         [experienceSearchParamsDto.sort]: experienceSearchParamsDto.dir,
