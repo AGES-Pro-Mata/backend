@@ -347,6 +347,7 @@ export class ReservationService {
       where: { id: reservationGroupId },
       select: {
         id: true,
+        notes: true,
         user: {
           select: {
             id: true,
@@ -354,22 +355,41 @@ export class ReservationService {
             email: true,
           },
         },
+        members: {
+          select: {
+            id: true,
+            name: true,
+            document: true,
+            gender: true,
+            phone: true,
+            birthDate: true,
+          },
+        },
         reservations: {
           select: {
             membersCount: true,
             experience: {
-              omit: {
-                imageId: true,
-                active: true,
+              select: {
+                id: true,
+                name: true,
+                startDate: true,
+                endDate: true,
+                description: true,
+                category: true,
+                price: true,
+                professorShouldPay: true,
+                weekDays: true,
+                durationMinutes: true,
+                capacity: true,
+                trailLength: true,
+                trailDifficulty: true,
+                image: {
+                  select: {
+                    url: true,
+                  },
+                },
               },
             },
-          },
-        },
-        requests: {
-          omit: {
-            createdAt: true,
-            createdByUserId: true,
-            reservationGroupId: true,
           },
         },
       },
