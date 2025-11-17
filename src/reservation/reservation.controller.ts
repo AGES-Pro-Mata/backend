@@ -40,7 +40,7 @@ export class ReservationController {
     return await this.reservationService.createReservationGroup(user.id, payload);
   }
 
-  @Get('search/:reservationGroupId')
+  @Get('admin/:reservationGroupId')
   @Roles(UserType.ADMIN)
   @ApiBearerAuth('access-token')
   async getReservationAdmin(@Param('reservationGroupId') reservationGroupId: string) {
