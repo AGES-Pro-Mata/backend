@@ -394,7 +394,6 @@ export class ReservationService {
           experienceId: updateReservationDto.experienceId,
           startDate: updateReservationDto.startDate,
           endDate: updateReservationDto.endDate,
-          notes: updateReservationDto.notes,
         },
       });
     });
