@@ -22,8 +22,8 @@ export class ProfessorService {
       },
     };
 
-    return await this.databaseService.$transaction(async (tx) => {
-      const professors = await tx.user.findMany({
+    const [professors, count] = await this.databaseService.$transaction([
+      this.databaseService.user.findMany({
         where,
         select: {
           name: true,
@@ -41,20 +41,20 @@ export class ProfessorService {
 
         skip: professorRequestSearchParamsDto.limit * professorRequestSearchParamsDto.page,
         take: professorRequestSearchParamsDto.limit,
-      });
+      }),
 
-      const count = await tx.user.count({ where });
+      this.databaseService.user.count({ where }),
+    ]);
 
-      return {
-        page: professorRequestSearchParamsDto.page,
-        limit: professorRequestSearchParamsDto.limit,
-        total: count,
-        items: professors.map((p) => ({
-          name: p.name,
-          email: p.email,
-          status: p.Requests[0].type,
-        })),
-      };
-    });
+    return {
+      page: professorRequestSearchParamsDto.page,
+      limit: professorRequestSearchParamsDto.limit,
+      total: count,
+      items: professors.map((p) => ({
+        name: p.name,
+        email: p.email,
+        status: p.Requests[0].type,
+      })),
+    };
   }
 }

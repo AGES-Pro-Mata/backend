@@ -2,11 +2,11 @@ import { RequestType } from 'generated/prisma';
 import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
 
-export const PROFESSOR_REQUEST_TYPES = [
+export const PROFESSOR_REQUEST_TYPES: RequestType[] = [
   RequestType.DOCUMENT_REQUESTED,
   RequestType.DOCUMENT_APPROVED,
   RequestType.DOCUMENT_REJECTED,
-];
+] as const;
 
 export const ProfessorRequestSearchParamsSchema = z.object({
   page: z.string().transform((val) => parseInt(val, 10)),

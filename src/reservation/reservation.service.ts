@@ -18,6 +18,7 @@ const PENDING_LIST: string[] = [
   RequestType.CREATED,
   RequestType.DOCUMENT_REQUESTED,
   RequestType.CANCELED_REQUESTED,
+  RequestType.EDIT_REQUESTED,
 ];
 
 @Injectable()
@@ -153,7 +154,7 @@ export class ReservationService {
   async createDocumentRequest(reservationGroupId: string, userId: string) {
     return await this.databaseService.requests.create({
       data: {
-        type: 'DOCUMENT_REQUESTED',
+        type: RequestType.DOCUMENT_REQUESTED,
         createdByUserId: userId,
         reservationGroupId,
       },
@@ -161,34 +162,9 @@ export class ReservationService {
   }
 
   async createCancelRequest(reservationGroupId: string, userId: string) {
-    const payload = await this.databaseService.reservationGroup.findUnique({
-      where: {
-        id: reservationGroupId,
-        userId,
-      },
-      select: {
-        requests: {
-          select: {
-            type: true,
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 1,
-        },
-      },
-    });
-
-    if (!payload) {
-      throw new NotFoundException('Reservation group not found');
-    }
-
-    const type: RequestType =
-      payload.requests[0].type === 'APPROVED' ? 'CANCELED_REQUESTED' : 'CANCELED';
-
     await this.databaseService.requests.create({
       data: {
-        type,
+        type: RequestType.CANCELED_REQUESTED,
         reservationGroupId,
         createdByUserId: userId,
       },
@@ -208,11 +184,23 @@ export class ReservationService {
     const reservationGroup = await this.databaseService.reservationGroup.findMany({
       where: {
         userId: userId,
+        requests: {
+          some: {},
+        },
       },
       select: {
         id: true,
         members: true,
-        requests: true,
+        requests: {
+          select: {
+            type: true,
+            createdAt: true,
+            description: true,
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
         reservations: {
           select: {
             id: true,
@@ -257,21 +245,11 @@ export class ReservationService {
         const maxDate = new Date(
           Math.max(...rg.reservations.map((r) => r.endDate?.getTime() ?? Number.MAX_VALUE)),
         );
-
-        let status: (typeof rg.requests)[number] | null = null;
-
-        for (const request of rg.requests) {
-          if (
-            request.createdAt.getTime() > (status?.createdAt.getTime() ?? Number.MIN_SAFE_INTEGER)
-          ) {
-            status = request;
-          }
-        }
-
         return {
           ...rg,
           requests: undefined,
-          status: status?.type,
+          history: rg.requests,
+          status: rg.requests[rg.requests.length - 1].type,
           price: rg.reservations.reduce((total, res) => {
             return total.plus(res.experience.price?.mul(res.membersCount) ?? 0);
           }, new Decimal(0)),
