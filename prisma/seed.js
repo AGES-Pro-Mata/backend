@@ -606,7 +606,6 @@ async function main() {
           reservationGroupId: reservationGroup.id,
           startDate: startDate,
           endDate: endDate,
-          notes: `Reserva para ${randomExperience.name} - ${month}/${2025}`,
           active: reservationGroup.active,
           createdAt: createdDate,
           membersCount: numMembers,
