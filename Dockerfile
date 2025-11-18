@@ -2,7 +2,7 @@
 FROM node:20-alpine AS dev
 
 # Instalar dependências do sistema
-RUN apk add --no-cache openssl libc6-compat
+RUN apk add --no-cache openssl libc6-compat curl
 
 # Definir diretório de trabalho
 WORKDIR /app

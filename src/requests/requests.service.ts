@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { CurrentUser } from 'src/auth/auth.model';
@@ -72,7 +73,7 @@ export class RequestsService {
         },
       },
       select: {
-        Requests: {
+        ProfessorRequests: {
           orderBy: { createdAt: 'asc' },
           select: {
             id: true,
@@ -95,7 +96,7 @@ export class RequestsService {
       throw new NotFoundException('Professor requests not found');
     }
 
-    const events = professor.Requests.map((e) => ({
+    const events = professor.ProfessorRequests.map((e) => ({
       id: e.id,
       status: e.type,
       description: e.description,
