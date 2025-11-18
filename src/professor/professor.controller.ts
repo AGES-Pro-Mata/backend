@@ -1,4 +1,4 @@
-import { Body, Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { ProfessorRequestSearchParamsDto } from './professor.model';
 import { ProfessorService } from './professor.service';
 import { Roles } from 'src/auth/role/roles.decorator';
@@ -13,7 +13,7 @@ export class ProfessorController {
   @Roles(UserType.ADMIN)
   @ApiBearerAuth('access-token')
   async searchProfessorsRequests(
-    @Body() professorRequestSearchParamsDto: ProfessorRequestSearchParamsDto,
+    @Query() professorRequestSearchParamsDto: ProfessorRequestSearchParamsDto,
   ) {
     return await this.professorService.searchRequests(professorRequestSearchParamsDto);
   }
