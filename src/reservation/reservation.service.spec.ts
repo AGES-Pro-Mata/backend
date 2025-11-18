@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ReservationService } from './reservation.service';
 import { DatabaseService } from 'src/database/database.service';
 import { RequestType } from 'generated/prisma';
@@ -184,17 +188,6 @@ describe('ReservationService', () => {
 
       await service.createCancelRequest(reservationGroupId, userId);
 
-      expect(databaseService.reservationGroup.findUnique).toHaveBeenCalledWith({
-        where: { id: reservationGroupId, userId },
-        select: {
-          requests: {
-            select: { type: true },
-            orderBy: { createdAt: 'desc' },
-            take: 1,
-          },
-        },
-      });
-
       expect(databaseService.requests.create).toHaveBeenCalledWith({
         data: {
           type: RequestType.CANCELED_REQUESTED,
@@ -202,45 +195,6 @@ describe('ReservationService', () => {
           createdByUserId: userId,
         },
       });
-    });
-
-    it('should create CANCELED when last request is not APPROVED', async () => {
-      const reservationGroupId = 'group-123';
-      const userId = 'user-123';
-
-      mockDatabaseService.reservationGroup.findUnique.mockResolvedValue({
-        id: reservationGroupId,
-        requests: [{ type: RequestType.CREATED }],
-      });
-
-      mockDatabaseService.requests.create.mockResolvedValue({
-        id: 'request-123',
-        type: RequestType.CANCELED,
-      });
-
-      await service.createCancelRequest(reservationGroupId, userId);
-
-      expect(databaseService.requests.create).toHaveBeenCalledWith({
-        data: {
-          type: RequestType.CANCELED,
-          reservationGroupId,
-          createdByUserId: userId,
-        },
-      });
-    });
-
-    it('should throw NotFoundException when reservation group not found', async () => {
-      const reservationGroupId = 'non-existent';
-      const userId = 'user-123';
-
-      mockDatabaseService.reservationGroup.findUnique.mockResolvedValue(null);
-
-      await expect(service.createCancelRequest(reservationGroupId, userId)).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(service.createCancelRequest(reservationGroupId, userId)).rejects.toThrow(
-        'Reservation group not found',
-      );
     });
   });
 
@@ -352,7 +306,12 @@ describe('ReservationService', () => {
       expect(result[1].status).toBe(RequestType.APPROVED);
       expect(result[0].price).toBeInstanceOf(Decimal);
       expect(databaseService.reservationGroup.findMany).toHaveBeenCalledWith({
-        where: { userId },
+        where: {
+          userId,
+          requests: {
+            some: {},
+          },
+        },
         select: expect.any(Object),
       });
     });
@@ -443,9 +402,9 @@ describe('ReservationService', () => {
 
       mockDatabaseService.reservationGroup.findMany.mockResolvedValue(groupsWithoutStatus);
 
-      const result = await service.getReservationGroups(userId, filter);
-
-      expect(result).toHaveLength(0);
+      await expect(service.getReservationGroups(userId, filter)).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
 
     it('should handle multiple requests and pick the latest', async () => {

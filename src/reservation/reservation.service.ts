@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import {
   UpdateReservationDto,
@@ -245,6 +250,13 @@ export class ReservationService {
         const maxDate = new Date(
           Math.max(...rg.reservations.map((r) => r.endDate?.getTime() ?? Number.MAX_VALUE)),
         );
+
+        if (rg.requests.length === 0) {
+          throw new InternalServerErrorException(
+            'Nenhum request encontrado para o reservation group' + rg.id,
+          );
+        }
+
         return {
           ...rg,
           requests: undefined,
