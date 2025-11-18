@@ -157,13 +157,15 @@ export class ReservationService {
   }
 
   async createDocumentRequest(reservationGroupId: string, userId: string) {
-    return await this.databaseService.requests.create({
+    const request = await this.databaseService.requests.create({
       data: {
         type: RequestType.DOCUMENT_REQUESTED,
         createdByUserId: userId,
         reservationGroupId,
       },
     });
+
+    return request;
   }
 
   async createCancelRequest(reservationGroupId: string, userId: string) {
@@ -290,7 +292,7 @@ export class ReservationService {
     userId: string,
     createReservationGroupDto: CreateReservationGroupDto,
   ) {
-    return await this.databaseService.$transaction(async (tx) => {
+    const reservationGroup = await this.databaseService.$transaction(async (tx) => {
       const experienceIds = createReservationGroupDto.reservations.map((r) => r.experienceId);
 
       const experiences = await tx.experience.findMany({
@@ -353,6 +355,8 @@ export class ReservationService {
         },
       });
     });
+
+    return reservationGroup;
   }
 
   async getReservationGroupByIdAdmin(reservationGroupId: string) {
