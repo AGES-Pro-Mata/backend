@@ -32,7 +32,10 @@ export class AuthController {
   @Post('signUp')
   @UseInterceptors(FileInterceptor('arquivo'))
   @HttpCode(HttpStatus.CREATED)
-  async createUser(@UploadedFile() arquivo: File, @Body() body: CreateUserFormDto) {
+  async createUser(
+    @UploadedFile() arquivo: Express.Multer.File | null,
+    @Body() body: CreateUserFormDto,
+  ) {
     return await this.authService.createUser(arquivo, body);
   }
 

@@ -26,6 +26,7 @@ export class ProfessorService {
       this.databaseService.user.findMany({
         where,
         select: {
+          id: true,
           name: true,
           email: true,
           ProfessorRequests: {

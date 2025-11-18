@@ -1,8 +1,8 @@
-import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import argon2 from 'argon2';
-import { ReceiptType } from 'generated/prisma';
+import { RequestType } from 'generated/prisma';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { AnalyticsService } from 'src/analytics/analytics.service';
 import { DatabaseService } from 'src/database/database.service';
@@ -14,59 +14,74 @@ import {
   ForgotPasswordDto,
   LoginDto,
 } from './auth.model';
+import { StorageService } from 'src/storage/storage.service';
 
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
-
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly jwtService: JwtService,
     private readonly analyticsService: AnalyticsService,
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
+    private readonly storageService: StorageService,
   ) {}
 
   private comparePasswords(password: string, confirmPassword: string) {
     return timingSafeEqual(Buffer.from(password, 'hex'), Buffer.from(confirmPassword, 'hex'));
   }
 
-  async createUser(arquivo: File, dto: CreateUserFormDto) {
+  async createUser(file: Express.Multer.File | null, dto: CreateUserFormDto) {
     if (!this.comparePasswords(dto.password, dto.confirmPassword)) {
       throw new BadRequestException('As senhas não são identicas.');
     }
 
-    console.log(arquivo); // TODO: implementar upload pra s3 e salvar o url no banco
+    let url: string | undefined;
 
-    await this.databaseService.user.create({
-      data: {
-        name: dto.name,
-        email: dto.email,
-        password: await this.hashPassword(dto.password),
-        phone: dto.phone,
-        document: dto.document,
-        gender: dto.gender,
-        rg: dto.rg,
-        userType: dto.userType,
-        verified: dto.userType !== 'PROFESSOR',
-        institution: dto.institution,
-        isForeign: dto.isForeign,
-        Receipt: {
-          create: {
-            type: ReceiptType.DOCENCY,
-            url: 'url_default',
+    if (file != null) {
+      const uploadedFile = await this.storageService.uploadFile(file);
+      url = uploadedFile.url;
+    }
+
+    await this.databaseService.$transaction(async (tx) => {
+      const { id } = await tx.user.create({
+        select: {
+          id: true,
+        },
+        data: {
+          name: dto.name,
+          email: dto.email,
+          password: await this.hashPassword(dto.password),
+          phone: dto.phone,
+          document: dto.document,
+          gender: dto.gender,
+          rg: dto.rg,
+          userType: dto.userType,
+          verified: dto.userType !== 'PROFESSOR',
+          institution: dto.institution,
+          isForeign: dto.isForeign,
+          address: {
+            create: {
+              zip: dto.zipCode,
+              street: dto.addressLine,
+              city: dto.city,
+              number: dto.number?.toString(),
+              country: dto.country,
+            },
           },
         },
-        address: {
-          create: {
-            zip: dto.zipCode,
-            street: dto.addressLine,
-            city: dto.city,
-            number: dto.number?.toString(),
-            country: dto.country,
+      });
+
+      if (url) {
+        await tx.requests.create({
+          data: {
+            type: RequestType.DOCUMENT_REQUESTED,
+            createdByUserId: id,
+            professorId: id,
+            fileUrl: url,
           },
-        },
-      },
+        });
+      }
     });
   }
 

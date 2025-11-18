@@ -5,6 +5,7 @@ import { InsertRequestDto } from './requests.model';
 import { PROFESSOR_REQUEST_TYPES } from 'src/professor/professor.model';
 import { ConfigService } from '@nestjs/config';
 import { MailService } from 'src/mail/mail.service';
+import { ReceiptType, RequestType } from 'generated/prisma';
 
 @Injectable()
 export class RequestsService {
@@ -72,7 +73,7 @@ export class RequestsService {
         },
       },
       select: {
-        Requests: {
+        ProfessorRequests: {
           orderBy: { createdAt: 'asc' },
           select: {
             id: true,
@@ -95,7 +96,7 @@ export class RequestsService {
       throw new NotFoundException('Professor requests not found');
     }
 
-    const events = professor.Requests.map((e) => ({
+    const events = professor.ProfessorRequests.map((e) => ({
       id: e.id,
       status: e.type,
       description: e.description,
@@ -138,8 +139,96 @@ export class RequestsService {
       await this.sendStatusChangeEmail(insertRequestDto.reservationGroupId);
     }
 
+    if (insertRequestDto.professorId && insertRequestDto.type === RequestType.DOCUMENT_APPROVED) {
+      await this.createReceiptDocency(insertRequestDto.professorId);
+    }
+
+    if (
+      insertRequestDto.reservationGroupId &&
+      insertRequestDto.type === RequestType.PAYMENT_APPROVED
+    ) {
+      await this.createReceiptPayment(insertRequestDto.reservationGroupId);
+    }
+
     return await this.databaseService.requests.create({
       data: { ...insertRequestDto, createdByUserId },
+    });
+  }
+
+  async createReceiptPayment(reservationGroupId: string) {
+    const reservationGroup = await this.databaseService.reservationGroup.findUnique({
+      where: { id: reservationGroupId, requests: { some: {} } },
+      select: {
+        requests: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+        },
+        userId: true,
+      },
+    });
+
+    if (
+      !reservationGroup ||
+      reservationGroup.requests[0].type !== RequestType.PAYMENT_REQUESTED ||
+      reservationGroup.requests[0].fileUrl === null
+    ) {
+      throw new BadRequestException(
+        'Reservation Group do not exists or did not have any PAYMENT_REQUESTED request',
+      );
+    }
+
+    await this.databaseService.reservationGroup.update({
+      where: { id: reservationGroupId },
+      data: {
+        receipt: {
+          upsert: {
+            create: {
+              type: ReceiptType.PAYMENT,
+              url: reservationGroup.requests[0].fileUrl,
+              userId: reservationGroup.userId,
+            },
+            update: {
+              type: ReceiptType.PAYMENT,
+              url: reservationGroup.requests[0].fileUrl,
+              userId: reservationGroup.userId,
+            },
+          },
+        },
+      },
+    });
+  }
+
+  private async createReceiptDocency(userId: string) {
+    const user = await this.databaseService.user.findUnique({
+      where: { id: userId, ProfessorRequests: { some: {} } },
+      select: {
+        ProfessorRequests: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+        },
+      },
+    });
+
+    if (
+      !user ||
+      user.ProfessorRequests[0].type !== RequestType.DOCUMENT_REQUESTED ||
+      user.ProfessorRequests[0].fileUrl === null
+    ) {
+      throw new BadRequestException(
+        'Professor do not exists or did not have any DOCUMENT_REQUESTED request',
+      );
+    }
+
+    await this.databaseService.receipt.create({
+      data: {
+        type: ReceiptType.DOCENCY,
+        userId,
+        url: user.ProfessorRequests[0].fileUrl,
+      },
     });
   }
 

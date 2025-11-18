@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Query,
+  UploadedFile,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { Roles } from 'src/auth/role/roles.decorator';
@@ -37,7 +38,7 @@ export class UserController {
     @Param('userId') userId: string,
     @Body() updateUserDto: UpdateUserFormDto,
   ) {
-    await this.userService.updateUser(userId, updateUserDto);
+    await this.userService.updateUser(userId, updateUserDto, null);
   }
 
   @Get(':userId')
@@ -49,8 +50,12 @@ export class UserController {
   @Roles(UserType.GUEST, UserType.ADMIN)
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async updateUser(@User() user: CurrentUser, @Body() updateUserDto: UpdateUserFormDto) {
-    await this.userService.updateUser(user.id, updateUserDto);
+  async updateUser(
+    @User() user: CurrentUser,
+    @Body() updateUserDto: UpdateUserFormDto,
+    @UploadedFile() file: Express.Multer.File | null,
+  ) {
+    await this.userService.updateUser(user.id, updateUserDto, file);
   }
 
   @Get()
