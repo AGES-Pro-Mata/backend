@@ -3,10 +3,16 @@ import { DatabaseService } from 'src/database/database.service';
 import { CurrentUser } from 'src/auth/auth.model';
 import { InsertRequestDto } from './requests.model';
 import { PROFESSOR_REQUEST_TYPES } from 'src/professor/professor.model';
+import { ConfigService } from '@nestjs/config';
+import { MailService } from 'src/mail/mail.service';
 
 @Injectable()
 export class RequestsService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly mailService: MailService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async getRequestsByIdReservationGroupAdmin(reservationGroupId: string, adminUser: CurrentUser) {
     const reservationGroup = await this.databaseService.reservationGroup.findUnique({
@@ -128,8 +134,42 @@ export class RequestsService {
       );
     }
 
+    if (insertRequestDto.reservationGroupId) {
+      await this.sendStatusChangeEmail(insertRequestDto.reservationGroupId);
+    }
+
     return await this.databaseService.requests.create({
       data: { ...insertRequestDto, createdByUserId },
     });
+  }
+
+  private async sendStatusChangeEmail(reservationGroupId: string) {
+    try {
+      const reservation = await this.databaseService.reservationGroup.findUnique({
+        where: { id: reservationGroupId },
+        select: {
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      if (reservation?.user?.email) {
+        await this.mailService.sendTemplateMail(
+          reservation.user.email,
+          'Atualização de Reserva',
+          'change-status',
+          {
+            userName: reservation.user.name,
+            systemUrl: `${this.configService.get<string>('FRONTEND_URL')}/user/my-reservations`,
+          },
+        );
+      }
+    } catch (error) {
+      console.error('Erro ao enviar email:', error);
+    }
   }
 }

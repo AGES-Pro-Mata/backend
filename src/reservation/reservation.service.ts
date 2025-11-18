@@ -5,7 +5,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
-import { MailService } from 'src/mail/mail.service';
 import {
   UpdateReservationDto,
   CreateReservationGroupDto,
@@ -17,7 +16,6 @@ import {
 import { Prisma, RequestType } from 'generated/prisma';
 
 import { Decimal } from '@prisma/client/runtime/library';
-import { ConfigService } from '@nestjs/config';
 
 const PENDING_LIST: string[] = [
   RequestType.PAYMENT_REQUESTED,
@@ -30,11 +28,7 @@ const PENDING_LIST: string[] = [
 
 @Injectable()
 export class ReservationService {
-  constructor(
-    private readonly databaseService: DatabaseService,
-    private readonly mailService: MailService,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly databaseService: DatabaseService) {}
 
   async createRequestAdmin(
     reservationGroupId: string,
@@ -59,8 +53,6 @@ export class ReservationService {
         createdByUserId: userId,
       },
     });
-
-    await this.sendStatusChangeEmail(reservationGroupId);
   }
 
   async getAllReservationGroups(searchParams: ReservationSearchParamsDto) {
@@ -173,8 +165,6 @@ export class ReservationService {
       },
     });
 
-    await this.sendStatusChangeEmail(reservationGroupId);
-
     return request;
   }
 
@@ -186,8 +176,6 @@ export class ReservationService {
         createdByUserId: userId,
       },
     });
-
-    await this.sendStatusChangeEmail(reservationGroupId);
   }
 
   async deleteReservation(reservationId: string) {
@@ -368,8 +356,6 @@ export class ReservationService {
       });
     });
 
-    await this.sendStatusChangeEmail(reservationGroup.id);
-
     return reservationGroup;
   }
 
@@ -536,36 +522,5 @@ export class ReservationService {
         },
       },
     });
-
-    await this.sendStatusChangeEmail(reservationGroupId);
-  }
-
-  private async sendStatusChangeEmail(reservationGroupId: string) {
-    try {
-      const reservation = await this.databaseService.reservationGroup.findUnique({
-        where: { id: reservationGroupId },
-        select: {
-          user: {
-            select: {
-              name: true,
-              email: true,
-            },
-          },
-        },
-      });
-
-      if (reservation?.user?.email) {
-        await this.mailService.sendTemplateMail(
-          reservation.user.email,
-          'Atualização de Reserva',
-          'change-status',
-          { userName: reservation.user.name,
-            systemUrl: `${this.configService.get<String>('FRONTEND_URL')}`
-          },
-        );
-      }
-    } catch (error) {
-      console.error('Erro ao enviar email:', error);
-    }
   }
 }
