@@ -223,11 +223,16 @@ export class RequestsService {
       );
     }
 
-    await this.databaseService.receipt.create({
+    await this.databaseService.user.update({
+      where: { id: userId },
       data: {
-        type: ReceiptType.DOCENCY,
-        userId,
-        url: user.ProfessorRequests[0].fileUrl,
+        verified: true,
+        Receipt: {
+          create: {
+            type: ReceiptType.DOCENCY,
+            url: user.ProfessorRequests[0].fileUrl,
+          },
+        },
       },
     });
   }
