@@ -554,9 +554,9 @@ async function main() {
   let totalRequests = 0;
 
   // Create reservations spread throughout the year
-  for (let month = 1; month <= 10; month++) {
-    // Each month: 3-5 reservations
-    const reservationsThisMonth = Math.floor(Math.random() * 3) + 3;
+  for (let month = 1; month <= 12; month++) {
+    // Each month: 8-12 reservations (total ~100-150 for the year)
+    const reservationsThisMonth = Math.floor(Math.random() * 5) + 8;
 
     for (let i = 0; i < reservationsThisMonth; i++) {
       const randomUser = allUsers[Math.floor(Math.random() * allUsers.length)];
@@ -573,10 +573,14 @@ async function main() {
         endDate.setHours(startDate.getHours() + Math.floor(randomExperience.durationMinutes / 60));
       }
 
+      // More varied status distribution: 75% active, 15% inactive, 10% pending approval
+      const randomStatus = Math.random();
+      const isActive = randomStatus > 0.25;
+
       const reservationGroup = await prisma.reservationGroup.create({
         data: {
           userId: randomUser.id,
-          active: Math.random() > 0.1, // 90% active
+          active: isActive,
           createdAt: createdDate,
         },
       });
@@ -626,9 +630,26 @@ async function main() {
         totalDocuments++;
       }
 
-      // Create workflow requests
-      const requestTypes = ['CREATED', 'PEOPLE_SENT', 'APPROVED'];
-      const statusFlow = Math.random() > 0.3 ? requestTypes : ['CREATED', 'CANCELED'];
+      // Create workflow requests with more varied flows
+      const flowChance = Math.random();
+      let statusFlow;
+
+      if (flowChance < 0.4) {
+        // 40% - Fully approved
+        statusFlow = ['CREATED', 'PEOPLE_SENT', 'APPROVED'];
+      } else if (flowChance < 0.6) {
+        // 20% - Canceled early
+        statusFlow = ['CREATED', 'CANCELED'];
+      } else if (flowChance < 0.75) {
+        // 15% - Still pending approval (only CREATED and PEOPLE_SENT)
+        statusFlow = ['CREATED', 'PEOPLE_SENT'];
+      } else if (flowChance < 0.85) {
+        // 10% - Rejected after sending people
+        statusFlow = ['CREATED', 'PEOPLE_SENT', 'REJECTED'];
+      } else {
+        // 15% - Just created, waiting for people
+        statusFlow = ['CREATED'];
+      }
 
       for (let r = 0; r < statusFlow.length; r++) {
         await prisma.requests.create({
@@ -707,10 +728,10 @@ async function main() {
 - ${experiences.length} Experiences (2 Trails, 2 Hosting, 2 Labs, 2 Events)
 - 6 Highlights
 - ${reservationGroups.length} Reservation Groups
-- ${reservations.length} Reservations (Jan-Dec 2025)
+- ${reservations.length} Reservations (Jan-Dec 2025) ⬆️ ~100-150 reservations
 - ${totalMembers} Members
 - ${totalDocuments} Documents
-- ${totalRequests} Requests (workflow tracking)
+- ${totalRequests} Requests (workflow tracking with varied statuses)
 
 👥 Sample Users:
 - root@company.com (ROOT) - password: password123
