@@ -119,10 +119,10 @@ export class ExperienceService {
         contains: experienceSearchParamsDto.description,
       },
       startDate: {
-        lte: experienceSearchParamsDto.date,
+        gte: experienceSearchParamsDto.startDate,
       },
       endDate: {
-        gte: experienceSearchParamsDto.date,
+        lte: experienceSearchParamsDto.endDate,
       },
     };
 
