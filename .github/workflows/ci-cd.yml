@@ -428,7 +428,7 @@ jobs:
 
             # Aguardar o container ficar healthy
             echo "Aguardando container ficar healthy..."
-            MAX_WAIT=60
+            MAX_WAIT=120
             ELAPSED=0
             while [ $ELAPSED -lt $MAX_WAIT ]; do
               HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' "${CONTAINER}" 2>/dev/null || echo "none")
