@@ -19,6 +19,7 @@ export class RequestsService {
             id: true,
             type: true,
             description: true,
+            fileUrl: true,
             createdBy: {
               select: {
                 id: true,
@@ -44,6 +45,7 @@ export class RequestsService {
       name: e.createdBy.name,
       email: e.createdBy.email,
       userId: e.createdBy.id,
+      fileUrl: e.fileUrl,
       isSender: e.createdBy.id === adminUser.id,
       isRequester: e.createdBy.id === reservationGroup.userId,
     }));

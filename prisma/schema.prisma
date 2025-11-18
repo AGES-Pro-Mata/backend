@@ -196,6 +196,7 @@ model Requests {
   professorId        String?
   User               User?             @relation(fields: [userId], references: [id])
   userId             String?
+  fileUrl            String?
 }
 
 enum RequestType {

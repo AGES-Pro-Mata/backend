@@ -196,6 +196,7 @@ export class ReservationService {
             type: true,
             createdAt: true,
             description: true,
+            fileUrl: true,
           },
           orderBy: {
             createdAt: 'asc',
