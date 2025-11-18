@@ -1,7 +1,7 @@
 # Dockerfile.dev - Ambiente de desenvolvimento otimizado
 FROM node:24-alpine
 
-RUN apk add --no-cache openssl libc6-compat
+RUN apk add --no-cache openssl libc6-compat curl
 
 WORKDIR /app
 
@@ -29,6 +29,9 @@ RUN addgroup -g 1001 -S nodejs \
   && chown -R nestjs:nodejs /app
 
 USER nestjs
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
 
 # Comando simplificado (prisma generate já foi feito acima)
 CMD ["npm", "run", "start:dev"]

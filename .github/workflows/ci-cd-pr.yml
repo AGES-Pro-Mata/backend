@@ -2,9 +2,9 @@ name: Backend CI/CD - PR
 
 on:
   pull_request:
-    types: [opened, closed, merged, synchronize, reopened]
+    types: [opened, closed, synchronize, reopened]
 env:
-  NODE_VERSION: '24'
+  NODE_VERSION: '24.11.0'
   DOCKER_REGISTRY: docker.io
   IMAGE_NAME: norohim/pro-mata-backend
 
