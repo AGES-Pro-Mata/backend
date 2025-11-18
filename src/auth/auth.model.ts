@@ -1,6 +1,7 @@
-import { UserType } from 'generated/prisma';
+import { UserType, Gender } from 'generated/prisma';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { mapGenderToEnum } from '../common/gender.mapper';
 
 export const UserPayloadSchema = z.object({
   sub: z.uuid(),
@@ -19,7 +20,7 @@ export const CreateUserFormSchema = z.object({
   phone: z.string(),
   document: z.string().optional(),
   rg: z.string().optional(),
-  gender: z.enum(['Masculino', 'Feminino', 'Outro']),
+  gender: z.string().transform(mapGenderToEnum),
   zipCode: z.string(),
   userType: z.enum([UserType.GUEST, UserType.PROFESSOR]),
   city: z.string().optional(),
@@ -64,7 +65,7 @@ export const CreateRootUserSchema = z.object({
   password: z.hash('sha256'),
   confirmPassword: z.hash('sha256'),
   phone: z.string(),
-  gender: z.enum(['Masculino', 'Feminino', 'Outro']),
+  gender: z.string().transform(mapGenderToEnum),
   document: z.string().optional(),
   rg: z.string().optional(),
   country: z.string(),

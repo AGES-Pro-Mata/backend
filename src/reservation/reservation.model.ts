@@ -1,11 +1,12 @@
 import { z } from 'zod';
-import { RequestType } from 'generated/prisma';
+import { RequestType, Gender } from 'generated/prisma';
 import { createZodDto } from 'nestjs-zod';
+import { mapGenderToEnum } from '../common/gender.mapper';
 
 const MemberSchema = z.object({
   name: z.string(),
   document: z.string(),
-  gender: z.string(),
+  gender: z.string().transform(mapGenderToEnum),
   phone: z.string(),
   birthDate: z.iso.date(),
 });
@@ -60,7 +61,7 @@ const RegisterMemberSchema = z.object({
   name: z.string(),
   phone: z.string(),
   document: z.string(),
-  gender: z.string(),
+  gender: z.string().transform(mapGenderToEnum),
 });
 
 export class RegisterMemberDto extends createZodDto(RegisterMemberSchema) {}

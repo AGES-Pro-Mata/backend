@@ -22,7 +22,7 @@ model User {
   password           String
   phone              String
   document           String?              @unique
-  gender             String
+  gender             Gender
   rg                 String?              @unique
   institution        String?
   isForeign          Boolean
@@ -51,6 +51,13 @@ enum UserType {
   ROOT
   GUEST
   PROFESSOR
+}
+
+enum Gender {
+  Masculino
+  Feminino
+  Outro
+  NaoInformado
 }
 
 model Address {
@@ -221,7 +228,7 @@ model Member {
   id                 String           @id @default(uuid())
   name               String
   document           String?
-  gender             String
+  gender             Gender
   phone              String?
   birthDate          DateTime         @default(now())
   createdAt          DateTime         @default(now())

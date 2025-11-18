@@ -1,4 +1,4 @@
-const { PrismaClient, UserType } = require('../generated/prisma');
+const { PrismaClient, UserType, Gender } = require('../generated/prisma');
 const argon2 = require('argon2');
 
 const prisma = new PrismaClient();
@@ -161,7 +161,7 @@ async function main() {
       password: demoPassword,
       phone: '11999999999',
       document: '11111111111',
-      gender: 'Masculino',
+      gender: Gender.Masculino,
       rg: '111111111',
       institution: 'Sistema',
       isForeign: false,
@@ -178,7 +178,7 @@ async function main() {
       password: demoPassword,
       phone: '+55 11 98888-8888',
       document: '111.111.111-11',
-      gender: 'Feminino',
+      gender: Gender.Feminino,
       rg: '11.111.111-1',
       institution: 'Pro-Mata',
       isForeign: false,
@@ -198,7 +198,7 @@ async function main() {
         password: demoPassword,
         phone: '+55 21 97777-7777',
         document: '222.222.222-22',
-        gender: 'Masculino',
+        gender: Gender.Masculino,
         rg: '22.222.222-2',
         institution: 'Universidade Federal do Rio de Janeiro',
         isForeign: false,
@@ -215,7 +215,7 @@ async function main() {
         password: demoPassword,
         phone: '+55 11 96666-6666',
         document: '333.333.333-33',
-        gender: 'Feminino',
+        gender: Gender.Feminino,
         rg: '33.333.333-3',
         institution: 'Universidade de São Paulo',
         isForeign: false,
@@ -227,12 +227,12 @@ async function main() {
     prisma.user.create({
       data: {
         userType: UserType.PROFESSOR,
-        name: 'Dr. Ricardo Almeida',
+        name: 'Dr. Alex Oliveira',
         email: 'ricardo.almeida@ufmg.br',
         password: demoPassword,
         phone: '+55 31 95555-5555',
         document: '888.888.888-88',
-        gender: 'Masculino',
+        gender: Gender.Outro,
         rg: '88.888.888-8',
         institution: 'Universidade Federal de Minas Gerais',
         isForeign: false,
@@ -253,7 +253,7 @@ async function main() {
         password: demoPassword,
         phone: '+55 11 95555-5555',
         document: '444.444.444-44',
-        gender: 'Masculino',
+        gender: Gender.Masculino,
         rg: '44.444.444-4',
         institution: 'Empresa ABC',
         isForeign: false,
@@ -270,7 +270,7 @@ async function main() {
         password: demoPassword,
         phone: '+1 555-123-4567',
         document: null,
-        gender: 'Masculino',
+        gender: Gender.NaoInformado,
         rg: null,
         institution: 'International Research Institute',
         isForeign: true,
@@ -287,7 +287,7 @@ async function main() {
         password: demoPassword,
         phone: '+55 41 94444-4444',
         document: '999.999.999-99',
-        gender: 'Feminino',
+        gender: Gender.Feminino,
         rg: '99.999.999-9',
         institution: 'ONG Natureza Viva',
         isForeign: false,
@@ -582,8 +582,9 @@ async function main() {
       });
       reservationGroups.push(reservationGroup);
 
-      // Create members for this reservation
+      // Create members for this reservation with diverse gender representation
       const numMembers = Math.floor(Math.random() * 5) + 1;
+      const genderOptions = [Gender.Masculino, Gender.Feminino, Gender.Outro, Gender.NaoInformado];
       for (let m = 0; m < numMembers; m++) {
         await prisma.member.create({
           data: {
@@ -592,7 +593,7 @@ async function main() {
               Math.random() > 0.2
                 ? `${Math.floor(Math.random() * 900 + 100)}.${Math.floor(Math.random() * 900 + 100)}.${Math.floor(Math.random() * 900 + 100)}-${Math.floor(Math.random() * 90 + 10)}`
                 : null,
-            gender: ['Masculino', 'Feminino'][Math.floor(Math.random() * 2)],
+            gender: genderOptions[Math.floor(Math.random() * genderOptions.length)],
             reservationGroupId: reservationGroup.id,
           },
         });
