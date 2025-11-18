@@ -178,7 +178,7 @@ async function main() {
       password: demoPassword,
       phone: '+55 11 98888-8888',
       document: '111.111.111-11',
-      gender: 'Female',
+      gender: 'Feminino',
       rg: '11.111.111-1',
       institution: 'Pro-Mata',
       isForeign: false,
@@ -198,7 +198,7 @@ async function main() {
         password: demoPassword,
         phone: '+55 21 97777-7777',
         document: '222.222.222-22',
-        gender: 'Male',
+        gender: 'Masculino',
         rg: '22.222.222-2',
         institution: 'Universidade Federal do Rio de Janeiro',
         isForeign: false,
@@ -215,7 +215,7 @@ async function main() {
         password: demoPassword,
         phone: '+55 11 96666-6666',
         document: '333.333.333-33',
-        gender: 'Female',
+        gender: 'Feminino',
         rg: '33.333.333-3',
         institution: 'Universidade de São Paulo',
         isForeign: false,
@@ -232,7 +232,7 @@ async function main() {
         password: demoPassword,
         phone: '+55 31 95555-5555',
         document: '888.888.888-88',
-        gender: 'Male',
+        gender: 'Masculino',
         rg: '88.888.888-8',
         institution: 'Universidade Federal de Minas Gerais',
         isForeign: false,
@@ -253,7 +253,7 @@ async function main() {
         password: demoPassword,
         phone: '+55 11 95555-5555',
         document: '444.444.444-44',
-        gender: 'Male',
+        gender: 'Masculino',
         rg: '44.444.444-4',
         institution: 'Empresa ABC',
         isForeign: false,
@@ -270,7 +270,7 @@ async function main() {
         password: demoPassword,
         phone: '+1 555-123-4567',
         document: null,
-        gender: 'Male',
+        gender: 'Masculino',
         rg: null,
         institution: 'International Research Institute',
         isForeign: true,
@@ -287,7 +287,7 @@ async function main() {
         password: demoPassword,
         phone: '+55 41 94444-4444',
         document: '999.999.999-99',
-        gender: 'Female',
+        gender: 'Feminino',
         rg: '99.999.999-9',
         institution: 'ONG Natureza Viva',
         isForeign: false,
@@ -592,7 +592,7 @@ async function main() {
               Math.random() > 0.2
                 ? `${Math.floor(Math.random() * 900 + 100)}.${Math.floor(Math.random() * 900 + 100)}.${Math.floor(Math.random() * 900 + 100)}-${Math.floor(Math.random() * 90 + 10)}`
                 : null,
-            gender: ['Male', 'Female', 'Other'][Math.floor(Math.random() * 3)],
+            gender: ['Masculino', 'Feminino'][Math.floor(Math.random() * 2)],
             reservationGroupId: reservationGroup.id,
           },
         });
@@ -606,7 +606,6 @@ async function main() {
           reservationGroupId: reservationGroup.id,
           startDate: startDate,
           endDate: endDate,
-          notes: `Reserva para ${randomExperience.name} - ${month}/${2025}`,
           active: reservationGroup.active,
           createdAt: createdDate,
           membersCount: numMembers,
@@ -627,7 +626,7 @@ async function main() {
       }
 
       // Create workflow requests
-      const requestTypes = ['CREATED', 'PEOPLE_SENT', 'DOCUMENT_REQUESTED', 'APPROVED'];
+      const requestTypes = ['CREATED', 'PEOPLE_SENT', 'APPROVED'];
       const statusFlow = Math.random() > 0.3 ? requestTypes : ['CREATED', 'CANCELED'];
 
       for (let r = 0; r < statusFlow.length; r++) {

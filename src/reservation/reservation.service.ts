@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { MailService } from 'src/mail/mail.service';
 import {
@@ -7,8 +12,10 @@ import {
   UpdateReservationByAdminDto,
   ReservationGroupStatusFilterDto,
   RegisterMemberDto,
+  ReservationSearchParamsDto,
 } from './reservation.model';
-import { RequestType } from 'generated/prisma';
+import { Prisma, RequestType } from 'generated/prisma';
+
 import { Decimal } from '@prisma/client/runtime/library';
 import { ConfigService } from '@nestjs/config';
 
@@ -18,6 +25,7 @@ const PENDING_LIST: string[] = [
   RequestType.CREATED,
   RequestType.DOCUMENT_REQUESTED,
   RequestType.CANCELED_REQUESTED,
+  RequestType.EDIT_REQUESTED,
 ];
 
 @Injectable()
@@ -55,6 +63,97 @@ export class ReservationService {
     await this.sendStatusChangeEmail(reservationGroupId);
   }
 
+  async getAllReservationGroups(searchParams: ReservationSearchParamsDto) {
+    const orderBy: Prisma.ReservationGroupOrderByWithRelationInput[] = [
+      {
+        user: {
+          ['email']: searchParams.sort === 'email' ? searchParams.dir : undefined,
+        },
+      },
+      {
+        createdAt: 'desc',
+      },
+    ];
+
+    const where: Prisma.ReservationGroupWhereInput = {
+      active: true,
+      requests: {
+        some: {
+          type: searchParams.status,
+        },
+      },
+      user: {
+        email: { contains: searchParams.email },
+      },
+      reservations: {
+        some: {
+          experience: {
+            name: { contains: searchParams.experiences },
+          },
+        },
+      },
+    };
+    const groups = await this.databaseService.reservationGroup.findMany({
+      where,
+      orderBy,
+      select: {
+        id: true,
+        user: {
+          select: {
+            email: true,
+          },
+        },
+        createdAt: true,
+        requests: {
+          select: {
+            type: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+        },
+        reservations: {
+          select: {
+            experience: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      skip: searchParams.limit * searchParams.page,
+      take: searchParams.limit,
+    });
+    const items = groups.map((group) => {
+      return {
+        id: group.id,
+        experiences: group.reservations.map((r) => r.experience.name),
+        email: group.user.email,
+        status: group.requests[0]?.type,
+      };
+    });
+
+    const total = await this.databaseService.reservationGroup.count({ where });
+
+    return {
+      page: searchParams.page,
+      limit: searchParams.limit,
+      total,
+      items:
+        searchParams.sort === 'status'
+          ? items.sort((a, b) => {
+              if (searchParams.dir === 'asc') {
+                return a.status.localeCompare(b.status);
+              } else {
+                return b.status.localeCompare(a.status);
+              }
+            })
+          : items,
+    };
+  }
+
   async attachDocument(reservationId: string, url: string, userId: string) {
     return await this.databaseService.document.create({
       data: {
@@ -68,7 +167,7 @@ export class ReservationService {
   async createDocumentRequest(reservationGroupId: string, userId: string) {
     const request = await this.databaseService.requests.create({
       data: {
-        type: 'DOCUMENT_REQUESTED',
+        type: RequestType.DOCUMENT_REQUESTED,
         createdByUserId: userId,
         reservationGroupId,
       },
@@ -80,34 +179,9 @@ export class ReservationService {
   }
 
   async createCancelRequest(reservationGroupId: string, userId: string) {
-    const payload = await this.databaseService.reservationGroup.findUnique({
-      where: {
-        id: reservationGroupId,
-        userId,
-      },
-      select: {
-        requests: {
-          select: {
-            type: true,
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 1,
-        },
-      },
-    });
-
-    if (!payload) {
-      throw new NotFoundException('Reservation group not found');
-    }
-
-    const type: RequestType =
-      payload.requests[0].type === 'APPROVED' ? 'CANCELED_REQUESTED' : 'CANCELED';
-
     await this.databaseService.requests.create({
       data: {
-        type,
+        type: RequestType.CANCELED_REQUESTED,
         reservationGroupId,
         createdByUserId: userId,
       },
@@ -129,17 +203,29 @@ export class ReservationService {
     const reservationGroup = await this.databaseService.reservationGroup.findMany({
       where: {
         userId: userId,
+        requests: {
+          some: {},
+        },
       },
       select: {
         id: true,
         members: true,
-        requests: true,
+        requests: {
+          select: {
+            type: true,
+            createdAt: true,
+            description: true,
+            fileUrl: true,
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
         reservations: {
           select: {
             id: true,
             startDate: true,
             endDate: true,
-            notes: true,
             membersCount: true,
             user: {
               select: {
@@ -179,20 +265,17 @@ export class ReservationService {
           Math.max(...rg.reservations.map((r) => r.endDate?.getTime() ?? Number.MAX_VALUE)),
         );
 
-        let status: (typeof rg.requests)[number] | null = null;
-
-        for (const request of rg.requests) {
-          if (
-            request.createdAt.getTime() > (status?.createdAt.getTime() ?? Number.MIN_SAFE_INTEGER)
-          ) {
-            status = request;
-          }
+        if (rg.requests.length === 0) {
+          throw new InternalServerErrorException(
+            'Nenhum request encontrado para o reservation group' + rg.id,
+          );
         }
 
         return {
           ...rg,
           requests: undefined,
-          status: status?.type,
+          history: rg.requests,
+          status: rg.requests[rg.requests.length - 1].type,
           price: rg.reservations.reduce((total, res) => {
             return total.plus(res.experience.price?.mul(res.membersCount) ?? 0);
           }, new Decimal(0)),
@@ -234,7 +317,7 @@ export class ReservationService {
       }
 
       const group = await tx.reservationGroup.create({
-        data: { userId },
+        data: { userId, notes: createReservationGroupDto.notes },
         select: { id: true },
       });
 
@@ -243,7 +326,9 @@ export class ReservationService {
           name: m.name,
           document: m.document,
           gender: m.gender,
+          phone: m.phone,
           reservationGroupId: group.id,
+          birthDate: new Date(m.birthDate),
         })),
         skipDuplicates: true,
       });
@@ -257,7 +342,6 @@ export class ReservationService {
               experienceId: r.experienceId,
               startDate: r.startDate,
               endDate: r.endDate,
-              notes: r.notes ?? null,
               membersCount: r.membersCount,
             },
             select: {
@@ -294,6 +378,7 @@ export class ReservationService {
       where: { id: reservationGroupId },
       select: {
         id: true,
+        notes: true,
         user: {
           select: {
             id: true,
@@ -301,23 +386,41 @@ export class ReservationService {
             email: true,
           },
         },
+        members: {
+          select: {
+            id: true,
+            name: true,
+            document: true,
+            gender: true,
+            phone: true,
+            birthDate: true,
+          },
+        },
         reservations: {
           select: {
             membersCount: true,
-            notes: true,
             experience: {
-              omit: {
-                imageId: true,
-                active: true,
+              select: {
+                id: true,
+                name: true,
+                startDate: true,
+                endDate: true,
+                description: true,
+                category: true,
+                price: true,
+                professorShouldPay: true,
+                weekDays: true,
+                durationMinutes: true,
+                capacity: true,
+                trailLength: true,
+                trailDifficulty: true,
+                image: {
+                  select: {
+                    url: true,
+                  },
+                },
               },
             },
-          },
-        },
-        requests: {
-          omit: {
-            createdAt: true,
-            createdByUserId: true,
-            reservationGroupId: true,
           },
         },
       },
@@ -329,6 +432,7 @@ export class ReservationService {
       where: { id: reservationGroupId, userId },
       select: {
         id: true,
+        notes: true,
         user: {
           select: {
             id: true,
@@ -336,14 +440,39 @@ export class ReservationService {
             email: true,
           },
         },
+        members: {
+          select: {
+            id: true,
+            name: true,
+            document: true,
+            gender: true,
+            phone: true,
+            birthDate: true,
+          },
+        },
         reservations: {
           select: {
             membersCount: true,
-            notes: true,
             experience: {
-              omit: {
-                imageId: true,
-                active: true,
+              select: {
+                id: true,
+                name: true,
+                startDate: true,
+                endDate: true,
+                description: true,
+                category: true,
+                price: true,
+                professorShouldPay: true,
+                weekDays: true,
+                durationMinutes: true,
+                capacity: true,
+                trailLength: true,
+                trailDifficulty: true,
+                image: {
+                  select: {
+                    url: true,
+                  },
+                },
               },
             },
           },
@@ -376,7 +505,7 @@ export class ReservationService {
         experienceId: updateReservationDto.experienceId,
         startDate: updateReservationDto.startDate,
         endDate: updateReservationDto.endDate,
-        notes: updateReservationDto.notes,
+        price: updateReservationDto.price,
       },
     });
 

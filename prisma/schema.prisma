@@ -38,10 +38,12 @@ model User {
   createdBy          User?                @relation("createdBy", fields: [createdByUserId], references: [id])
   createdByUserId    String?
   User               User[]               @relation("createdBy")
-  Requests           Requests[]
+  RequestsCreatedBy  Requests[]           @relation("RequestsCreatedBy")
   documents          Document[]
   ReservationGroup   ReservationGroup[]
   isFirstAccess      Boolean              @default(false)
+  ProfessorRequests  Requests[]           @relation("ProfessorRequest")
+  Requests           Requests[]
 }
 
 enum UserType {
@@ -170,9 +172,9 @@ model Reservation {
   userId             String
   experience         Experience       @relation(fields: [experienceId], references: [id])
   experienceId       String
+  price              Decimal?         @default(0)
   startDate          DateTime?
   endDate            DateTime?
-  notes              String?
   createdAt          DateTime         @default(now())
   active             Boolean          @default(true)
   membersCount       Int
@@ -186,10 +188,15 @@ model Requests {
   type               RequestType
   description        String?
   createdAt          DateTime          @default(now())
-  createdBy          User              @relation(fields: [createdByUserId], references: [id])
+  createdBy          User              @relation("RequestsCreatedBy", fields: [createdByUserId], references: [id])
   createdByUserId    String
   ReservationGroup   ReservationGroup? @relation(fields: [reservationGroupId], references: [id])
   reservationGroupId String?
+  Professor          User?             @relation("ProfessorRequest", fields: [professorId], references: [id])
+  professorId        String?
+  User               User?             @relation(fields: [userId], references: [id])
+  userId             String?
+  fileUrl            String?
 }
 
 enum RequestType {
@@ -197,6 +204,7 @@ enum RequestType {
   CANCELED
   CANCELED_REQUESTED
   EDITED
+  EDIT_REQUESTED
   REJECTED
   APPROVED
   PEOPLE_REQUESTED
@@ -215,6 +223,7 @@ model Member {
   document           String?
   gender             String
   phone              String?
+  birthDate          DateTime         @default(now())
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   active             Boolean          @default(true)
@@ -231,6 +240,7 @@ model ReservationGroup {
   userId       String
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  notes        String?
   active       Boolean       @default(true)
   requests     Requests[]
   members      Member[]

@@ -30,8 +30,6 @@ services:
     depends_on:
       database:
         condition: service_healthy
-      umami:
-        condition: service_healthy
     restart: unless-stopped
     command: sh -c "npx prisma migrate dev && npm run start:dev"
     healthcheck:
@@ -40,6 +38,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+      
   metabase:
     image: metabase/metabase:latest
     container_name: promata-metabase
