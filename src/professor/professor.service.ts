@@ -28,7 +28,7 @@ export class ProfessorService {
         select: {
           name: true,
           email: true,
-          Requests: {
+          ProfessorRequests: {
             select: {
               type: true,
             },
@@ -53,7 +53,7 @@ export class ProfessorService {
       items: professors.map((p) => ({
         name: p.name,
         email: p.email,
-        status: p.Requests[0].type,
+        status: p.ProfessorRequests[0].type,
       })),
     };
   }
