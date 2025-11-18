@@ -8,7 +8,7 @@ export const UpdateUserFormSchema = z.object({
   phone: z.string().optional(),
   document: z.string().nullable().optional(),
   rg: z.string().nullable().optional(),
-  gender: z.string().optional(),
+  gender: z.enum(['Masculino', 'Feminino']).optional(),
   zipCode: z.string().optional(),
   userType: z.enum([UserType.GUEST, UserType.PROFESSOR, UserType.ADMIN]).optional(),
   city: z.string().nullable().optional(),
