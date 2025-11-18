@@ -24,16 +24,22 @@ import {
 } from './auth.model';
 import { AuthService } from './auth.service';
 import { Roles } from './role/roles.decorator';
+import type { Express } from 'express';
+import { ApiConsumes } from '@nestjs/swagger';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('signUp')
-  @UseInterceptors(FileInterceptor('arquivo'))
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
   @HttpCode(HttpStatus.CREATED)
-  async createUser(@UploadedFile() arquivo: File, @Body() body: CreateUserFormDto) {
-    return await this.authService.createUser(arquivo, body);
+  async createUser(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: CreateUserFormDto,
+  ) {
+    return await this.authService.createUser(file, body);
   }
 
   @Post('signIn')

@@ -14,6 +14,9 @@ import {
   ForgotPasswordDto,
   LoginDto,
 } from './auth.model';
+import { StorageService } from 'src/storage/storage.service';
+import type { Express } from 'express';
+
 
 @Injectable()
 export class AuthService {
@@ -25,50 +28,72 @@ export class AuthService {
     private readonly analyticsService: AnalyticsService,
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
+    private readonly storageService: StorageService,
   ) {}
 
   private comparePasswords(password: string, confirmPassword: string) {
     return timingSafeEqual(Buffer.from(password, 'hex'), Buffer.from(confirmPassword, 'hex'));
   }
 
-  async createUser(arquivo: File, dto: CreateUserFormDto) {
-    if (!this.comparePasswords(dto.password, dto.confirmPassword)) {
-      throw new BadRequestException('As senhas não são identicas.');
-    }
+async createUser(arquivo: Express.Multer.File | undefined, dto: CreateUserFormDto) {
+  if (!this.comparePasswords(dto.password, dto.confirmPassword)) {
+    throw new BadRequestException('As senhas não são identicas.');
+  }
 
-    console.log(arquivo); // TODO: implementar upload pra s3 e salvar o url no banco
+  const verified = dto.userType !== 'PROFESSOR';
 
-    await this.databaseService.user.create({
-      data: {
-        name: dto.name,
-        email: dto.email,
-        password: await this.hashPassword(dto.password),
-        phone: dto.phone,
-        document: dto.document,
-        gender: dto.gender,
-        rg: dto.rg,
-        userType: dto.userType,
-        verified: dto.userType !== 'PROFESSOR',
-        institution: dto.institution,
-        isForeign: dto.isForeign,
-        Receipt: {
-          create: {
-            type: ReceiptType.DOCENCY,
-            url: 'url_default',
-          },
-        },
-        address: {
-          create: {
-            zip: dto.zipCode,
-            street: dto.addressLine,
-            city: dto.city,
-            number: dto.number?.toString(),
-            country: dto.country,
-          },
+  const user = await this.databaseService.user.create({
+    data: {
+      name: dto.name,
+      email: dto.email,
+      password: await this.hashPassword(dto.password),
+      phone: dto.phone,
+      document: dto.document,
+      gender: dto.gender,
+      rg: dto.rg,
+      userType: dto.userType,
+      verified,
+      institution: dto.institution,
+      isForeign: dto.isForeign,
+      address: {
+        create: {
+          zip: dto.zipCode,
+          street: dto.addressLine,
+          city: dto.city,
+          number: dto.number?.toString(),
+          country: dto.country,
         },
       },
+    },
+  });
+
+  let receiptUrl = 'url_default';
+
+  console.log('Arquivo recebido:', arquivo?.mimetype);
+  console.log('Tipo de usuário:', dto.userType);
+
+  if (dto.userType === 'PROFESSOR' && arquivo) {
+    if (arquivo.mimetype !== 'application/pdf') {
+      throw new BadRequestException('O comprovante deve ser um arquivo PDF.');
+    }
+
+    const { url } = await this.storageService.uploadFile(arquivo, {
+      directory: `professor-documents/${user.id}`,
+      contentType: 'application/pdf',
     });
+
+    receiptUrl = url;
   }
+
+  await this.databaseService.receipt.create({
+    data: {
+      type: ReceiptType.DOCENCY,
+      url: receiptUrl,
+      userId: user.id,
+    },
+  });
+}
+
 
   async signIn(dto: LoginDto) {
     const user = await this.databaseService.user.findUnique({
