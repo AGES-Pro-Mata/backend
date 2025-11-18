@@ -742,7 +742,6 @@ describe('ReservationService', () => {
         experienceId: 'exp-456',
         startDate: '2025-12-15T10:00:00Z',
         endDate: '2025-12-15T12:00:00Z',
-        notes: 'Updated notes',
         price: 150,
       };
 
@@ -768,7 +767,6 @@ describe('ReservationService', () => {
           experienceId: updateDto.experienceId,
           startDate: updateDto.startDate,
           endDate: updateDto.endDate,
-          notes: updateDto.notes,
           price: updateDto.price,
         },
       });
