@@ -285,7 +285,8 @@ describe('ExperienceService', () => {
         sort: 'name',
         name: 'Trail',
         description: 'Mountain',
-        date: '2025-06-15T00:00:00Z',
+        startDate: new Date('2025-01-01T00:00:00Z'),
+        endDate: new Date('2025-12-31T00:00:00Z'),
       } as never;
 
       const mockExperiences = [
@@ -314,8 +315,8 @@ describe('ExperienceService', () => {
         where: {
           name: { contains: 'Trail' },
           description: { contains: 'Mountain' },
-          startDate: { lte: '2025-06-15T00:00:00Z' },
-          endDate: { gte: '2025-06-15T00:00:00Z' },
+          startDate: { gte: new Date('2025-01-01') },
+          endDate: { lte: new Date('2025-12-31') },
         },
         select: {
           id: true,
@@ -336,8 +337,8 @@ describe('ExperienceService', () => {
         where: {
           name: { contains: 'Trail' },
           description: { contains: 'Mountain' },
-          startDate: { lte: '2025-06-15T00:00:00Z' },
-          endDate: { gte: '2025-06-15T00:00:00Z' },
+          startDate: { gte: new Date('2025-01-01') },
+          endDate: { lte: new Date('2025-12-31') },
         },
       });
     });
@@ -451,7 +452,8 @@ describe('ExperienceService', () => {
         limit: 10,
         dir: 'asc',
         sort: 'name',
-        date: '2025-07-15T12:00:00Z',
+        startDate: '2025-07-15T12:00:00Z',
+        endDate: '2025-07-15T12:00:00Z',
       } as never;
 
       databaseService.experience.findMany.mockResolvedValueOnce([]);
@@ -462,8 +464,8 @@ describe('ExperienceService', () => {
       expect(databaseService.experience.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            startDate: { lte: '2025-07-15T12:00:00Z' },
-            endDate: { gte: '2025-07-15T12:00:00Z' },
+            startDate: { gte: '2025-07-15T12:00:00Z' },
+            endDate: { lte: '2025-07-15T12:00:00Z' },
           }),
         }),
       );

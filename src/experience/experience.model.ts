@@ -105,7 +105,8 @@ export const ExperienceSearchParamsSchema = z.object({
     }),
   name: z.string().optional(),
   description: z.email().optional(),
-  date: z.iso.datetime().optional(),
+  startDate: z.iso.datetime().optional(),
+  endDate: z.iso.datetime().optional(),
 });
 
 export class ExperienceSearchParamsDto extends createZodDto(ExperienceSearchParamsSchema) {}
