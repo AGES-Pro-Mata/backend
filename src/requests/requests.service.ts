@@ -167,17 +167,10 @@ export class RequestsService {
       where: { id: reservationGroupId },
       data: {
         receipt: {
-          upsert: {
-            create: {
-              type: ReceiptType.PAYMENT,
-              url: reservationGroup.requests[0].fileUrl,
-              userId: reservationGroup.userId,
-            },
-            update: {
-              type: ReceiptType.PAYMENT,
-              url: reservationGroup.requests[0].fileUrl,
-              userId: reservationGroup.userId,
-            },
+          create: {
+            type: ReceiptType.PAYMENT,
+            url: reservationGroup.requests[0].fileUrl,
+            userId: reservationGroup.userId,
           },
         },
       },
