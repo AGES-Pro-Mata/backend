@@ -26,6 +26,7 @@ export class ProfessorService {
       this.databaseService.user.findMany({
         where,
         select: {
+          id: true,
           name: true,
           email: true,
           ProfessorRequests: {
@@ -51,6 +52,7 @@ export class ProfessorService {
       limit: professorRequestSearchParamsDto.limit,
       total: count,
       items: professors.map((p) => ({
+        id: p.id,
         name: p.name,
         email: p.email,
         status: p.ProfessorRequests[0].type,

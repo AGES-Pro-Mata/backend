@@ -8,14 +8,17 @@ import {
   Param,
   Patch,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { Roles } from 'src/auth/role/roles.decorator';
 import { UserType } from 'generated/prisma';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { UserSearchParamsDto, UpdateUserFormDto } from './user.model';
 import { User } from './user.decorator';
 import type { CurrentUser } from 'src/auth/auth.model';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('user')
 export class UserController {
@@ -37,7 +40,7 @@ export class UserController {
     @Param('userId') userId: string,
     @Body() updateUserDto: UpdateUserFormDto,
   ) {
-    await this.userService.updateUser(userId, updateUserDto);
+    await this.userService.updateUser(userId, updateUserDto, null);
   }
 
   @Get(':userId')
@@ -49,8 +52,14 @@ export class UserController {
   @Roles(UserType.GUEST, UserType.ADMIN)
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async updateUser(@User() user: CurrentUser, @Body() updateUserDto: UpdateUserFormDto) {
-    await this.userService.updateUser(user.id, updateUserDto);
+  @UseInterceptors(FileInterceptor('teacherDocument'))
+  @ApiConsumes('multipart/form-data')
+  async updateUser(
+    @User() user: CurrentUser,
+    @Body() updateUserDto: UpdateUserFormDto,
+    @UploadedFile() file: Express.Multer.File | null,
+  ) {
+    await this.userService.updateUser(user.id, updateUserDto, file);
   }
 
   @Get()
