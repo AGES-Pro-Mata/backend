@@ -120,8 +120,11 @@ export class RequestsService {
 
     let fileUrl: string | undefined;
 
-    if (insertRequestDto.professorId && insertRequestDto.type === RequestType.DOCUMENT_APPROVED) {
-      fileUrl = await this.createReceiptDocency(insertRequestDto.professorId);
+    if (insertRequestDto.professorId) {
+      fileUrl = await this.createReceiptDocency(
+        insertRequestDto.professorId,
+        insertRequestDto.type,
+      );
     }
 
     if (
@@ -181,7 +184,11 @@ export class RequestsService {
     });
   }
 
-  private async createReceiptDocency(userId: string) {
+  private async createReceiptDocency(userId: string, requestType: RequestType) {
+    if (requestType === 'DOCUMENT_REQUESTED') {
+      return undefined;
+    }
+
     const user = await this.databaseService.user.findUnique({
       where: { id: userId, ProfessorRequests: { some: {} } },
       select: {
@@ -204,18 +211,20 @@ export class RequestsService {
       );
     }
 
-    await this.databaseService.user.update({
-      where: { id: userId },
-      data: {
-        verified: true,
-        Receipt: {
-          create: {
-            type: ReceiptType.DOCENCY,
-            url: user.ProfessorRequests[0].fileUrl,
+    if (requestType === 'DOCUMENT_APPROVED') {
+      await this.databaseService.user.update({
+        where: { id: userId },
+        data: {
+          verified: true,
+          Receipt: {
+            create: {
+              type: ReceiptType.DOCENCY,
+              url: user.ProfessorRequests[0].fileUrl,
+            },
           },
         },
-      },
-    });
+      });
+    }
 
     return user.ProfessorRequests[0].fileUrl;
   }
