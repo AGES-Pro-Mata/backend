@@ -16,6 +16,7 @@ import {
 import { Prisma, RequestType } from 'generated/prisma';
 
 import { Decimal } from '@prisma/client/runtime/library';
+import { StorageService } from 'src/storage/storage.service';
 
 const PENDING_LIST: string[] = [
   RequestType.PAYMENT_REQUESTED,
@@ -28,7 +29,10 @@ const PENDING_LIST: string[] = [
 
 @Injectable()
 export class ReservationService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly storageService: StorageService,
+  ) {}
 
   async createRequestAdmin(
     reservationGroupId: string,
@@ -156,12 +160,23 @@ export class ReservationService {
     });
   }
 
-  async createDocumentRequest(reservationGroupId: string, userId: string) {
+  async createDocumentRequest(
+    reservationGroupId: string,
+    userId: string,
+    paymentReceipt: Express.Multer.File | null,
+  ) {
+    if (!paymentReceipt) {
+      throw new BadRequestException('`paymentReceipt` not provided');
+    }
+
+    const { url } = await this.storageService.uploadFile(paymentReceipt);
+
     const request = await this.databaseService.requests.create({
       data: {
         type: RequestType.DOCUMENT_REQUESTED,
         createdByUserId: userId,
         reservationGroupId,
+        fileUrl: url,
       },
     });
 
