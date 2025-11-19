@@ -59,7 +59,6 @@ export class UserController {
     @Body() updateUserDto: UpdateUserFormDto,
     @UploadedFile() file: Express.Multer.File | null,
   ) {
-    console.log(file);
     await this.userService.updateUser(user.id, updateUserDto, file);
   }
 
