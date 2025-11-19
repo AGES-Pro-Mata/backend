@@ -34,31 +34,6 @@ export class ReservationService {
     private readonly storageService: StorageService,
   ) {}
 
-  async createRequestAdmin(
-    reservationGroupId: string,
-    updateReservationDto: UpdateReservationDto,
-    userId: string,
-  ) {
-    const payload = await this.databaseService.reservation.count({
-      where: {
-        id: reservationGroupId,
-      },
-    });
-
-    if (payload === 0) {
-      throw new NotFoundException();
-    }
-
-    await this.databaseService.requests.create({
-      data: {
-        description: updateReservationDto.description,
-        type: updateReservationDto.type,
-        reservationGroupId,
-        createdByUserId: userId,
-      },
-    });
-  }
-
   async getAllReservationGroups(searchParams: ReservationSearchParamsDto) {
     const orderBy: Prisma.ReservationGroupOrderByWithRelationInput[] = [
       {
@@ -150,16 +125,6 @@ export class ReservationService {
     };
   }
 
-  async attachDocument(reservationId: string, url: string, userId: string) {
-    return await this.databaseService.document.create({
-      data: {
-        url,
-        reservationId,
-        uploadedByUserId: userId,
-      },
-    });
-  }
-
   async createDocumentRequest(
     reservationGroupId: string,
     userId: string,
@@ -173,7 +138,7 @@ export class ReservationService {
 
     const request = await this.databaseService.requests.create({
       data: {
-        type: RequestType.DOCUMENT_REQUESTED,
+        type: RequestType.PAYMENT_REQUESTED,
         createdByUserId: userId,
         reservationGroupId,
         fileUrl: url,
@@ -189,15 +154,6 @@ export class ReservationService {
         type: RequestType.CANCELED_REQUESTED,
         reservationGroupId,
         createdByUserId: userId,
-      },
-    });
-  }
-
-  async deleteReservation(reservationId: string) {
-    return await this.databaseService.reservationGroup.update({
-      where: { id: reservationId },
-      data: {
-        active: false,
       },
     });
   }
