@@ -118,6 +118,8 @@ export class RequestsService {
       await this.sendStatusChangeEmail(insertRequestDto.reservationGroupId);
     }
 
+    let fileUrl: string | undefined;
+
     if (insertRequestDto.professorId && insertRequestDto.type === RequestType.DOCUMENT_APPROVED) {
       await this.createReceiptDocency(insertRequestDto.professorId);
     }
@@ -126,11 +128,11 @@ export class RequestsService {
       insertRequestDto.reservationGroupId &&
       insertRequestDto.type === RequestType.PAYMENT_APPROVED
     ) {
-      await this.createReceiptPayment(insertRequestDto.reservationGroupId);
+      fileUrl = await this.createReceiptPayment(insertRequestDto.reservationGroupId);
     }
 
     return await this.databaseService.requests.create({
-      data: { ...insertRequestDto, createdByUserId },
+      data: { ...insertRequestDto, createdByUserId, fileUrl },
     });
   }
 
@@ -177,6 +179,8 @@ export class RequestsService {
         },
       },
     });
+
+    return reservationGroup.requests[0].fileUrl;
   }
 
   private async createReceiptDocency(userId: string) {
