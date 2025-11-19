@@ -155,11 +155,11 @@ export class RequestsService {
 
     if (
       !reservationGroup ||
-      reservationGroup.requests[0].type !== RequestType.PAYMENT_REQUESTED ||
+      reservationGroup.requests[0].type !== RequestType.PAYMENT_SENT ||
       reservationGroup.requests[0].fileUrl === null
     ) {
       throw new BadRequestException(
-        'Reservation Group do not exists or did not have any PAYMENT_REQUESTED request',
+        'Reservation Group do not exists or did not have any PAYMENT_SENT request',
       );
     }
 
