@@ -11,7 +11,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { UserType } from 'generated/prisma';
 import { User } from 'src/user/user.decorator';
 import {
@@ -30,13 +30,15 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('signUp')
-  @UseInterceptors(FileInterceptor('arquivo'))
+  @UseInterceptors(FileInterceptor('teacherDocument'))
+  @ApiConsumes('multipart/form-data')
   @HttpCode(HttpStatus.CREATED)
   async createUser(
-    @UploadedFile() arquivo: Express.Multer.File | null,
+    @UploadedFile() file: Express.Multer.File | null,
     @Body() body: CreateUserFormDto,
   ) {
-    return await this.authService.createUser(arquivo, body);
+    console.log(file, body);
+    return await this.authService.createUser(file, body);
   }
 
   @Post('signIn')
