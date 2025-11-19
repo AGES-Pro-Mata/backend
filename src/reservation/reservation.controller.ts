@@ -5,7 +5,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  Delete,
   Post,
   Query,
   UseInterceptors,
@@ -17,7 +16,6 @@ import { UserType } from 'generated/prisma';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
   CreateReservationGroupDto,
-  UpdateReservationDto,
   UpdateReservationByAdminDto,
   ReservationGroupStatusFilterDto,
   RegisterMemberDto,
@@ -47,14 +45,6 @@ export class ReservationController {
   @ApiBearerAuth('access-token')
   async getReservationAdmin(@Param('reservationGroupId') reservationGroupId: string) {
     return await this.reservationService.getReservationGroupByIdAdmin(reservationGroupId);
-  }
-
-  @Delete(':reservationGroupId')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles(UserType.ADMIN)
-  @ApiBearerAuth('access-token')
-  async deleteReservation(@Param('reservationGroupId') reservationGroupId: string) {
-    return await this.reservationService.deleteReservation(reservationGroupId);
   }
 
   @Get('user')
@@ -101,22 +91,6 @@ export class ReservationController {
       reservationGroupId,
       user.id,
       paymentReceipt,
-    );
-  }
-
-  @Post(':reservationGroupId/request')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles(UserType.ADMIN)
-  @ApiBearerAuth('access-token')
-  async createRequestAdmin(
-    @User() user: CurrentUser,
-    @Param('reservationGroupId') reservationGroupId: string,
-    @Body() updateReservationDto: UpdateReservationDto,
-  ) {
-    await this.reservationService.createRequestAdmin(
-      reservationGroupId,
-      updateReservationDto,
-      user.id,
     );
   }
 
