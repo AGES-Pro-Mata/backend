@@ -89,7 +89,7 @@ export class ReservationController {
     status: 201,
     description: 'Comprovante anexado e solicitação de aprovação criada com sucesso.',
   })
-  @Roles(UserType.ADMIN)
+  @Roles(UserType.GUEST)
   @UseInterceptors(FileInterceptor('paymentReceipt'))
   @ApiConsumes('multipart/form-data')
   async attachReceiptAndRequestApproval(
