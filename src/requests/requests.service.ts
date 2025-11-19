@@ -64,7 +64,7 @@ export class RequestsService {
     };
   }
 
-  async getProfessorRequests(professorId: string, userId: string) {
+  async getProfessorRequests(professorId: string) {
     const professor = await this.databaseService.user.findUnique({
       where: {
         id: professorId,
@@ -74,19 +74,14 @@ export class RequestsService {
       },
       select: {
         ProfessorRequests: {
-          orderBy: { createdAt: 'asc' },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
           select: {
             id: true,
             type: true,
             description: true,
-            createdBy: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
             createdAt: true,
+            fileUrl: true,
           },
         },
       },
@@ -96,23 +91,7 @@ export class RequestsService {
       throw new NotFoundException('Professor requests not found');
     }
 
-    const events = professor.ProfessorRequests.map((e) => ({
-      id: e.id,
-      status: e.type,
-      description: e.description,
-      createdAt: e.createdAt,
-      name: e.createdBy.name,
-      email: e.createdBy.email,
-      userId: e.createdBy.id,
-      isSender: e.createdBy.id === userId,
-      isRequester: e.createdBy.id === professorId,
-    }));
-
-    return {
-      events,
-      createdAt: events[0].createdAt,
-      status: events[events.length - 1].status,
-    };
+    return professor.ProfessorRequests[0];
   }
 
   async insertRequest(createdByUserId: string, insertRequestDto: InsertRequestDto) {
