@@ -142,7 +142,7 @@ export class ReservationService {
 
     const request = await this.databaseService.requests.create({
       data: {
-        type: RequestType.PAYMENT_REQUESTED,
+        type: RequestType.PAYMENT_SENT,
         createdByUserId: userId,
         reservationGroupId,
         fileUrl: url,
