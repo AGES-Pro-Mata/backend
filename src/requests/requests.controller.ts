@@ -27,8 +27,8 @@ export class RequestsController {
   @Get('professor/:professorId')
   @Roles(UserType.ADMIN)
   @ApiBearerAuth('access-token')
-  async getProfessorRequest(@Param('professorId') professorId: string, @User() user: CurrentUser) {
-    return await this.requestsService.getProfessorRequests(professorId, user.id);
+  async getProfessorRequest(@Param('professorId') professorId: string) {
+    return await this.requestsService.getProfessorRequests(professorId);
   }
 
   @Post()

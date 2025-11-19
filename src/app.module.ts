@@ -20,6 +20,7 @@ import { HighlightModule } from './highlight/highlight.module';
 import { MailModule } from './mail/mail.module';
 import { RequestsModule } from './requests/requests.module';
 import { ProfessorModule } from './professor/professor.module';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { ProfessorModule } from './professor/professor.module';
     ObfuscateModule,
     HighlightModule,
     ProfessorModule,
+    StorageModule,
   ],
   controllers: [AppController, ReservationController],
   providers: [

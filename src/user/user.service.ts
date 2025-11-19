@@ -7,9 +7,10 @@ import {
 } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import z from 'zod';
-import { Prisma, UserType } from 'generated/prisma';
+import { Prisma, RequestType, UserType } from 'generated/prisma';
 import { UserSearchParamsDto, UpdateUserFormDto } from './user.model';
 import { ObfuscateService } from 'src/obfuscate/obfuscate.service';
+import { StorageService } from 'src/storage/storage.service';
 
 @Injectable()
 export class UserService {
@@ -18,6 +19,7 @@ export class UserService {
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly obfuscateService: ObfuscateService,
+    private readonly storageService: StorageService,
   ) {}
 
   async deleteUser(userId: string, deleterId: string) {
@@ -51,8 +53,23 @@ export class UserService {
     });
   }
 
-  async updateUser(userId: string, updateUserDto: UpdateUserFormDto) {
+  async updateUser(
+    userId: string,
+    updateUserDto: UpdateUserFormDto,
+    file: Express.Multer.File | null,
+  ) {
     this.verifyUserId(userId);
+
+    let url: string | undefined;
+
+    if (file) {
+      const uploadedFile = await this.storageService.uploadFile(file, {
+        directory: 'user',
+        contentType: file.mimetype,
+        cacheControl: 'public, max-age=31536000',
+      });
+      url = uploadedFile.url;
+    }
 
     const user = await this.databaseService.user.update({
       where: { id: userId, userType: { not: UserType.ROOT } },
@@ -66,6 +83,7 @@ export class UserService {
         userType: updateUserDto.userType,
         institution: updateUserDto.institution,
         isForeign: updateUserDto.isForeign,
+        verified: url ? false : undefined,
       },
     });
 
@@ -83,6 +101,17 @@ export class UserService {
         country: updateUserDto.country,
       },
     });
+
+    if (url) {
+      await this.databaseService.requests.create({
+        data: {
+          type: RequestType.DOCUMENT_REQUESTED,
+          fileUrl: url,
+          professorId: userId,
+          createdByUserId: userId,
+        },
+      });
+    }
   }
 
   async searchUser(searchParams: UserSearchParamsDto) {

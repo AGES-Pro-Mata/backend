@@ -5,18 +5,17 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  Delete,
   Post,
   Query,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { ReservationService } from './reservation.service';
 import { Roles } from 'src/auth/role/roles.decorator';
 import { UserType } from 'generated/prisma';
-import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import {
-  AttachReceiptDto,
   CreateReservationGroupDto,
-  UpdateReservationDto,
   UpdateReservationByAdminDto,
   ReservationGroupStatusFilterDto,
   RegisterMemberDto,
@@ -24,6 +23,7 @@ import {
 } from './reservation.model';
 import { User } from 'src/user/user.decorator';
 import { type CurrentUser } from 'src/auth/auth.model';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('reservation/group')
 export class ReservationController {
@@ -45,14 +45,6 @@ export class ReservationController {
   @ApiBearerAuth('access-token')
   async getReservationAdmin(@Param('reservationGroupId') reservationGroupId: string) {
     return await this.reservationService.getReservationGroupByIdAdmin(reservationGroupId);
-  }
-
-  @Delete(':reservationGroupId')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles(UserType.ADMIN)
-  @ApiBearerAuth('access-token')
-  async deleteReservation(@Param('reservationGroupId') reservationGroupId: string) {
-    return await this.reservationService.deleteReservation(reservationGroupId);
   }
 
   @Get('user')
@@ -79,7 +71,7 @@ export class ReservationController {
     );
   }
 
-  @Post(':reservationGroupId/receipt')
+  @Post(':reservationGroupId/request/receipt')
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Anexa um comprovante à reserva e cria uma solicitação de aprovação.' })
@@ -87,34 +79,18 @@ export class ReservationController {
     status: 201,
     description: 'Comprovante anexado e solicitação de aprovação criada com sucesso.',
   })
-  @Roles(UserType.ADMIN)
+  @Roles(UserType.GUEST)
+  @UseInterceptors(FileInterceptor('paymentReceipt'))
+  @ApiConsumes('multipart/form-data')
   async attachReceiptAndRequestApproval(
     @User() user: CurrentUser,
     @Param('reservationGroupId') reservationGroupId: string,
-    @Body() attachReceiptDto: AttachReceiptDto,
+    @UploadedFile() paymentReceipt: Express.Multer.File | null,
   ) {
-    await this.reservationService.attachDocument(reservationGroupId, attachReceiptDto.url, user.id);
-    await this.reservationService.createDocumentRequest(reservationGroupId, user.id);
-
-    return {
-      statusCode: HttpStatus.CREATED,
-      message: 'Comprovante anexado e solicitação de aprovação enviada.',
-    };
-  }
-
-  @Post(':reservationGroupId/request')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles(UserType.ADMIN)
-  @ApiBearerAuth('access-token')
-  async createRequestAdmin(
-    @User() user: CurrentUser,
-    @Param('reservationGroupId') reservationGroupId: string,
-    @Body() updateReservationDto: UpdateReservationDto,
-  ) {
-    await this.reservationService.createRequestAdmin(
+    await this.reservationService.createDocumentRequest(
       reservationGroupId,
-      updateReservationDto,
       user.id,
+      paymentReceipt,
     );
   }
 
@@ -141,15 +117,6 @@ export class ReservationController {
     @Param('reservationGroupId') reservationGroupId: string,
   ) {
     await this.reservationService.createCancelRequest(reservationGroupId, user.id);
-  }
-
-  @Post(':reservationGroupId/request/document')
-  @Roles(UserType.GUEST)
-  async requestDocumentApproval(
-    @User() user: CurrentUser,
-    @Param('reservationGroupId') reservationGroupId: string,
-  ) {
-    return this.reservationService.createDocumentRequest(reservationGroupId, user.id);
   }
 
   @Post(':reservationId/admin')
