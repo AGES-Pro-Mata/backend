@@ -486,7 +486,7 @@ export class ReservationService {
       data: {
         requests: {
           create: {
-            type: 'PAYMENT_REQUESTED',
+            type: 'PEOPLE_SENT',
             createdByUserId: userId,
           },
         },
