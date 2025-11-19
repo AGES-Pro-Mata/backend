@@ -79,6 +79,7 @@ export class UserService {
         userType: updateUserDto.userType,
         institution: updateUserDto.institution,
         isForeign: updateUserDto.isForeign,
+        verified: url ? false : undefined,
       },
     });
 
