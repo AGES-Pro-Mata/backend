@@ -263,7 +263,7 @@ jobs:
             ELAPSED=0
             while [ $ELAPSED -lt $MAX_WAIT ]; do
               HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' "${CONTAINER}" 2>/dev/null || echo "none")
-              
+
               if [ "$HEALTH_STATUS" = "healthy" ]; then
                 echo "✓ Container está healthy!"
                 break
@@ -274,7 +274,7 @@ jobs:
                 docker rm "${CONTAINER}"
                 exit 1
               fi
-              
+
               echo "Status: ${HEALTH_STATUS}, aguardando... (${ELAPSED}s/${MAX_WAIT}s)"
               sleep 5
               ELAPSED=$((ELAPSED + 5))
@@ -419,7 +419,7 @@ jobs:
               -e FRONTEND_URL="${FRONTEND_URL}" \
               ${EXTRA_FLAG} \
               --restart always \
-              --health-cmd="curl -f http://localhost:3000/health || exit 1" \
+              --health-cmd="curl -f http://localhost:3001/health || exit 1" \
               --health-interval=10s \
               --health-timeout=5s \
               --health-retries=3 \
@@ -432,7 +432,7 @@ jobs:
             ELAPSED=0
             while [ $ELAPSED -lt $MAX_WAIT ]; do
               HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' "${CONTAINER}" 2>/dev/null || echo "none")
-              
+
               if [ "$HEALTH_STATUS" = "healthy" ]; then
                 echo "✓ Container está healthy!"
                 break
@@ -443,7 +443,7 @@ jobs:
                 docker rm "${CONTAINER}"
                 exit 1
               fi
-              
+
               echo "Status: ${HEALTH_STATUS}, aguardando... (${ELAPSED}s/${MAX_WAIT}s)"
               sleep 5
               ELAPSED=$((ELAPSED + 5))
