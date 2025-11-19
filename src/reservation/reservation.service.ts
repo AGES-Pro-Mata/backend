@@ -478,24 +478,30 @@ export class ReservationService {
     userId: string,
     registerMemberDto: RegisterMemberDto[],
   ) {
-    await this.databaseService.reservationGroup.update({
-      where: {
-        id: reservationGroupId,
-        userId,
-      },
-      data: {
-        requests: {
-          create: {
-            type: 'PEOPLE_SENT',
-            createdByUserId: userId,
+    await this.databaseService.$transaction([
+      this.databaseService.member.deleteMany({
+        where: { reservationGroupId: reservationGroupId },
+      }),
+
+      this.databaseService.reservationGroup.update({
+        where: {
+          id: reservationGroupId,
+          userId,
+        },
+        data: {
+          requests: {
+            create: {
+              type: 'PEOPLE_SENT',
+              createdByUserId: userId,
+            },
+          },
+          members: {
+            createMany: {
+              data: registerMemberDto,
+            },
           },
         },
-        members: {
-          createMany: {
-            data: registerMemberDto,
-          },
-        },
-      },
-    });
+      }),
+    ]);
   }
 }
