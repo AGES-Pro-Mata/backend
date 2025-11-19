@@ -134,7 +134,11 @@ export class ReservationService {
       throw new BadRequestException('`paymentReceipt` not provided');
     }
 
-    const { url } = await this.storageService.uploadFile(paymentReceipt);
+    const { url } = await this.storageService.uploadFile(paymentReceipt, {
+      directory: 'payments',
+      contentType: paymentReceipt.mimetype,
+      cacheControl: 'public, max-age=31536000',
+    });
 
     const request = await this.databaseService.requests.create({
       data: {

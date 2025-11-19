@@ -39,7 +39,12 @@ export class AuthService {
     let url: string | undefined;
 
     if (file != null) {
-      const uploadedFile = await this.storageService.uploadFile(file);
+      const uploadedFile = await this.storageService.uploadFile(file, {
+        directory: 'user',
+        contentType: file.mimetype,
+        cacheControl: 'public, max-age=31536000',
+      });
+
       url = uploadedFile.url;
     }
 
