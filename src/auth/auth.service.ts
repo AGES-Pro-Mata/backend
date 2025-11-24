@@ -130,7 +130,7 @@ export class AuthService {
     const token = await this.createResetToken(user.id);
     const resetUrl = `${this.configService.get('FRONTEND_URL')}/auth/redefine/${token}`;
 
-    await this.mailService.sendTemplateMail(user.email, 'Recuperação de senha', 'forgot-password', {
+    void this.mailService.sendTemplateMail(user.email, 'Recuperação de senha', 'forgot-password', {
       name: user.name,
       resetUrl,
     });
