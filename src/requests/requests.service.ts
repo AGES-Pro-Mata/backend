@@ -243,7 +243,7 @@ export class RequestsService {
           'change-status',
           {
             userName: reservation.user.name,
-            systemUrl: `${this.configService.get<string>('FRONTEND_URL')}user/my-reservations`,
+            systemUrl: `${this.configService.get<string>('FRONTEND_URL')}/user/my-reservations`,
           },
         );
       }

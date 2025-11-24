@@ -3,7 +3,7 @@ import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
 
 const InsertRequestScheme = z.object({
-  description: z.string().optional(),
+  description: z.string().nullable().optional(),
   type: z.enum(Object.values(RequestType)),
   professorId: z.string().optional(),
   reservationGroupId: z.string().optional(),
