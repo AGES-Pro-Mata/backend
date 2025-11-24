@@ -13,7 +13,10 @@ export const ProfessorRequestSearchParamsSchema = z.object({
   limit: z.string().transform((val) => parseInt(val, 10)),
   name: z.string().optional(),
   email: z.string().optional(),
-  status: z.enum(PROFESSOR_REQUEST_TYPES).optional(),
+  status: z
+    .array(z.enum(PROFESSOR_REQUEST_TYPES))
+    .or(z.enum(PROFESSOR_REQUEST_TYPES).transform((v) => [v]))
+    .optional(),
 });
 
 export class ProfessorRequestSearchParamsDto extends createZodDto(
