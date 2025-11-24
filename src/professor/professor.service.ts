@@ -1,61 +1,87 @@
 import { Injectable } from '@nestjs/common';
 import { ProfessorRequestSearchParamsDto } from './professor.model';
 import { DatabaseService } from 'src/database/database.service';
-import { Prisma } from 'generated/prisma';
+import { RequestType } from 'generated/prisma';
 
 @Injectable()
 export class ProfessorService {
   constructor(private readonly databaseService: DatabaseService) {}
 
   async searchRequests(professorRequestSearchParamsDto: ProfessorRequestSearchParamsDto) {
-    const where: Prisma.UserWhereInput = {
-      name: {
-        contains: professorRequestSearchParamsDto.name,
-      },
-      email: {
-        contains: professorRequestSearchParamsDto.email,
-      },
-      ProfessorRequests: {
-        some: {
-          type: professorRequestSearchParamsDto.status,
-        },
-      },
+    const { page, limit, name, email, status } = professorRequestSearchParamsDto;
+
+    const offset = page * limit;
+
+    const baseQuery = `
+    SELECT
+      u.id,
+      u.name,
+      u.email,
+      r_last.type AS status
+    FROM "User" u
+    JOIN LATERAL (
+      SELECT r.type, r."createdAt"
+      FROM "Requests" r
+      WHERE r."professorId" = u.id
+      ORDER BY r."createdAt" DESC
+      LIMIT 1
+    ) r_last ON TRUE
+    WHERE 1=1
+      -- filtro por nome
+      AND ($1::text IS NULL OR u.name ILIKE '%' || $1 || '%')
+      -- filtro por email
+      AND ($2::text IS NULL OR u.email ILIKE '%' || $2 || '%')
+      -- filtro por status aplicado NA ÚLTIMA request
+      AND (
+        $3::"RequestType"[] IS NULL
+        OR r_last.type = ANY($3::"RequestType"[])
+      )
+  `;
+
+    type RawProfessorRow = {
+      id: string;
+      name: string;
+      email: string;
+      status: RequestType[number] | null;
     };
 
-    const [professors, count] = await this.databaseService.$transaction([
-      this.databaseService.user.findMany({
-        where,
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          ProfessorRequests: {
-            select: {
-              type: true,
-            },
-            orderBy: {
-              createdAt: 'desc',
-            },
-            take: 1,
-          },
-        },
+    const professors = await this.databaseService.$queryRawUnsafe<RawProfessorRow[]>(
+      `
+    ${baseQuery}
+    ORDER BY u.name ASC, r_last."createdAt" DESC
+    OFFSET $4
+    LIMIT $5
+    `,
+      name ?? null,
+      email ?? null,
+      status && status.length > 0 ? status : null,
+      offset,
+      limit,
+    );
 
-        skip: professorRequestSearchParamsDto.limit * professorRequestSearchParamsDto.page,
-        take: professorRequestSearchParamsDto.limit,
-      }),
+    const totalResult = await this.databaseService.$queryRawUnsafe<{ count: bigint }[]>(
+      `
+    SELECT COUNT(*)::bigint AS count
+    FROM (
+      ${baseQuery}
+    ) AS sub
+    `,
+      name ?? null,
+      email ?? null,
+      status && status.length > 0 ? status : null,
+    );
 
-      this.databaseService.user.count({ where }),
-    ]);
+    const total = Number(totalResult[0]?.count ?? 0);
 
     return {
-      page: professorRequestSearchParamsDto.page,
-      limit: professorRequestSearchParamsDto.limit,
-      total: count,
+      page,
+      limit,
+      total,
       items: professors.map((p) => ({
         id: p.id,
         name: p.name,
         email: p.email,
-        status: p.ProfessorRequests[0].type,
+        status: p.status,
       })),
     };
   }
