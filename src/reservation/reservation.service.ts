@@ -12,7 +12,7 @@ import {
   RegisterMemberDto,
   ReservationSearchParamsDto,
 } from './reservation.model';
-import { Prisma, RequestType } from 'generated/prisma';
+import { RequestType } from 'generated/prisma';
 
 import { Decimal } from '@prisma/client/runtime/library';
 import { StorageService } from 'src/storage/storage.service';
@@ -37,7 +37,7 @@ FROM "ReservationGroup" rg
 JOIN "User" u ON u.id = rg."userId"
 JOIN LATERAL (
   SELECT r.type
-  FROM "Request" r
+  FROM "Requests" r
   WHERE r."reservationGroupId" = rg.id
   ORDER BY r."createdAt" DESC
   LIMIT 1
@@ -87,7 +87,6 @@ export class ReservationService {
       experiences: string[] | null;
     };
 
-    // lista paginada
     const rows = await this.databaseService.$queryRawUnsafe<RawRow[]>(
       `
     ${RESERVATION_QUERY}
@@ -102,7 +101,6 @@ export class ReservationService {
       limit,
     );
 
-    // total (sem paginação)
     const totalResult = await this.databaseService.$queryRawUnsafe<{ count: bigint }[]>(
       `
     SELECT COUNT(*)::bigint AS count
