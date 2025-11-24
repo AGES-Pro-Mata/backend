@@ -237,7 +237,7 @@ export class RequestsService {
       });
 
       if (reservation?.user?.email) {
-        await this.mailService.sendTemplateMail(
+        void this.mailService.sendTemplateMail(
           reservation.user.email,
           'Atualização de Reserva',
           'change-status',
