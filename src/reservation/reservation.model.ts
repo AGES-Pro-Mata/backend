@@ -75,7 +75,7 @@ export const ReservationSearchParamsSchema = z.object({
   sort: z.enum(['email', 'status']).optional(),
   experiences: z.string().optional(),
   email: z.string().optional(),
-  status: z.enum(Object.values(RequestType)).optional(),
+  status: z.array(z.enum(Object.values(RequestType))).optional(),
 });
 
 export class ReservationSearchParamsDto extends createZodDto(ReservationSearchParamsSchema) {}

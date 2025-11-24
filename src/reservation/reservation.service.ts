@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import {
-  UpdateReservationDto,
   CreateReservationGroupDto,
   UpdateReservationByAdminDto,
   ReservationGroupStatusFilterDto,
@@ -27,6 +26,36 @@ const PENDING_LIST: string[] = [
   RequestType.EDIT_REQUESTED,
 ];
 
+const RESERVATION_QUERY = `-- baseQuery
+SELECT
+  rg.id,
+  u.email,
+  rg."createdAt",
+  lr.type AS status,
+  array_agg(DISTINCT e.name) AS experiences
+FROM "ReservationGroup" rg
+JOIN "User" u ON u.id = rg."userId"
+JOIN LATERAL (
+  SELECT r.type
+  FROM "Request" r
+  WHERE r."reservationGroupId" = rg.id
+  ORDER BY r."createdAt" DESC
+  LIMIT 1
+) lr ON TRUE
+LEFT JOIN "Reservation" res ON res."reservationGroupId" = rg.id
+LEFT JOIN "Experience" e ON e.id = res."experienceId"
+WHERE rg.active = true
+  -- filtro por email
+  AND ($1::text IS NULL OR u.email ILIKE '%' || $1 || '%')
+  -- filtro por experiência
+  AND ($2::text IS NULL OR e.name ILIKE '%' || $2 || '%')
+  -- filtro por status (lista) aplicado na ÚLTIMA request
+  AND (
+    $3::"RequestType"[] IS NULL
+    OR lr.type = ANY($3::"RequestType"[])
+  )
+GROUP BY rg.id, u.email, rg."createdAt", lr.type`;
+
 @Injectable()
 export class ReservationService {
   constructor(
@@ -35,93 +64,71 @@ export class ReservationService {
   ) {}
 
   async getAllReservationGroups(searchParams: ReservationSearchParamsDto) {
-    const orderBy: Prisma.ReservationGroupOrderByWithRelationInput[] = [
-      {
-        user: {
-          ['email']: searchParams.sort === 'email' ? searchParams.dir : undefined,
-        },
-      },
-      {
-        createdAt: 'desc',
-      },
-    ];
+    const { page, limit, sort, dir, email, experiences, status } = searchParams;
 
-    const where: Prisma.ReservationGroupWhereInput = {
-      active: true,
-      requests: {
-        some: {
-          type: searchParams.status,
-        },
-      },
-      user: {
-        email: { contains: searchParams.email },
-      },
-      reservations: {
-        some: {
-          experience: {
-            name: { contains: searchParams.experiences },
-          },
-        },
-      },
+    const offset = page * limit;
+
+    // direction SEMPRE validada pelo Zod ('asc' | 'desc')
+    const direction = dir?.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+
+    // ORDER BY dinâmico
+    const orderByClause =
+      sort === 'email'
+        ? `ORDER BY u.email ${direction}, rg."createdAt" DESC`
+        : sort === 'status'
+          ? `ORDER BY lr.type ${direction}, rg."createdAt" DESC`
+          : `ORDER BY rg."createdAt" DESC`;
+
+    type RawRow = {
+      id: string;
+      email: string;
+      createdAt: Date;
+      status: RequestType | null;
+      experiences: string[] | null;
     };
-    const groups = await this.databaseService.reservationGroup.findMany({
-      where,
-      orderBy,
-      select: {
-        id: true,
-        user: {
-          select: {
-            email: true,
-          },
-        },
-        createdAt: true,
-        requests: {
-          select: {
-            type: true,
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 1,
-        },
-        reservations: {
-          select: {
-            experience: {
-              select: {
-                name: true,
-              },
-            },
-          },
-        },
-      },
-      skip: searchParams.limit * searchParams.page,
-      take: searchParams.limit,
-    });
-    const items = groups.map((group) => {
-      return {
-        id: group.id,
-        experiences: group.reservations.map((r) => r.experience.name),
-        email: group.user.email,
-        status: group.requests[0]?.type,
-      };
-    });
 
-    const total = await this.databaseService.reservationGroup.count({ where });
+    // lista paginada
+    const rows = await this.databaseService.$queryRawUnsafe<RawRow[]>(
+      `
+    ${RESERVATION_QUERY}
+    ${orderByClause}
+    OFFSET $4
+    LIMIT $5
+    `,
+      email ?? null,
+      experiences ?? null,
+      status && status.length > 0 ? status : null,
+      offset,
+      limit,
+    );
+
+    // total (sem paginação)
+    const totalResult = await this.databaseService.$queryRawUnsafe<{ count: bigint }[]>(
+      `
+    SELECT COUNT(*)::bigint AS count
+    FROM (
+      ${RESERVATION_QUERY}
+    ) AS sub
+    `,
+      email ?? null,
+      experiences ?? null,
+      status && status.length > 0 ? status : null,
+    );
+
+    const total = Number(totalResult[0]?.count ?? 0);
+
+    const items = rows.map((row) => ({
+      id: row.id,
+      experiences: row.experiences ?? [],
+      email: row.email,
+      status: row.status,
+    }));
 
     return {
-      page: searchParams.page,
-      limit: searchParams.limit,
+      page,
+      limit,
       total,
-      items:
-        searchParams.sort === 'status'
-          ? items.sort((a, b) => {
-              if (searchParams.dir === 'asc') {
-                return a.status.localeCompare(b.status);
-              } else {
-                return b.status.localeCompare(a.status);
-              }
-            })
-          : items,
+      items,
     };
   }
 
