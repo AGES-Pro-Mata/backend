@@ -188,6 +188,23 @@ async function main() {
     },
   });
 
+    const lucasUser = await prisma.user.create({
+    data: {
+      userType: UserType.GUEST,
+      name: 'Lucas',
+      email: 'lucas.lantieri123@gmail.com',
+      password: demoPassword,
+      phone: '(51) 99999-9999',
+      document: generateCpf(),
+      gender: 'Masculino',
+      rg: generateRG(),
+      institution: 'Pro-Mata',
+      isForeign: false,
+      verified: true,
+      addressId: addresses[0].id,
+    },
+  });
+
   // ADMIN (10)
   const admins = [];
   for (let i = 0; i < 5; i++) {
