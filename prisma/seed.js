@@ -197,7 +197,7 @@ async function main() {
 
   // ADMIN (10)
   const admins = [];
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 5; i++) {
     const firstName = randomChoice(FIRST_NAMES);
     const lastName = randomChoice(LAST_NAMES);
     const admin = await prisma.user.create({
@@ -222,7 +222,7 @@ async function main() {
 
   // PROFESSOR (60)
   const professors = [];
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 20; i++) {
     const firstName = randomChoice(FIRST_NAMES);
     const lastName = randomChoice(LAST_NAMES);
     const professor = await prisma.user.create({
@@ -267,7 +267,7 @@ async function main() {
           ? 'International'
           : randomChoice(['Empresa Tech', 'ONG', 'Instituto']),
         isForeign: isForeign,
-        verified: Math.random() > 0.2,
+        verified: true,
         addressId: addresses[71 + i].id,
         createdByUserId: randomChoice([...admins, ...professors]).id,
       },
@@ -278,29 +278,23 @@ async function main() {
     `✓ 1 ROOT + ${admins.length} ADMIN + ${professors.length} PROFESSORES + ${guests.length} GUESTS\n`,
   );
 
-  // IMAGENS (100)
-  console.log('🖼️  Criando 100 imagens...');
-  const imageIds = [
-    '1441974380143-268489fe5e24',
-    '1511497584788-876760111969',
-    '1448375240586-882707db888b',
-    '1511884642898-4c92249e20b6',
-    '1518710843675-2540dd79065c',
-    '1426604966848-d7adac402bff',
-    '1472214103451-9374bd1c798e',
-    '1470071459604-3b5ec3a7fe05',
-    '1501854140801-50d01698950b',
-    '1469474968028-56623f02e42e',
-    '1475924156734-496f6cac6ec1',
-    '1506905925346-21bda4d32df4',
+  console.log('🖼️  Criando imagens...');
+
+  urls = [
+    'https://promata-storage-dev.s3.us-east-2.amazonaws.com/experiences/f5703517cae3b365e6d68f64151d144a', // Quarto rústico
+    'https://promata-storage-dev.s3.us-east-2.amazonaws.com/experiences/22b83d04371d00f34b169837854ee133', // Trilha
+    'https://promata-storage-dev.s3.us-east-2.amazonaws.com/experiences/05689650485fdbdf6fad3fb00471be28', // Laboratorio botanica
+    'https://promata-storage-dev.s3.us-east-2.amazonaws.com/experiences/7ef417424a614afaf09907c0f32a8b8f', // Céu estrelado noturo (evento de observação de astros)
+    'https://promata-storage-dev.s3.us-east-2.amazonaws.com/experiences/3eb2c7c8532bb128c638b8d6829844d7', // Evento de festa
+    'https://promata-storage-dev.s3.us-east-2.amazonaws.com/experiences/5272a359d87cc8731e16ffee325fa5d4', // Quarto rustico 2
+    'https://promata-storage-dev.s3.us-east-2.amazonaws.com/experiences/68bdcba34f92108815afa5e87cb4c17d', // Laboratorio rustico
   ];
 
   const images = [];
-  for (let i = 0; i < 100; i++) {
-    const imageId = randomChoice(imageIds);
+  for (let i = 0; i < urls.length; i++) {
     const image = await prisma.image.create({
       data: {
-        url: `https://images.unsplash.com/photo-${imageId}?seed=${i}`,
+        url: urls[i],
         active: Math.random() > 0.05,
       },
     });
@@ -325,15 +319,6 @@ async function main() {
     'Trilha das Bromélias',
     'Trilha do Pico Alto',
     'Trilha da Pedra Grande',
-    'Trilha Ecológica',
-    'Trilha da Floresta',
-    'Trilha do Vale',
-    'Trilha da Cachoeira',
-    'Trilha Panorâmica',
-    'Trilha do Lago',
-    'Trilha Histórica',
-    'Trilha Noturna',
-    'Trilha da Biodiversidade',
   ];
 
   for (let i = 0; i < trailNames.length; i++) {
@@ -376,10 +361,6 @@ async function main() {
     'Chalé Familiar',
     'Camping Privativo',
     'Bangalô Rústico',
-    'Tenda Glamping',
-    'Cabana Dupla',
-    'Apartamento Floresta',
-    'Quarto Compartilhado',
   ];
 
   for (let i = 0; i < hostingNames.length; i++) {
@@ -403,7 +384,6 @@ async function main() {
 
   // LABORATÓRIOS (12)
   const labNames = [
-    'Lab. Biodiversidade',
     'Lab. Botânica',
     'Lab. Ecologia',
     'Lab. Genética',
@@ -455,7 +435,7 @@ async function main() {
     'Seminário Sustentabilidade',
   ];
 
-  for (let i = 0; i < 35; i++) {
+  for (let i = 0; i < 11; i++) {
     const month = randomInt(1, 12);
     const day = randomInt(1, 28);
     const startDate = new Date(2025, month - 1, day, randomInt(8, 14), 0, 0);
@@ -516,6 +496,7 @@ async function main() {
   let totalMembers = 0;
   let totalDocuments = 0;
   let totalRequests = 0;
+  const paymentReceiptCandidates = [];
 
   // 1200+ reservas ao longo de 2025
   for (let month = 1; month <= 12; month++) {
@@ -535,11 +516,38 @@ async function main() {
         endDate.setMinutes(startDate.getMinutes() + randomExperience.durationMinutes);
       }
 
+      const includePeopleStep = Math.random() > 0.2;
+      const workflowRandom = Math.random();
+      const requestFlow = ['CREATED'];
+
+      if (includePeopleStep) {
+        requestFlow.push('PEOPLE_REQUESTED', 'PEOPLE_SENT');
+      }
+
+      let finalPaymentState = null;
+      let isCanceled = false;
+
+      if (workflowRandom < 0.55) {
+        requestFlow.push('PAYMENT_REQUESTED', 'PAYMENT_SENT', 'PAYMENT_APPROVED');
+        finalPaymentState = 'APPROVED';
+      } else if (workflowRandom < 0.7) {
+        requestFlow.push('CANCELED_REQUESTED', 'CANCELED');
+        isCanceled = true;
+      } else if (workflowRandom < 0.85) {
+        requestFlow.push('PAYMENT_REQUESTED', 'PAYMENT_SENT');
+        finalPaymentState = 'PENDING';
+      } else {
+        requestFlow.push('PAYMENT_REQUESTED', 'PAYMENT_SENT', 'PAYMENT_REJECTED');
+        finalPaymentState = 'REJECTED';
+      }
+
+      const isGroupActive = !isCanceled && finalPaymentState !== 'REJECTED';
+
       // ReservationGroup
       const reservationGroup = await prisma.reservationGroup.create({
         data: {
           userId: randomUser.id,
-          active: Math.random() > 0.15,
+          active: isGroupActive,
           createdAt: createdDate,
           notes: Math.random() > 0.7 ? `Notas mês ${month}` : null,
         },
@@ -576,7 +584,7 @@ async function main() {
           startDate: startDate,
           endDate: endDate,
           price: randomExperience.price,
-          active: reservationGroup.active,
+          active: isGroupActive,
           createdAt: createdDate,
           membersCount: numMembers,
         },
@@ -600,18 +608,12 @@ async function main() {
       }
 
       // Requests (workflow)
-      const requestTypes = [
-        ['CREATED', 'PEOPLE_SENT', 'PAYMENT_SENT', 'APPROVED'],
-        ['CREATED', 'CANCELED_REQUESTED', 'CANCELED'],
-        ['CREATED', 'PEOPLE_SENT', 'APPROVED'],
-      ];
-
-      const selectedFlow = randomChoice(requestTypes);
-      for (let r = 0; r < selectedFlow.length; r++) {
+      for (let r = 0; r < requestFlow.length; r++) {
+        const type = requestFlow[r];
         await prisma.requests.create({
           data: {
-            type: selectedFlow[r],
-            description: `${selectedFlow[r]} - ${reservation.id.substring(0, 8)}`,
+            type: type,
+            description: `${type} - ${reservation.id.substring(0, 8)}`,
             createdByUserId: r === 0 ? randomUser.id : randomChoice(admins).id,
             reservationGroupId: reservationGroup.id,
             professorId: randomUser.userType === UserType.PROFESSOR ? randomUser.id : null,
@@ -619,6 +621,15 @@ async function main() {
           },
         });
         totalRequests++;
+      }
+
+      if (finalPaymentState && Math.random() > 0.6) {
+        paymentReceiptCandidates.push({
+          reservationGroupId: reservationGroup.id,
+          userId: randomUser.id,
+          baseDate: addDays(createdDate, requestFlow.length - 1),
+          paymentState: finalPaymentState,
+        });
       }
     }
 
@@ -633,27 +644,59 @@ async function main() {
   // RECEIPTS (400+)
   console.log('🧾 Criando 400+ receipts...');
   let totalReceipts = 0;
-  for (let month = 1; month <= 12; month++) {
-    const receiptsThisMonth = randomInt(30, 40);
 
-    for (let i = 0; i < receiptsThisMonth; i++) {
-      const randomUser = randomChoice(allUsers);
-      const receiptType = randomChoice(['PAYMENT', 'DOCENCY']);
-      const status = randomChoice(['PENDING', 'ACTIVE', 'EXPIRED']);
+  // Receipts de pagamento vinculados aos grupos de reserva
+  for (let i = 0; i < paymentReceiptCandidates.length; i++) {
+    const candidate = paymentReceiptCandidates[i];
 
-      await prisma.receipt.create({
-        data: {
-          type: receiptType,
-          url: `https://storage.promata.com/receipt-${month}-${i}.pdf`,
-          value: randomInt(50, 500),
-          status: status,
-          userId: randomUser.id,
-          createdAt: new Date(2025, month - 1, randomInt(1, 28)),
-        },
-      });
-      totalReceipts++;
+    let status = 'PENDING';
+    if (candidate.paymentState === 'APPROVED') {
+      status = 'ACTIVE';
+    } else if (candidate.paymentState === 'REJECTED') {
+      status = 'EXPIRED';
     }
+
+    const receipt = await prisma.receipt.create({
+      data: {
+        type: 'PAYMENT',
+        url: `https://storage.promata.com/receipt-${candidate.reservationGroupId.substring(0, 8)}-${
+          i + 1
+        }.pdf`,
+        value: randomInt(50, 500),
+        status: status,
+        userId: candidate.userId,
+        createdAt: candidate.baseDate,
+      },
+    });
+
+    await prisma.reservationGroup.update({
+      where: { id: candidate.reservationGroupId },
+      data: { receiptId: receipt.id },
+    });
+
+    totalReceipts++;
   }
+
+  // Receipts de docência para professores (não vinculados a reservas)
+  const docencyReceiptsCount = 50;
+  for (let i = 0; i < docencyReceiptsCount; i++) {
+    const professor = randomChoice(professors);
+    const status = randomChoice(['PENDING', 'ACTIVE', 'EXPIRED']);
+
+    await prisma.receipt.create({
+      data: {
+        type: 'DOCENCY',
+        url: `https://storage.promata.com/docency-receipt-${i + 1}.pdf`,
+        value: randomInt(200, 1500),
+        status: status,
+        userId: professor.id,
+        createdAt: randomDate(new Date(2025, 0, 1), new Date(2025, 11, 31)),
+      },
+    });
+
+    totalReceipts++;
+  }
+
   console.log(`✓ ${totalReceipts} receipts\n`);
 
   // PASSWORD RESET TOKENS (20)
@@ -691,7 +734,7 @@ async function main() {
    • ${addresses.length} Endereços
    • ${images.length} Imagens
    • ${experiences.length} Experiências
-   • 20 Highlights
+   • ${highlightOrder - 1} Highlights
 
 📅 RESERVAS E RELACIONADOS:
    • ${totalReservationGroups} Grupos de Reserva

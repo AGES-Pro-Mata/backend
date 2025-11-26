@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { StorageService } from 'src/storage/storage.service';
 import { Prisma } from 'generated/prisma';
@@ -49,9 +49,27 @@ export class ExperienceService {
   }
 
   async deleteExperience(experienceId: string) {
-    await this.databaseService.experience.update({
+    const experience = await this.databaseService.experience.findUnique({
       where: { id: experienceId },
-      data: { active: false },
+      select: { id: true },
+    });
+
+    if (!experience) {
+      throw new NotFoundException('Experiência não encontrada');
+    }
+
+    const reservationCount = await this.databaseService.reservation.count({
+      where: { experienceId },
+    });
+
+    if (reservationCount > 0) {
+      throw new BadRequestException(
+        'Não é possível deletar a experiência pois existem reservas associadas. Desative-a em vez de deletar.',
+      );
+    }
+
+    await this.databaseService.experience.delete({
+      where: { id: experienceId },
     });
   }
 
@@ -126,6 +144,12 @@ export class ExperienceService {
       },
     };
 
+    if (experienceSearchParamsDto.category && experienceSearchParamsDto.category.length > 0) {
+      where.category = {
+        in: experienceSearchParamsDto.category,
+      };
+    }
+
     const experiences = await this.databaseService.experience.findMany({
       where,
       select: {
@@ -195,18 +219,27 @@ export class ExperienceService {
   }
 
   async getExperienceFilter(getExperienceFilterDto: GetExperienceFilterDto) {
+    const andConditions: Prisma.ExperienceWhereInput[] = [];
+
+    if (getExperienceFilterDto.startDate) {
+      andConditions.push({
+        OR: [{ startDate: null }, { startDate: { gte: getExperienceFilterDto.startDate } }],
+      });
+    }
+
+    if (getExperienceFilterDto.endDate) {
+      andConditions.push({
+        OR: [{ endDate: null }, { endDate: { lte: getExperienceFilterDto.endDate } }],
+      });
+    }
+
     const where: Prisma.ExperienceWhereInput = {
       category: getExperienceFilterDto.category,
-      startDate: {
-        gte: getExperienceFilterDto.startDate,
-      },
-      endDate: {
-        lte: getExperienceFilterDto.endDate,
-      },
       name: {
         contains: getExperienceFilterDto.search,
         mode: 'insensitive',
       },
+      ...(andConditions.length > 0 ? { AND: andConditions } : {}),
     };
 
     const experiences = await this.databaseService.experience.findMany({

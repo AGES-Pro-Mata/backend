@@ -19,6 +19,28 @@ const booleanFromString = z
 
 const dateFromIsoString = z.iso.datetime().optional();
 
+const searchDateFromString = z
+  .string()
+  .optional()
+  .transform((val) => {
+    if (!val) {
+      return undefined;
+    }
+
+    const trimmed = val.trim();
+
+    if (trimmed === '') {
+      return undefined;
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return `${trimmed}T00:00:00.000Z`;
+    }
+
+    return trimmed;
+  })
+  .pipe(z.iso.datetime().optional());
+
 const weekDaysSchema = z
   .union([
     z.array(z.enum(Object.values(WeekDay))),
@@ -104,7 +126,11 @@ export const ExperienceSearchParamsSchema = z.object({
       return val ?? 'createdAt';
     }),
   name: z.string().optional(),
-  description: z.email().optional(),
+  description: z.string().optional(),
+  category: z
+    .array(z.enum(Object.values(Category)))
+    .or(z.enum(Object.values(Category)).transform((v) => [v]))
+    .optional(),
   startDate: z.iso.datetime().optional(),
   endDate: z.iso.datetime().optional(),
 });
@@ -114,8 +140,8 @@ export class ExperienceSearchParamsDto extends createZodDto(ExperienceSearchPara
 export const GetExperienceFilterSchema = z.object({
   category: z.enum(Object.values(Category)),
   search: z.string().optional(),
-  startDate: z.iso.datetime().optional(),
-  endDate: z.iso.datetime().optional(),
+  startDate: searchDateFromString,
+  endDate: searchDateFromString,
   page: z.string().transform((val) => parseInt(val, 10)),
   limit: z.string().transform((val) => parseInt(val, 10)),
 });

@@ -9,6 +9,7 @@ import {
   CreateExperienceFormDto,
   UpdateExperienceFormDto,
   ExperienceSearchParamsDto,
+  GetExperienceFilterDto,
 } from './experience.model';
 
 describe('ExperienceService', () => {
@@ -33,10 +34,14 @@ describe('ExperienceService', () => {
         findMany: jest.fn(),
         findUnique: jest.fn(),
         count: jest.fn(),
+        delete: jest.fn(),
       },
       image: {
         findUnique: jest.fn(),
         create: jest.fn(),
+      },
+      reservation: {
+        count: jest.fn(),
       },
     };
 
@@ -63,15 +68,51 @@ describe('ExperienceService', () => {
   describe('deleteExperience', () => {
     const experienceId = '1b7b4b0a-1e67-41af-9f0f-4a11f3e8a9f7';
 
-    it('should soft delete experience by setting active to false', async () => {
-      databaseService.experience.update.mockResolvedValueOnce({} as never);
+    it('should delete experience when it exists and has no reservations', async () => {
+      databaseService.experience.findUnique.mockResolvedValueOnce({ id: experienceId } as never);
+      databaseService.reservation.count.mockResolvedValueOnce(0);
+      databaseService.experience.delete.mockResolvedValueOnce({} as never);
 
       await service.deleteExperience(experienceId);
 
-      expect(databaseService.experience.update).toHaveBeenCalledWith({
+      expect(databaseService.experience.findUnique).toHaveBeenCalledWith({
         where: { id: experienceId },
-        data: { active: false },
+        select: { id: true },
       });
+
+      expect(databaseService.reservation.count).toHaveBeenCalledWith({
+        where: { experienceId },
+      });
+
+      expect(databaseService.experience.delete).toHaveBeenCalledWith({
+        where: { id: experienceId },
+      });
+    });
+
+    it('should throw NotFoundException when experience does not exist', async () => {
+      databaseService.experience.findUnique.mockResolvedValueOnce(null);
+
+      const deletePromise = service.deleteExperience(experienceId);
+
+      await expect(deletePromise).rejects.toThrow(NotFoundException);
+      await expect(deletePromise).rejects.toThrow('Experiência não encontrada');
+
+      expect(databaseService.reservation.count).not.toHaveBeenCalled();
+      expect(databaseService.experience.delete).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when there are reservations', async () => {
+      databaseService.experience.findUnique.mockResolvedValueOnce({ id: experienceId } as never);
+      databaseService.reservation.count.mockResolvedValueOnce(2);
+
+      const deletePromise = service.deleteExperience(experienceId);
+
+      await expect(deletePromise).rejects.toThrow(BadRequestException);
+      await expect(deletePromise).rejects.toThrow(
+        'Não é possível deletar a experiência pois existem reservas associadas. Desative-a em vez de deletar.',
+      );
+
+      expect(databaseService.experience.delete).not.toHaveBeenCalled();
     });
   });
 
@@ -274,6 +315,24 @@ describe('ExperienceService', () => {
         },
       });
     });
+
+    it('should update experience with file upload missing mimetype', async () => {
+      const dto: UpdateExperienceFormDto = {
+        experienceName: 'Update No Mime',
+      } as never;
+
+      const fileNoMime = { ...mockFile, mimetype: undefined } as unknown as Express.Multer.File;
+      storageService.uploadFile.mockResolvedValueOnce({ url: 'url' });
+      databaseService.image.create.mockResolvedValueOnce({ id: 'img-id' } as never);
+      databaseService.experience.update.mockResolvedValueOnce({} as never);
+
+      await service.updateExperience(experienceId, dto, fileNoMime);
+
+      expect(storageService.uploadFile).toHaveBeenCalledWith(
+        expect.objectContaining({ originalname: 'test.jpg' }),
+        expect.objectContaining({ contentType: undefined }),
+      );
+    });
   });
 
   describe('searchExperience', () => {
@@ -311,36 +370,40 @@ describe('ExperienceService', () => {
         items: mockExperiences,
       });
 
-      expect(databaseService.experience.findMany).toHaveBeenCalledWith({
-        where: {
-          name: { contains: 'Trail' },
-          description: { contains: 'Mountain' },
-          startDate: { gte: new Date('2025-01-01') },
-          endDate: { lte: new Date('2025-12-31') },
-        },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          startDate: true,
-          endDate: true,
-          active: true,
-          category: true,
-          price: true,
-        },
-        orderBy: { name: 'asc' },
-        skip: 0,
-        take: 10,
-      });
+      expect(databaseService.experience.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            name: { contains: 'Trail' },
+            description: { contains: 'Mountain' },
+            startDate: { gte: new Date('2025-01-01') },
+            endDate: { lte: new Date('2025-12-31') },
+          }),
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            startDate: true,
+            endDate: true,
+            active: true,
+            category: true,
+            price: true,
+          },
+          orderBy: { name: 'asc' },
+          skip: 0,
+          take: 10,
+        }),
+      );
 
-      expect(databaseService.experience.count).toHaveBeenCalledWith({
-        where: {
-          name: { contains: 'Trail' },
-          description: { contains: 'Mountain' },
-          startDate: { gte: new Date('2025-01-01') },
-          endDate: { lte: new Date('2025-12-31') },
-        },
-      });
+      expect(databaseService.experience.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            name: { contains: 'Trail' },
+            description: { contains: 'Mountain' },
+            startDate: { gte: new Date('2025-01-01') },
+            endDate: { lte: new Date('2025-12-31') },
+          }),
+        }),
+      );
     });
 
     it('should search with pagination on second page', async () => {
@@ -360,27 +423,29 @@ describe('ExperienceService', () => {
       expect(result.limit).toBe(5);
       expect(result.total).toBe(12);
 
-      expect(databaseService.experience.findMany).toHaveBeenCalledWith({
-        where: {
-          name: { contains: undefined },
-          description: { contains: undefined },
-          startDate: { lte: undefined },
-          endDate: { gte: undefined },
-        },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          startDate: true,
-          endDate: true,
-          active: true,
-          category: true,
-          price: true,
-        },
-        orderBy: { description: 'desc' },
-        skip: 10,
-        take: 5,
-      });
+      expect(databaseService.experience.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            name: { contains: undefined },
+            description: { contains: undefined },
+            startDate: { lte: undefined },
+            endDate: { gte: undefined },
+          }),
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            startDate: true,
+            endDate: true,
+            active: true,
+            category: true,
+            price: true,
+          },
+          orderBy: { description: 'desc' },
+          skip: 10,
+          take: 5,
+        }),
+      );
     });
 
     it('should search without filters', async () => {
@@ -401,27 +466,29 @@ describe('ExperienceService', () => {
 
       await service.searchExperience(searchParams);
 
-      expect(databaseService.experience.findMany).toHaveBeenCalledWith({
-        where: {
-          name: { contains: undefined },
-          description: { contains: undefined },
-          startDate: { lte: undefined },
-          endDate: { gte: undefined },
-        },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          startDate: true,
-          endDate: true,
-          active: true,
-          category: true,
-          price: true,
-        },
-        orderBy: { name: 'asc' },
-        skip: 0,
-        take: 20,
-      });
+      expect(databaseService.experience.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            name: { contains: undefined },
+            description: { contains: undefined },
+            startDate: { lte: undefined },
+            endDate: { gte: undefined },
+          }),
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            startDate: true,
+            endDate: true,
+            active: true,
+            category: true,
+            price: true,
+          },
+          orderBy: { name: 'asc' },
+          skip: 0,
+          take: 20,
+        }),
+      );
     });
 
     it('should return empty results when no experiences match', async () => {
@@ -444,6 +511,29 @@ describe('ExperienceService', () => {
         total: 0,
         items: [],
       });
+    });
+
+    it('should search with category filter', async () => {
+      const searchParams: ExperienceSearchParamsDto = {
+        page: 0,
+        limit: 10,
+        dir: 'asc',
+        sort: 'name',
+        category: ['TRAIL', 'ADVENTURE'],
+      } as never;
+
+      databaseService.experience.findMany.mockResolvedValueOnce([]);
+      databaseService.experience.count.mockResolvedValueOnce(0);
+
+      await service.searchExperience(searchParams);
+
+      expect(databaseService.experience.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            category: { in: ['TRAIL', 'ADVENTURE'] },
+          }),
+        }),
+      );
     });
 
     it('should handle date range filtering correctly', async () => {
@@ -559,6 +649,76 @@ describe('ExperienceService', () => {
           imageId,
         },
       });
+    });
+    it('should create experience with file upload missing mimetype', async () => {
+      const dto: CreateExperienceFormDto = {
+        experienceName: 'No Mime',
+      } as never;
+
+      const fileNoMime = { ...mockFile, mimetype: undefined } as unknown as Express.Multer.File;
+      storageService.uploadFile.mockResolvedValueOnce({ url: 'url' });
+      databaseService.image.create.mockResolvedValueOnce({ id: 'img-id' } as never);
+      databaseService.experience.create.mockResolvedValueOnce({} as never);
+
+      await service.createExperience(dto, fileNoMime);
+
+      expect(storageService.uploadFile).toHaveBeenCalledWith(
+        expect.objectContaining({ originalname: 'test.jpg' }),
+        expect.objectContaining({ contentType: undefined }),
+      );
+    });
+  });
+
+  describe('getExperienceFilter', () => {
+    it('should filter by date range and search term', async () => {
+      const filterDto: GetExperienceFilterDto = {
+        page: 0,
+        limit: 10,
+        category: 'TRAIL',
+        search: 'mountain',
+        startDate: '2025-01-01T00:00:00Z',
+        endDate: '2025-01-31T00:00:00Z',
+      } as never;
+
+      databaseService.experience.findMany.mockResolvedValueOnce([]);
+      databaseService.experience.count.mockResolvedValueOnce(0);
+
+      await service.getExperienceFilter(filterDto);
+
+      expect(databaseService.experience.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            category: 'TRAIL',
+            name: { contains: 'mountain', mode: 'insensitive' },
+            AND: [
+              { OR: [{ startDate: null }, { startDate: { gte: filterDto.startDate } }] },
+              { OR: [{ endDate: null }, { endDate: { lte: filterDto.endDate } }] },
+            ],
+          }),
+        }),
+      );
+    });
+
+    it('should filter without optional dates', async () => {
+      const filterDto: GetExperienceFilterDto = {
+        page: 0,
+        limit: 10,
+        category: 'TRAIL',
+      } as never;
+
+      databaseService.experience.findMany.mockResolvedValueOnce([]);
+      databaseService.experience.count.mockResolvedValueOnce(0);
+
+      await service.getExperienceFilter(filterDto);
+
+      expect(databaseService.experience.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            category: 'TRAIL',
+            name: { contains: undefined, mode: 'insensitive' },
+          },
+        }),
+      );
     });
   });
 });
