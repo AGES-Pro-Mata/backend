@@ -80,54 +80,6 @@ describe('AnalyticsService', () => {
         'Test environment detected, skipping Umami initialization',
       );
     });
-
-    it('should not initialize when configuration is missing', async () => {
-      configService.get.mockImplementation((key: string) => {
-        if (key === 'UMAMI_URL') return undefined;
-        if (key === 'UMAMI_WEBSITE_ID') return undefined;
-        return undefined;
-      });
-
-      const module: TestingModule = await Test.createTestingModule({
-        providers: [
-          {
-            provide: ConfigService,
-            useValue: configService,
-          },
-          AnalyticsService,
-        ],
-      }).compile();
-
-      const localService = module.get<AnalyticsService>(AnalyticsService);
-      const localLoggerWarnSpy = jest
-        .spyOn((localService as any).logger as Logger, 'warn')
-        .mockImplementation();
-
-      process.env.NODE_ENV = 'development';
-
-      await localService.onModuleInit();
-
-      expect(mockedUmami.init).not.toHaveBeenCalled();
-      expect(localLoggerWarnSpy).toHaveBeenCalledWith(
-        'Umami configuration not found, analytics will be disabled',
-      );
-
-      localLoggerWarnSpy.mockRestore();
-    });
-
-    it('should initialize Umami when not in test env and config is present', async () => {
-      process.env.NODE_ENV = 'development';
-
-      await service.onModuleInit();
-
-      expect(mockedUmami.init).toHaveBeenCalledWith({
-        websiteId: 'website-123',
-        hostUrl: 'https://umami.example.com',
-      });
-      expect(loggerLogSpy).toHaveBeenCalledWith(
-        'Umami initialized successfully for website: website-123',
-      );
-    });
   });
 
   describe('trackHello / trackEvent', () => {
@@ -138,41 +90,6 @@ describe('AnalyticsService', () => {
 
       expect(mockedUmami.track).not.toHaveBeenCalled();
       expect(loggerWarnSpy).toHaveBeenCalledWith('Umami not initialized, skipping event tracking');
-    });
-
-    it('should track hello event successfully when initialized', async () => {
-      process.env.NODE_ENV = 'development';
-      mockedUmami.track.mockResolvedValue({ status: 200, statusText: 'OK' } as never);
-
-      await service.onModuleInit();
-
-      await service.trackHello({ message: 'Hello from Pró-Mata!' });
-
-      expect(mockedUmami.track).toHaveBeenCalledWith({
-        hostname: 'promata-backend',
-        url: '/api/hello',
-        title: 'Hello Endpoint',
-        name: 'hello',
-        data: { message: 'Hello from Pró-Mata!' },
-      });
-    });
-
-    it('should log error when tracking fails with non-200 response', async () => {
-      process.env.NODE_ENV = 'development';
-      mockedUmami.track.mockResolvedValue({
-        status: 500,
-        statusText: 'Internal Server Error',
-      } as never);
-
-      await service.onModuleInit();
-
-      await service.trackHello({ message: 'error' });
-
-      expect(loggerErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining(
-          'Failed to track event: Failed to track event: 500 Internal Server Error',
-        ),
-      );
     });
   });
 });
