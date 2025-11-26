@@ -142,7 +142,7 @@ async function main() {
   // Criar Endereços (200)
   console.log('📍 Criando 200 endereços...');
   const addresses = [];
-  for (let i = 0; i < 200; i++) {
+  for (let i = 0; i < 201; i++) {
     const location = randomChoice(BRAZILIAN_CITIES);
     const street = randomChoice(STREET_NAMES);
     const address = await prisma.address.create({
@@ -201,7 +201,7 @@ async function main() {
       institution: 'Pro-Mata',
       isForeign: false,
       verified: true,
-      addressId: addresses[0].id,
+      addressId: addresses[200].id,
     },
   });
 
