@@ -15,7 +15,7 @@ import { UserService } from './user.service';
 import { Roles } from 'src/auth/role/roles.decorator';
 import { UserType } from 'generated/prisma';
 import { ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
-import { UserSearchParamsDto, UpdateUserFormDto } from './user.model';
+import { UserSearchParamsDto, UpdateUserFormDto, UpdateUserAdminFormDto } from './user.model';
 import { User } from './user.decorator';
 import type { CurrentUser } from 'src/auth/auth.model';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -38,7 +38,7 @@ export class UserController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async updateUserAsAdmin(
     @Param('userId') userId: string,
-    @Body() updateUserDto: UpdateUserFormDto,
+    @Body() updateUserDto: UpdateUserAdminFormDto,
   ) {
     await this.userService.updateUser(userId, updateUserDto, null);
   }

@@ -8,7 +8,7 @@ import {
 import { DatabaseService } from 'src/database/database.service';
 import z from 'zod';
 import { Prisma, RequestType, UserType } from 'generated/prisma';
-import { UserSearchParamsDto, UpdateUserFormDto } from './user.model';
+import { UserSearchParamsDto, UpdateUserFormDto, UpdateUserAdminFormDto } from './user.model';
 import { ObfuscateService } from 'src/obfuscate/obfuscate.service';
 import { StorageService } from 'src/storage/storage.service';
 
@@ -55,7 +55,7 @@ export class UserService {
 
   async updateUser(
     userId: string,
-    updateUserDto: UpdateUserFormDto,
+    updateUserDto: UpdateUserFormDto | UpdateUserAdminFormDto,
     file: Express.Multer.File | null,
   ) {
     this.verifyUserId(userId);

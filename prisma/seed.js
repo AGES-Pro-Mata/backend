@@ -1,5 +1,6 @@
 const { PrismaClient, UserType } = require('../generated/prisma');
 const argon2 = require('argon2');
+const generateCpf = require('gerar-cpf');
 
 const prisma = new PrismaClient();
 
@@ -19,14 +20,6 @@ function randomInt(min, max) {
 
 function randomChoice(array) {
   return array[Math.floor(Math.random() * array.length)];
-}
-
-function generateCPF() {
-  const n1 = randomInt(100, 999);
-  const n2 = randomInt(100, 999);
-  const n3 = randomInt(100, 999);
-  const n4 = randomInt(10, 99);
-  return `${n1}.${n2}.${n3}-${n4}`;
 }
 
 function generateRG() {
@@ -207,7 +200,7 @@ async function main() {
         email: `admin${i + 1}@promata.com`,
         password: demoPassword,
         phone: `(${randomInt(11, 99)}) 9${randomInt(1000, 9999)}-${randomInt(1000, 9999)}`,
-        document: generateCPF(),
+        document: generateCpf(),
         gender: randomChoice(['Masculino', 'Feminino']),
         rg: generateRG(),
         institution: 'Pro-Mata',
@@ -232,7 +225,7 @@ async function main() {
         email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${i}@university.br`,
         password: demoPassword,
         phone: `(${randomInt(11, 99)}) 9${randomInt(1000, 9999)}-${randomInt(1000, 9999)}`,
-        document: generateCPF(),
+        document: generateCpf(),
         gender: randomChoice(['Masculino', 'Feminino']),
         rg: generateRG(),
         institution: randomChoice(INSTITUTIONS),
@@ -260,7 +253,7 @@ async function main() {
         phone: isForeign
           ? `+${randomInt(1, 99)} ${randomInt(100, 999)}-${randomInt(1000, 9999)}`
           : `(${randomInt(11, 99)}) 9${randomInt(1000, 9999)}-${randomInt(1000, 9999)}`,
-        document: isForeign ? null : generateCPF(),
+        document: isForeign ? null : generateCpf(),
         gender: randomChoice(['Masculino', 'Feminino']),
         rg: isForeign ? null : generateRG(),
         institution: isForeign
@@ -562,7 +555,7 @@ async function main() {
         await prisma.member.create({
           data: {
             name: `${firstName} ${lastName}`,
-            document: Math.random() > 0.3 ? generateCPF() : null,
+            document: Math.random() > 0.3 ? generateCpf() : null,
             gender: randomChoice(['Masculino', 'Feminino']),
             phone:
               Math.random() > 0.5
