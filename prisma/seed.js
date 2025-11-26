@@ -188,7 +188,7 @@ async function main() {
     },
   });
 
-    const lucasUser = await prisma.user.create({
+  const lucasUser = await prisma.user.create({
     data: {
       userType: UserType.GUEST,
       name: 'Lucas',
@@ -349,7 +349,7 @@ async function main() {
         durationMinutes: randomInt(120, 480),
         trailDifficulty: difficulty,
         trailLength: length,
-        active: Math.random() > 0.1,
+        active: true,
         imageId: randomChoice(images).id,
         startDate: new Date('2025-01-01'),
         endDate: new Date('2025-12-31'),
@@ -383,7 +383,7 @@ async function main() {
         price: randomInt(80, 400),
         weekDays: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'],
         durationMinutes: 1440,
-        active: Math.random() > 0.05,
+        active: true,
         imageId: randomChoice(images).id,
         startDate: new Date('2025-01-01'),
         endDate: new Date('2025-12-31'),
@@ -420,7 +420,7 @@ async function main() {
           ['TUESDAY', 'THURSDAY'],
         ]),
         durationMinutes: randomInt(240, 480),
-        active: Math.random() > 0.05,
+        active: true,
         imageId: randomChoice(images).id,
         startDate: new Date('2025-01-01'),
         endDate: new Date('2025-12-31'),
@@ -461,7 +461,7 @@ async function main() {
         capacity: randomInt(20, 80),
         price: randomInt(50, 150),
         durationMinutes: durationHours * 60,
-        active: Math.random() > 0.05,
+        active: true,
         imageId: randomChoice(images).id,
         startDate: startDate,
         endDate: endDate,
@@ -537,13 +537,13 @@ async function main() {
       let finalPaymentState = null;
       let isCanceled = false;
 
-      if (workflowRandom < 0.55) {
-        requestFlow.push('PAYMENT_REQUESTED', 'PAYMENT_SENT', 'PAYMENT_APPROVED');
+      if (workflowRandom < 0.85) {
+        requestFlow.push('PAYMENT_REQUESTED', 'PAYMENT_SENT', 'PAYMENT_APPROVED', 'APPROVED');
         finalPaymentState = 'APPROVED';
-      } else if (workflowRandom < 0.7) {
+      } else if (workflowRandom < 0.9) {
         requestFlow.push('CANCELED_REQUESTED', 'CANCELED');
         isCanceled = true;
-      } else if (workflowRandom < 0.85) {
+      } else if (workflowRandom < 0.95) {
         requestFlow.push('PAYMENT_REQUESTED', 'PAYMENT_SENT');
         finalPaymentState = 'PENDING';
       } else {
