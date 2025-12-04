@@ -1,0 +1,67 @@
+# ============================================
+# Dockerfile.deliver - Backend Pro-Mata
+# ============================================
+# Imagem otimizada para entrega ao cliente
+# SEM seed embutido (seed via postgres init)
+# ============================================
+
+# ---------------------------------
+# Build + Dependencies stage
+# ---------------------------------
+FROM node:24-alpine AS build
+
+# Instalar pacotes nativos necessários
+RUN apk add --no-cache openssl libc6-compat python3 make g++
+
+WORKDIR /app
+
+# Copiar apenas arquivos de dependências (para maximizar cache)
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Instalar todas as dependências (dev + prod)
+# O cache do Docker só será invalidado se package.json ou package-lock.json mudarem
+RUN npm ci && npm cache clean --force
+
+# Copiar o restante do código (não invalida cache de dependências)
+COPY . .
+
+# Gerar Prisma Client e buildar aplicação
+RUN npx prisma generate
+RUN npm run build
+
+# Remover devDependencies para reduzir tamanho final
+RUN npm prune --production && npm cache clean --force
+
+# ---------------------------------
+# Runtime stage (imagem final)
+# ---------------------------------
+FROM node:24-alpine AS runtime
+
+RUN apk add --no-cache openssl libc6-compat curl
+
+# Criar usuário não-root
+RUN addgroup -g 1001 -S nodejs \
+  && adduser -S nestjs -u 1001
+
+WORKDIR /app
+
+# Copiar apenas artefatos necessários do estágio anterior
+COPY --from=build --chown=nestjs:nodejs /app/dist ./dist
+COPY --from=build --chown=nestjs:nodejs /app/node_modules ./node_modules
+COPY --from=build --chown=nestjs:nodejs /app/prisma ./prisma
+COPY --from=build --chown=nestjs:nodejs /app/generated/prisma ./generated/prisma
+COPY --from=build --chown=nestjs:nodejs /app/package*.json ./
+
+ENV NODE_ENV=production
+ENV PORT=3000
+
+EXPOSE 3000
+USER nestjs
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+# Iniciar aplicação
+# IMPORTANTE: Sem execução de seed - seed via postgres init no infrastructure
+CMD ["node", "dist/main.js"]
