@@ -64,4 +64,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 
 # Iniciar aplicação
 # IMPORTANTE: Sem execução de seed - seed via postgres init no infrastructure
-CMD ["node", "dist/main.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
