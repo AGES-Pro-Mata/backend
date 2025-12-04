@@ -36,8 +36,12 @@ async function main() {
   }
 
   // Criar hash da senha padrão
+  // O frontend envia o hash SHA-256 da senha, então precisamos fazer
+  // argon2 hash do SHA-256 hash para que a verificação funcione
   const defaultPassword = 'ProMata2025!';
-  const hashedPassword = await argon2.hash(defaultPassword, {
+  const crypto = require('crypto');
+  const sha256Hash = crypto.createHash('sha256').update(defaultPassword).digest('hex');
+  const hashedPassword = await argon2.hash(sha256Hash, {
     type: argon2.argon2id,
     memoryCost: 65536,
     timeCost: 3,

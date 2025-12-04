@@ -6,13 +6,18 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // Configuração CORS
+  // Configuração CORS - usa CORS_ORIGINS do ambiente ou fallback para desenvolvimento
+  const defaultOrigins = [
+    'http://localhost:3002',
+    'http://localhost:3001',
+    'http://promata-frontend.s3-website.us-east-2.amazonaws.com',
+  ];
+  const corsOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+    : defaultOrigins;
+
   app.enableCors({
-    origin: [
-      'http://localhost:3002',
-      'http://localhost:3001',
-      'http://promata-frontend.s3-website.us-east-2.amazonaws.com',
-    ],
+    origin: corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
